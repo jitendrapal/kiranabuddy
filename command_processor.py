@@ -92,10 +92,13 @@ class CommandProcessor:
             
             # Step 3: Parse command using AI
             parsed_command = self.ai_service.parse_command(text)
-            
+            # Detect language for response (Hindi vs English)
+            response_language = self.ai_service.detect_language(text)
+
             print(f"Parsed command: action={parsed_command.action.value}, "
-                  f"product={parsed_command.product_name}, quantity={parsed_command.quantity}")
-            
+                  f"product={parsed_command.product_name}, quantity={parsed_command.quantity}, "
+                  f"language={response_language}")
+
             # Step 4: Validate command
             if not parsed_command.is_valid():
                 return {
@@ -113,16 +116,17 @@ class CommandProcessor:
             
             # Step 5: Execute command
             result = self._execute_command(shop_id, from_phone, parsed_command)
-            
+
             # Step 6: Generate response
             if result['success']:
                 response_message = self.ai_service.generate_response(
                     parsed_command.action.value,
-                    result
+                    result,
+                    language=response_language,
                 )
             else:
                 response_message = result.get('message', '❌ Command failed.')
-            
+
             return {
                 'success': result['success'],
                 'message': response_message,

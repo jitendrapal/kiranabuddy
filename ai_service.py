@@ -61,6 +61,62 @@ class AIService:
                 except:
                     pass
             return None
+    def detect_language(self, message: str) -> str:
+        """Very simple language detector: returns 'hindi' or 'english'.
+
+        We look for Devanagari characters and some common Hindi/English
+        keywords. This is not perfect but works well for short shop
+        messages.
+        """
+        if not message:
+            return "hinglish"
+
+        normalized = message.lower()
+
+        # Check for Devanagari script (Unicode range for Hindi)
+        has_devanagari = any("\u0900" <= ch <= "\u097f" for ch in message)
+
+        hindi_keywords = [
+            "hai",
+            "kitna",
+            "kitne",
+            "batao",
+            "aaj",
+            "kal",
+            "maal",
+            "becha",
+            "bika",
+            "kam",
+            "khatam",
+            "liya",
+            "diya",
+            "aaya",
+            "aaye",
+        ]
+        english_keywords = [
+            "how much",
+            "stock",
+            "today",
+            "total",
+            "sale",
+            "sold",
+            "add",
+            "bought",
+            "purchase",
+            "remaining",
+            "inventory",
+            "report",
+        ]
+
+        hindi_score = sum(1 for w in hindi_keywords if w in normalized)
+        english_score = sum(1 for w in english_keywords if w in normalized)
+
+        if has_devanagari or hindi_score > english_score:
+            return "hindi"
+        else:
+            return "english"
+
+
 
     def parse_command(self, message: str) -> ParsedCommand:
         """
@@ -297,18 +353,19 @@ Do not include any explanation, just the JSON."""
             )
 
     def generate_response(self, action: str, result: Dict[str, Any], language: str = "hinglish") -> str:
-        """
-        Generate a natural language response for the user
+        """Generate a natural language response for the user.
 
         Args:
             action: The action performed (add_stock, reduce_stock, check_stock)
             result: The result dictionary from database operation
-            language: Response language (hinglish, hindi, english)
-
-        Returns:
-            Natural language response
+            language: Response language hint ("hindi" or "english" or "hinglish")
         """
+        lang = (language or "hinglish").lower()
+        is_english = lang.startswith("en")
+
         if not result.get('success'):
+            if is_english:
+                return "Sorry, something went wrong. Please try again."
             return "Sorry, kuch problem hui. Please try again."
 
         product_name = result.get('product_name', 'product')
@@ -317,12 +374,16 @@ Do not include any explanation, just the JSON."""
             quantity = result.get('quantity', 0)
             new_stock = result.get('new_stock', 0)
             unit = result.get('unit', 'pieces')
+            if is_english:
+                return f"✅ {quantity} {product_name} added! Total stock: {new_stock} {unit}"
             return f"✅ {quantity} {product_name} add ho gaya! Total stock: {new_stock} {unit}"
 
         elif action == 'reduce_stock':
             quantity = result.get('quantity', 0)
             new_stock = result.get('new_stock', 0)
             unit = result.get('unit', 'pieces')
+            if is_english:
+                return f"✅ {quantity} {product_name} sold! Remaining stock: {new_stock} {unit}"
             return f"✅ {quantity} {product_name} sold! Remaining stock: {new_stock} {unit}"
 
         elif action == 'adjust_stock':
@@ -330,6 +391,17 @@ Do not include any explanation, just the JSON."""
             new_qty = result.get('new_quantity')
             new_stock = result.get('new_stock', 0)
             unit = result.get('unit', 'pieces')
+            if is_english:
+                if old_qty is None or new_qty is None:
+                    return (
+                        f"✅ Incorrect entry corrected for {product_name}. "
+                        f"Current stock: {new_stock} {unit}"
+                    )
+                return (
+                    f"✅ Incorrect entry corrected. {product_name}: {old_qty} → {new_qty}. "
+                    f"Now total stock: {new_stock} {unit}"
+                )
+            # Hindi / Hinglish
             if old_qty is None or new_qty is None:
                 return f"✅ {product_name} ki galat entry correct ho gayi. Ab total stock: {new_stock} {unit}"
             return (
@@ -342,7 +414,14 @@ Do not include any explanation, just the JSON."""
             top_qty = result.get('top_product_quantity', 0)
             total_items = result.get('total_items_sold', 0)
             if not top_name:
+                if is_english:
+                    return "❌ No sales yet today."
                 return "❌ Aaj abhi tak koi sale nahi hui."
+            if is_english:
+                return (
+                    f"📊 Top-selling product today: {top_name} ({top_qty} sold). "
+                    f"(Total items sold: {total_items})"
+                )
             return (
                 f"📊 Aaj sabse zyada {top_qty} {top_name} bika. "
                 f"(Total items sold: {total_items})"
@@ -352,9 +431,15 @@ Do not include any explanation, just the JSON."""
             products = result.get('products', [])
             total = result.get('total_products', len(products))
             if not products:
+                if is_english:
+                    return "📦 No products registered yet."
                 return "📦 Abhi tak koi product register nahi hua."
 
-            response = "📦 Aapke shop ke products:\n\n"
+            if is_english:
+                response = "📦 Your shop products:\n\n"
+            else:
+                response = "📦 Aapke shop ke products:\n\n"
+
             for p in products:
                 name = p.get('name', 'Product')
                 stock = p.get('stock', 0)
@@ -368,9 +453,15 @@ Do not include any explanation, just the JSON."""
             low_products = result.get('low_products', [])
             threshold = result.get('threshold', 5)
             if not low_products:
+                if is_english:
+                    return "✅ No items are low on stock right now. Everything looks good."
                 return "✅ Abhi koi item low stock mein nahi hai. Sab theek hai."
 
-            response = f"⚠️ Low stock items (≤ {threshold}):\n\n"
+            if is_english:
+                response = f"⚠️ Low stock items (≤ {threshold}):\n\n"
+            else:
+                response = f"⚠️ Low stock items (≤ {threshold}):\n\n"
+
             for p in low_products:
                 name = p.get('name', 'Product')
                 stock = p.get('stock', 0)
@@ -384,13 +475,19 @@ Do not include any explanation, just the JSON."""
         elif action == 'check_stock':
             current_stock = result.get('current_stock', 0)
             unit = result.get('unit', 'pieces')
+            if is_english:
+                return f"📦 Stock for {product_name}: {current_stock} {unit}"
             return f"📦 {product_name} ka stock: {current_stock} {unit}"
 
         elif action == 'total_sales':
             total_items = result.get('total_items_sold', 0)
             products_sold = result.get('products_sold', {})
 
-            response = f"📊 Aaj ka total sale:\n\n"
+            if is_english:
+                response = f"📊 Today's total sales:\n\n"
+            else:
+                response = f"📊 Aaj ka total sale:\n\n"
+
             response += f"✅ Total items sold: {total_items}\n\n"
 
             if products_sold:
@@ -398,7 +495,10 @@ Do not include any explanation, just the JSON."""
                 for product, qty in products_sold.items():
                     response += f"   • {product}: {qty}\n"
             else:
-                response += "❌ Koi sale nahi hui aaj!"
+                if is_english:
+                    response += "❌ No sales yet today!"
+                else:
+                    response += "❌ Koi sale nahi hui aaj!"
 
             return response
 
