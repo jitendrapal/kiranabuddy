@@ -29,6 +29,7 @@ class CommandAction(Enum):
     TOTAL_SALES = "total_sales"
     LIST_PRODUCTS = "list_products"
     LOW_STOCK = "low_stock"
+    ADJUST_STOCK = "adjust_stock"
     UNKNOWN = "unknown"
 
 
@@ -147,7 +148,8 @@ class ParsedCommand:
         """Check if command is valid for execution"""
         if self.action == CommandAction.CHECK_STOCK:
             return self.product_name is not None
-        elif self.action in [CommandAction.ADD_STOCK, CommandAction.REDUCE_STOCK]:
+        elif self.action in [CommandAction.ADD_STOCK, CommandAction.REDUCE_STOCK, CommandAction.ADJUST_STOCK]:
+            # For adjustments, quantity represents the correct quantity for the last entry
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
         elif self.action in [CommandAction.TOTAL_SALES, CommandAction.LIST_PRODUCTS, CommandAction.LOW_STOCK]:
             # These commands don't require product or quantity

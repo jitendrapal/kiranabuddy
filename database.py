@@ -305,6 +305,99 @@ class FirestoreDB:
             'new_stock': new_stock,
             'unit': product.unit
         }
+    def adjust_last_transaction(self, shop_id: str, product_name: str, correct_quantity: float,
+                                user_phone: str) -> Dict[str, Any]:
+        """Adjust the most recent transaction for a product to a new correct quantity.
+
+        Assumes the last transaction for this product is the one to correct
+        (e.g., user immediately fixes a mistake like "Maggi 3 nahi 1 the").
+        """
+        product = self.get_or_create_product(shop_id, product_name)
+
+        # Find the most recent transaction for this product & shop
+        trans_query = (
+            self.db.collection('transactions')
+            .where('shop_id', '==', shop_id)
+            .where('product_name', '==', product.name)
+            .order_by('timestamp', direction=firestore.Query.DESCENDING)
+            .limit(1)
+        )
+
+        last_doc = None
+        for d in trans_query.stream():
+            last_doc = d
+            break
+
+        if not last_doc:
+            return {
+                'success': False,
+                'message': f"❌ {product.name} ke liye koi previous entry nahi mili, adjust nahi kar sakte."
+            }
+
+        trans = last_doc.to_dict()
+        trans_type = trans.get('transaction_type')
+
+        if trans_type not in ['add_stock', 'reduce_stock', 'sale']:
+            return {
+                'success': False,
+                'message': f"❌ Last entry adjustment ke liye suitable nahi hai ({trans_type})."
+            }
+
+        original_qty = float(trans.get('quantity', 0) or 0)
+        correct_quantity = float(correct_quantity)
+
+        if original_qty == correct_quantity:
+            return {
+                'success': True,
+                'product_name': product.name,
+                'old_quantity': original_qty,
+                'new_quantity': correct_quantity,
+                'delta': 0.0,
+                'unit': product.unit,
+                'new_stock': product.current_stock,
+                'message': "ℹ️ Entry already matches the correct quantity."
+            }
+
+        # Determine how this transaction affected stock
+        if trans_type in ['add_stock', 'sale']:
+            # Positive effect on stock
+            delta_effect = correct_quantity - original_qty
+        else:  # reduce_stock
+            # Negative effect on stock
+            delta_effect = original_qty - correct_quantity
+
+        previous_stock = product.current_stock
+        new_stock = max(0, previous_stock + delta_effect)
+
+        # Update product stock
+        self.update_product_stock(product.product_id, new_stock)
+
+        # Record an adjustment transaction
+        notes = f"Adjustment for {product.name}: {original_qty} -> {correct_quantity}"
+        adjustment = self.create_transaction(
+            shop_id=shop_id,
+            product_id=product.product_id,
+            product_name=product.name,
+            transaction_type=TransactionType.ADJUSTMENT,
+            quantity=delta_effect,
+            previous_stock=previous_stock,
+            new_stock=new_stock,
+            user_phone=user_phone,
+            notes=notes,
+        )
+
+        return {
+            'success': True,
+            'product_name': product.name,
+            'old_quantity': original_qty,
+            'new_quantity': correct_quantity,
+            'delta': delta_effect,
+            'unit': product.unit,
+            'new_stock': new_stock,
+            'adjustment_id': adjustment.transaction_id,
+        }
+
+
 
     def check_stock(self, shop_id: str, product_name: str) -> Dict[str, Any]:
         """Check current stock for a product"""

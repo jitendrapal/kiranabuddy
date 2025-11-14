@@ -189,6 +189,14 @@ class CommandProcessor:
             elif command.action == CommandAction.LOW_STOCK:
                 return self.db.get_low_stock_products(shop_id=shop_id)
 
+            elif command.action == CommandAction.ADJUST_STOCK:
+                return self.db.adjust_last_transaction(
+                    shop_id=shop_id,
+                    product_name=command.product_name,
+                    correct_quantity=command.quantity,
+                    user_phone=user_phone,
+                )
+
             else:
                 return {
                     'success': False,

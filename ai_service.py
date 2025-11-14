@@ -143,9 +143,9 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi, English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", or "unknown"
-2. product_name: the name of the product mentioned (not needed for total_sales, list_products, or low_stock)
-3. quantity: the quantity mentioned (if applicable)
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", or "unknown"
+2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, or adjust_stock)
+3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1).
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want.
 
@@ -179,6 +179,12 @@ Examples of TOTAL SALES (daily sales summary):
 - "Total sale today" / "Aaj ka total"
 - "Kitna maal becha aaj?" / "Sales report for today"
 
+
+Examples of ADJUST STOCK (fixing wrong entries):
+- "Galat entry ho gayi, Maggi 3 nahi 1 the" -> user earlier recorded 3 Maggi but correct is 1 piece; treat as adjust_stock with product_name "Maggi" and quantity 1.
+- "Oil 5 nahi 2 tha" -> adjust_stock for Oil with quantity 2.
+
+
 Key words to identify actions:
 - ADD: add, laya, aaya, purchase, bought, received, new stock, stock mein daal, mila, got
 - REDUCE: sold, bik gaya, bech diya, nikala, sale, customer ko diya, gaya
@@ -189,8 +195,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "unknown",
-    "product_name": "product name" or null (not needed for total_sales, list_products, or low_stock),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "unknown",
+    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, or adjust_stock),
     "quantity": number or null,
     "confidence": 0.0 to 1.0
 }
@@ -220,6 +226,7 @@ Do not include any explanation, just the JSON."""
                 "total_sales": CommandAction.TOTAL_SALES,
                 "list_products": CommandAction.LIST_PRODUCTS,
                 "low_stock": CommandAction.LOW_STOCK,
+                "adjust_stock": CommandAction.ADJUST_STOCK,
                 "unknown": CommandAction.UNKNOWN
             }
 
@@ -271,6 +278,18 @@ Do not include any explanation, just the JSON."""
             new_stock = result.get('new_stock', 0)
             unit = result.get('unit', 'pieces')
             return f"✅ {quantity} {product_name} sold! Remaining stock: {new_stock} {unit}"
+
+        elif action == 'adjust_stock':
+            old_qty = result.get('old_quantity')
+            new_qty = result.get('new_quantity')
+            new_stock = result.get('new_stock', 0)
+            unit = result.get('unit', 'pieces')
+            if old_qty is None or new_qty is None:
+                return f"✅ {product_name} ki galat entry correct ho gayi. Ab total stock: {new_stock} {unit}"
+            return (
+                f"✅ Galat entry correct ho gayi. {product_name}: {old_qty} se {new_qty} kar diya. "
+                f"Ab total stock: {new_stock} {unit}"
+            )
 
         elif action == 'list_products':
             products = result.get('products', [])
