@@ -23,19 +23,24 @@
       }
 
       .container {
-        max-width: 800px;
+        width: 420px;
+        max-width: 100%;
         margin: 0 auto;
-        background: white;
-        border-radius: 20px;
+        background: #f0f2f5;
+        border-radius: 24px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
 
       .header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #075e54;
         color: white;
-        padding: 30px;
-        text-align: center;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
 
       .header h1 {
@@ -48,7 +53,10 @@
       }
 
       .content {
-        padding: 30px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #ece5dd;
       }
 
       .section {
@@ -171,46 +179,194 @@
       .examples li:hover {
         background: #e9ecef;
       }
+
+      .chat-window {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        background: #ece5dd;
+      }
+
+      .chat-message {
+        display: flex;
+        margin-bottom: 8px;
+      }
+
+      .chat-message.user {
+        justify-content: flex-end;
+      }
+
+      .chat-message.bot {
+        justify-content: flex-start;
+      }
+
+      .message-bubble {
+        max-width: 75%;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.4;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+      }
+
+      .chat-message.user .message-bubble {
+        background: #d1ffc6;
+        border-bottom-right-radius: 0;
+      }
+
+      .chat-message.bot .message-bubble {
+        background: #ffffff;
+        border-bottom-left-radius: 0;
+      }
+
+      .chat-input-row {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background: #f0f0f0;
+        border-top: 1px solid #d0d0d0;
+        gap: 8px;
+      }
+
+      .phone-badge {
+        font-size: 11px;
+        color: #555;
+        background: #e0e0e0;
+        padding: 4px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .message-input {
+        flex: 1;
+        border-radius: 20px;
+        border: 1px solid #ccc;
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      .send-button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .header-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #128c7e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .header-main {
+        font-size: 1em;
+        font-weight: 600;
+      }
+
+      .header-sub {
+        font-size: 0.75em;
+        opacity: 0.9;
+      }
+
+      .header-phone {
+        font-size: 0.7em;
+        opacity: 0.9;
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <div class="header">
-        <h1>🏪 Kirana Shop Management</h1>
-        <p>Test Interface - No WhatsApp Required!</p>
+        <div class="header-title">
+          <div class="header-avatar">KB</div>
+          <div>
+            <div class="header-main">KiranaBuddy</div>
+            <div class="header-sub">WhatsApp Test Chat</div>
+          </div>
+        </div>
+        <div class="header-phone">Test phone: +919876543210</div>
       </div>
 
       <div class="content">
-        <div class="section">
-          <h2>💬 Simulate WhatsApp Message</h2>
-          <div class="input-group">
-            <label for="phone">Phone Number:</label>
-            <input
-              type="text"
-              id="phone"
-              placeholder="+919876543210"
-              value="+919876543210"
-            />
+        <div class="chat-window" id="chatWindow">
+          <div class="chat-message bot">
+            <div class="message-bubble">
+              Namaste! Main aapka KiranaBuddy hoon. Yahan aap WhatsApp jaisi
+              chat mein commands test kar sakte ho.
+            </div>
           </div>
-          <div class="input-group">
-            <label for="message">Message:</label>
-            <textarea id="message" placeholder="Add 10 Maggi"></textarea>
-          </div>
-          <button onclick="simulateMessage()">Send Message</button>
+        </div>
 
-          <div id="messageResult" class="result"></div>
+        <div class="chat-input-row">
+          <div class="phone-badge">Test phone: +919876543210</div>
+          <input type="hidden" id="phone" value="+919876543210" />
+          <input
+            type="text"
+            id="message"
+            class="message-input"
+            placeholder="Type a message, e.g. 'Add 10 Maggi'"
+            onkeydown="handleKeyDown(event)"
+          />
+          <button class="send-button" onclick="simulateMessage()">➤</button>
         </div>
       </div>
     </div>
 
     <script>
-      async function simulateMessage() {
-        const phone = document.getElementById("phone").value;
-        const message = document.getElementById("message").value;
-        const resultDiv = document.getElementById("messageResult");
+      function appendMessage(text, sender) {
+        const chat = document.getElementById("chatWindow");
+        if (!chat) return;
 
-        if (!phone || !message) {
-          showResult(resultDiv, "Please enter phone and message", "error");
+        const row = document.createElement("div");
+        row.className = "chat-message " + (sender === "user" ? "user" : "bot");
+
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble";
+        bubble.textContent = text;
+
+        row.appendChild(bubble);
+        chat.appendChild(row);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function handleKeyDown(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          simulateMessage();
+        }
+      }
+
+      async function simulateMessage() {
+        const phoneInput = document.getElementById("phone");
+        const messageInput = document.getElementById("message");
+        const phone = phoneInput ? phoneInput.value : "";
+        const message = messageInput.value.trim();
+
+        if (!message) {
+          return;
+        }
+
+        // Show user message in chat
+        appendMessage(message, "user");
+        messageInput.value = "";
+
+        if (!phone) {
+          appendMessage("⚠️ Test phone number missing.", "bot");
           return;
         }
 
@@ -230,36 +386,20 @@
           const data = await response.json();
 
           if (response.ok) {
-            let result = `✅ Message Processed!\n\n`;
-            result += `Status: ${data.status}\n`;
-            result += `Success: ${data.success}\n`;
-
             if (data.message) {
-              result += `\n📱 Response Message:\n${data.message}\n`;
+              appendMessage(data.message, "bot");
+            } else {
+              appendMessage("✅ Message processed (no reply text).", "bot");
             }
-
-            if (data.data) {
-              // Previously we printed a '📊 Details' block here. This was
-              // removed to keep the response simpler for the user.
-              // If needed in future, details can be re-enabled for debugging.
-            }
-
-            showResult(resultDiv, result, "success");
           } else {
-            showResult(
-              resultDiv,
-              "Error: " + JSON.stringify(data, null, 2),
-              "error"
+            appendMessage(
+              "Error: " + (data.message || JSON.stringify(data)),
+              "bot"
             );
           }
         } catch (error) {
-          showResult(resultDiv, "Error: " + error.message, "error");
+          appendMessage("Error: " + error.message, "bot");
         }
-      }
-
-      function showResult(element, text, type) {
-        element.className = "result show " + type;
-        element.innerHTML = "<pre>" + text + "</pre>";
       }
     </script>
   </body>
