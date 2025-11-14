@@ -183,12 +183,18 @@ class CommandProcessor:
             elif command.action == CommandAction.TOTAL_SALES:
                 return self.db.get_total_sales_today(shop_id=shop_id)
 
+            elif command.action == CommandAction.LIST_PRODUCTS:
+                return self.db.get_products_summary(shop_id=shop_id)
+
+            elif command.action == CommandAction.LOW_STOCK:
+                return self.db.get_low_stock_products(shop_id=shop_id)
+
             else:
                 return {
                     'success': False,
                     'message': 'Unknown command'
                 }
-                
+
         except Exception as e:
             print(f"Error executing command: {e}")
             return {

@@ -27,6 +27,8 @@ class CommandAction(Enum):
     REDUCE_STOCK = "reduce_stock"
     CHECK_STOCK = "check_stock"
     TOTAL_SALES = "total_sales"
+    LIST_PRODUCTS = "list_products"
+    LOW_STOCK = "low_stock"
     UNKNOWN = "unknown"
 
 
@@ -147,5 +149,8 @@ class ParsedCommand:
             return self.product_name is not None
         elif self.action in [CommandAction.ADD_STOCK, CommandAction.REDUCE_STOCK]:
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
+        elif self.action in [CommandAction.TOTAL_SALES, CommandAction.LIST_PRODUCTS, CommandAction.LOW_STOCK]:
+            # These commands don't require product or quantity
+            return True
         return False
 
