@@ -314,27 +314,35 @@ class FirestoreDB:
         """
         product = self.get_or_create_product(shop_id, product_name)
 
-        # Find the most recent transaction for this product
-        # Use product_id only so Firestore can serve this with default indexes
+        # Find the most recent transaction for this product.
+        # To avoid Firestore composite index requirements, we fetch all
+        # transactions for this product_id and sort in Python by timestamp.
         trans_query = (
             self.db.collection('transactions')
             .where('product_id', '==', product.product_id)
-            .order_by('timestamp', direction=firestore.Query.DESCENDING)
-            .limit(1)
         )
 
-        last_doc = None
+        last_trans = None
         for d in trans_query.stream():
-            last_doc = d
-            break
+            t = d.to_dict()
+            ts = t.get('timestamp')
+            if isinstance(ts, str):
+                try:
+                    ts = datetime.fromisoformat(ts)
+                except Exception:
+                    continue
+            if not isinstance(ts, datetime):
+                continue
+            if last_trans is None or ts > last_trans[0]:
+                last_trans = (ts, t)
 
-        if not last_doc:
+        if not last_trans:
             return {
                 'success': False,
                 'message': f"❌ {product.name} ke liye koi previous entry nahi mili, adjust nahi kar sakte."
             }
 
-        trans = last_doc.to_dict()
+        trans = last_trans[1]
         trans_type = trans.get('transaction_type')
 
         if trans_type not in ['add_stock', 'reduce_stock', 'sale']:
