@@ -183,6 +183,20 @@ class CommandProcessor:
             elif command.action == CommandAction.TOTAL_SALES:
                 return self.db.get_total_sales_today(shop_id=shop_id)
 
+            elif command.action == CommandAction.TOP_PRODUCT_TODAY:
+                base = self.db.get_total_sales_today(shop_id=shop_id)
+                if not base.get('success'):
+                    return base
+                products_sold = base.get('products_sold', {}) or {}
+                if products_sold:
+                    top_product, top_qty = max(products_sold.items(), key=lambda item: item[1])
+                    base['top_product_name'] = top_product
+                    base['top_product_quantity'] = top_qty
+                else:
+                    base['top_product_name'] = None
+                    base['top_product_quantity'] = 0
+                return base
+
             elif command.action == CommandAction.LIST_PRODUCTS:
                 return self.db.get_products_summary(shop_id=shop_id)
 

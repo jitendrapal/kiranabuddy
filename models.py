@@ -30,6 +30,7 @@ class CommandAction(Enum):
     LIST_PRODUCTS = "list_products"
     LOW_STOCK = "low_stock"
     ADJUST_STOCK = "adjust_stock"
+    TOP_PRODUCT_TODAY = "top_product_today"
     UNKNOWN = "unknown"
 
 
@@ -151,7 +152,12 @@ class ParsedCommand:
         elif self.action in [CommandAction.ADD_STOCK, CommandAction.REDUCE_STOCK, CommandAction.ADJUST_STOCK]:
             # For adjustments, quantity represents the correct quantity for the last entry
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
-        elif self.action in [CommandAction.TOTAL_SALES, CommandAction.LIST_PRODUCTS, CommandAction.LOW_STOCK]:
+        elif self.action in [
+            CommandAction.TOTAL_SALES,
+            CommandAction.LIST_PRODUCTS,
+            CommandAction.LOW_STOCK,
+            CommandAction.TOP_PRODUCT_TODAY,
+        ]:
             # These commands don't require product or quantity
             return True
         return False

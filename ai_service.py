@@ -141,10 +141,24 @@ class AIService:
                 raw_message=message,
             )
 
+        # Simple heuristic for top-selling product today
+        if (
+            "aaj" in normalized
+            and "bika" in normalized
+            and any(kw in normalized for kw in ["zyada", "jada", "jayda", "sabse zyada", "sabse jyada", "most"])
+        ):
+            return ParsedCommand(
+                action=CommandAction.TOP_PRODUCT_TODAY,
+                product_name=None,
+                quantity=None,
+                confidence=1.0,
+                raw_message=message,
+            )
+
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi, English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", or "unknown"
-2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, or adjust_stock)
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", or "unknown"
+2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, or adjust_stock, or top_product_today)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1).
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want.
@@ -195,8 +209,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "unknown",
-    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, or adjust_stock),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "unknown",
+    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, adjust_stock, or top_product_today),
     "quantity": number or null,
     "confidence": 0.0 to 1.0
 }
@@ -227,6 +241,7 @@ Do not include any explanation, just the JSON."""
                 "list_products": CommandAction.LIST_PRODUCTS,
                 "low_stock": CommandAction.LOW_STOCK,
                 "adjust_stock": CommandAction.ADJUST_STOCK,
+                "top_product_today": CommandAction.TOP_PRODUCT_TODAY,
                 "unknown": CommandAction.UNKNOWN
             }
 
@@ -289,6 +304,17 @@ Do not include any explanation, just the JSON."""
             return (
                 f"✅ Galat entry correct ho gayi. {product_name}: {old_qty} se {new_qty} kar diya. "
                 f"Ab total stock: {new_stock} {unit}"
+            )
+
+        elif action == 'top_product_today':
+            top_name = result.get('top_product_name')
+            top_qty = result.get('top_product_quantity', 0)
+            total_items = result.get('total_items_sold', 0)
+            if not top_name:
+                return "❌ Aaj abhi tak koi sale nahi hui."
+            return (
+                f"📊 Aaj sabse zyada {top_qty} {top_name} bika. "
+                f"(Total items sold: {total_items})"
             )
 
         elif action == 'list_products':
