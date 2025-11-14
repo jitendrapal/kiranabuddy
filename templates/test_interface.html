@@ -16,6 +16,9 @@
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         padding: 20px;
       }
 
@@ -179,57 +182,6 @@
 
       <div class="content">
         <div class="section">
-          <h2>📝 Test Command Parsing</h2>
-          <div class="input-group">
-            <label for="command">Enter Command (in your own words):</label>
-            <input
-              type="text"
-              id="command"
-              placeholder="e.g., I bought 10 Maggi today"
-            />
-          </div>
-          <button onclick="testCommand()">Parse Command</button>
-
-          <div class="examples">
-            <h3>💡 Try Natural Language (click to try):</h3>
-            <ul>
-              <li onclick="setCommand('I bought 10 Maggi packets today')">
-                I bought 10 Maggi packets today
-              </li>
-              <li onclick="setCommand('Sold 2 oil bottles to customer')">
-                Sold 2 oil bottles to customer
-              </li>
-              <li onclick="setCommand('How much atta stock do we have?')">
-                How much atta stock do we have?
-              </li>
-              <li onclick="setCommand('5 biscuit packets aaye hain')">
-                5 biscuit packets aaye hain
-              </li>
-              <li onclick="setCommand('Customer ne 3 cold drink liya')">
-                Customer ne 3 cold drink liya
-              </li>
-              <li onclick="setCommand('20 kg atta ka stock aaya')">
-                20 kg atta ka stock aaya
-              </li>
-              <li onclick="setCommand('Bech diya 7 Maggi')">
-                Bech diya 7 Maggi
-              </li>
-              <li onclick="setCommand('Oil kitna bacha hai?')">
-                Oil kitna bacha hai?
-              </li>
-              <li onclick="setCommand('Aaj ka total sale kitna hai?')">
-                Aaj ka total sale kitna hai?
-              </li>
-              <li onclick="setCommand('What is today total sales?')">
-                What is today's total sales?
-              </li>
-            </ul>
-          </div>
-
-          <div id="commandResult" class="result"></div>
-        </div>
-
-        <div class="section">
           <h2>💬 Simulate WhatsApp Message</h2>
           <div class="input-group">
             <label for="phone">Phone Number:</label>
@@ -252,54 +204,6 @@
     </div>
 
     <script>
-      function setCommand(cmd) {
-        document.getElementById("command").value = cmd;
-      }
-
-      async function testCommand() {
-        const command = document.getElementById("command").value;
-        const resultDiv = document.getElementById("commandResult");
-
-        if (!command) {
-          showResult(resultDiv, "Please enter a command", "error");
-          return;
-        }
-
-        try {
-          const response = await fetch("/api/test/parse", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ message: command }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            const parsed = data.parsed;
-            const result = `
-✅ Command Parsed Successfully!
-
-Action: ${parsed.action}
-Product: ${parsed.product_name || "N/A"}
-Quantity: ${parsed.quantity || "N/A"}
-Confidence: ${(parsed.confidence * 100).toFixed(1)}%
-Valid: ${parsed.is_valid ? "Yes" : "No"}
-                    `;
-            showResult(resultDiv, result, "success");
-          } else {
-            showResult(
-              resultDiv,
-              "Error: " + JSON.stringify(data, null, 2),
-              "error"
-            );
-          }
-        } catch (error) {
-          showResult(resultDiv, "Error: " + error.message, "error");
-        }
-      }
-
       async function simulateMessage() {
         const phone = document.getElementById("phone").value;
         const message = document.getElementById("message").value;
