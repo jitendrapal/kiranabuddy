@@ -335,26 +335,10 @@ Valid: ${parsed.is_valid ? "Yes" : "No"}
             }
 
             if (data.data) {
-              result += `\n📊 Details:\n`;
-              if (data.data.product_name) {
-                result += `   Product: ${data.data.product_name}\n`;
-              }
-              if (data.data.quantity !== undefined) {
-                result += `   Quantity: ${data.data.quantity}\n`;
-              }
-              if (data.data.new_stock !== undefined) {
-                result += `   New Stock: ${data.data.new_stock} ${
-                  data.data.unit || ""
-                }\n`;
-              }
-              if (data.data.current_stock !== undefined) {
-                result += `   Current Stock: ${data.data.current_stock} ${
-                  data.data.unit || ""
-                }\n`;
-              }
+              // Previously we printed a '📊 Details' block here. This was
+              // removed to keep the response simpler for the user.
+              // If needed in future, details can be re-enabled for debugging.
             }
-
-            result += `\n💡 Tip: Check Firebase Console to see the data!`;
 
             showResult(resultDiv, result, "success");
           } else {
