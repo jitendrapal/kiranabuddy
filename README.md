@@ -14,18 +14,21 @@ A complete WhatsApp-based inventory management system for Kirana (grocery) shops
 ### 🤖 AI-Powered Command Processing
 
 - **Natural Language Understanding**: Uses GPT-4o-mini to parse commands
+- **No Fixed Format**: Say it your own way - AI understands intent!
 - **Multi-language Support**: Understands Hindi, English, and Hinglish
 - **Smart Parsing**: Extracts action, product name, and quantity from messages
 - **Examples**:
-  - "Add 10 Maggi" → Adds 10 units of Maggi
-  - "2 oil sold" → Reduces 2 units of oil
-  - "Kitna stock hai atta?" → Checks stock of atta (flour)
+  - "I bought 10 Maggi today" → Adds 10 units of Maggi
+  - "Sold 2 oil bottles to customer" → Reduces 2 units of oil
+  - "How much atta stock do we have?" → Checks stock of atta (flour)
+  - "Aaj ka total sale kitna hai?" → Shows today's total sales summary
 
 ### 📊 Inventory Management
 
 - **Add Stock**: Add new inventory to products
 - **Reduce Stock**: Record sales or consumption
 - **Check Stock**: Query current stock levels
+- **Total Sales**: Get daily sales summary with product-wise breakdown
 - **Transaction History**: Complete audit trail of all inventory changes
 
 ### 🏢 Multi-Shop Support

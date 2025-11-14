@@ -179,7 +179,10 @@ class CommandProcessor:
                     shop_id=shop_id,
                     product_name=command.product_name
                 )
-            
+
+            elif command.action == CommandAction.TOTAL_SALES:
+                return self.db.get_total_sales_today(shop_id=shop_id)
+
             else:
                 return {
                     'success': False,

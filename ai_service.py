@@ -74,8 +74,8 @@ class AIService:
         """
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi, English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", or "unknown"
-2. product_name: the name of the product mentioned
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", or "unknown"
+2. product_name: the name of the product mentioned (not needed for total_sales)
 3. quantity: the quantity mentioned (if applicable)
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want.
@@ -102,17 +102,26 @@ Examples of CHECK STOCK (query inventory):
 - "Biscuit ka inventory check karo" / "What's the biscuit count?"
 - "Tell me cold drink stock" / "Cold drink kitna hai?"
 
+Examples of TOTAL SALES (daily sales summary):
+- "Aaj ka total sale kitna hai?" / "What's today's total sales?"
+- "Aaj kitna bika?" / "How much sold today?"
+- "Today's sales batao" / "Tell me today's sales"
+- "Aaj ka business kaisa raha?" / "How was today's business?"
+- "Total sale today" / "Aaj ka total"
+- "Kitna maal becha aaj?" / "Sales report for today"
+
 Key words to identify actions:
 - ADD: add, laya, aaya, purchase, bought, received, new stock, stock mein daal, mila, got
 - REDUCE: sold, bik gaya, bech diya, nikala, sale, customer ko diya, gaya
-- CHECK: kitna, how much, stock, batao, check, remaining, bacha, inventory, count
+- CHECK: kitna, how much, stock, batao, check, remaining, bacha, inventory, count (for specific product)
+- TOTAL_SALES: total sale, aaj ka sale, today's sales, kitna bika, business, sales report, aaj ka total
 
 Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "unknown",
-    "product_name": "product name" or null,
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "unknown",
+    "product_name": "product name" or null (not needed for total_sales),
     "quantity": number or null,
     "confidence": 0.0 to 1.0
 }
@@ -139,6 +148,7 @@ Do not include any explanation, just the JSON."""
                 "add_stock": CommandAction.ADD_STOCK,
                 "reduce_stock": CommandAction.REDUCE_STOCK,
                 "check_stock": CommandAction.CHECK_STOCK,
+                "total_sales": CommandAction.TOTAL_SALES,
                 "unknown": CommandAction.UNKNOWN
             }
             
@@ -195,6 +205,23 @@ Do not include any explanation, just the JSON."""
             current_stock = result.get('current_stock', 0)
             unit = result.get('unit', 'pieces')
             return f"📦 {product_name} ka stock: {current_stock} {unit}"
-        
+
+        elif action == 'total_sales':
+            total_items = result.get('total_items_sold', 0)
+            products_sold = result.get('products_sold', {})
+            date = result.get('date', 'today')
+
+            response = f"📊 Aaj ka total sale:\n\n"
+            response += f"✅ Total items sold: {total_items}\n\n"
+
+            if products_sold:
+                response += "📦 Product-wise breakdown:\n"
+                for product, qty in products_sold.items():
+                    response += f"   • {product}: {qty}\n"
+            else:
+                response += "❌ Koi sale nahi hui aaj!"
+
+            return response
+
         return "Command processed successfully!"
 

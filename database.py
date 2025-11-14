@@ -249,3 +249,44 @@ class FirestoreDB:
             'unit': product.unit
         }
 
+    def get_total_sales_today(self, shop_id: str) -> Dict[str, Any]:
+        """Get total sales for today"""
+        from datetime import datetime, timedelta
+
+        # Get start of today (midnight)
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # Query transactions for today
+        transactions_ref = self.db.collection('transactions').where('shop_id', '==', shop_id)
+
+        # Filter by date and type
+        all_transactions = transactions_ref.stream()
+
+        total_items_sold = 0
+        products_sold = {}
+
+        for trans_doc in all_transactions:
+            trans = trans_doc.to_dict()
+
+            # Check if transaction is from today
+            trans_time = trans.get('timestamp')
+            if trans_time and trans_time >= today_start:
+                # Check if it's a sale (reduce_stock)
+                if trans.get('transaction_type') == 'reduce_stock' or trans.get('transaction_type') == 'sale':
+                    quantity = trans.get('quantity', 0)
+                    product_name = trans.get('product_name', 'Unknown')
+
+                    total_items_sold += quantity
+
+                    if product_name in products_sold:
+                        products_sold[product_name] += quantity
+                    else:
+                        products_sold[product_name] = quantity
+
+        return {
+            'success': True,
+            'total_items_sold': total_items_sold,
+            'products_sold': products_sold,
+            'date': today_start.strftime('%Y-%m-%d')
+        }
+

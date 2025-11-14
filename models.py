@@ -26,6 +26,7 @@ class CommandAction(Enum):
     ADD_STOCK = "add_stock"
     REDUCE_STOCK = "reduce_stock"
     CHECK_STOCK = "check_stock"
+    TOTAL_SALES = "total_sales"
     UNKNOWN = "unknown"
 
 
