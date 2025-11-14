@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kirana Shop Management - Test Interface</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2em;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        opacity: 0.9;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .section {
+        margin-bottom: 30px;
+      }
+
+      .section h2 {
+        color: #667eea;
+        margin-bottom: 15px;
+        font-size: 1.5em;
+      }
+
+      .input-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+        font-weight: 500;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        background: #f5f5f5;
+        display: none;
+      }
+
+      .result.show {
+        display: block;
+      }
+
+      .result.success {
+        background: #d4edda;
+        border-left: 4px solid #28a745;
+      }
+
+      .result.error {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+      }
+
+      .result pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+      }
+
+      .examples {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+      }
+
+      .examples h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 1.1em;
+      }
+
+      .examples ul {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .examples li {
+        padding: 8px;
+        margin: 5px 0;
+        background: white;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .examples li:hover {
+        background: #e9ecef;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🏪 Kirana Shop Management</h1>
+        <p>Test Interface - No WhatsApp Required!</p>
+      </div>
+
+      <div class="content">
+        <div class="section">
+          <h2>📝 Test Command Parsing</h2>
+          <div class="input-group">
+            <label for="command">Enter Command:</label>
+            <input type="text" id="command" placeholder="e.g., Add 10 Maggi" />
+          </div>
+          <button onclick="testCommand()">Parse Command</button>
+
+          <div class="examples">
+            <h3>Example Commands (click to try):</h3>
+            <ul>
+              <li onclick="setCommand('Add 10 Maggi')">Add 10 Maggi</li>
+              <li onclick="setCommand('2 oil sold')">2 oil sold</li>
+              <li onclick="setCommand('Kitna stock hai atta?')">
+                Kitna stock hai atta?
+              </li>
+              <li onclick="setCommand('5 packets biscuit add karo')">
+                5 packets biscuit add karo
+              </li>
+              <li onclick="setCommand('3 cold drink bech diya')">
+                3 cold drink bech diya
+              </li>
+            </ul>
+          </div>
+
+          <div id="commandResult" class="result"></div>
+        </div>
+
+        <div class="section">
+          <h2>💬 Simulate WhatsApp Message</h2>
+          <div class="input-group">
+            <label for="phone">Phone Number:</label>
+            <input
+              type="text"
+              id="phone"
+              placeholder="+919876543210"
+              value="+919876543210"
+            />
+          </div>
+          <div class="input-group">
+            <label for="message">Message:</label>
+            <textarea id="message" placeholder="Add 10 Maggi"></textarea>
+          </div>
+          <button onclick="simulateMessage()">Send Message</button>
+
+          <div id="messageResult" class="result"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function setCommand(cmd) {
+        document.getElementById("command").value = cmd;
+      }
+
+      async function testCommand() {
+        const command = document.getElementById("command").value;
+        const resultDiv = document.getElementById("commandResult");
+
+        if (!command) {
+          showResult(resultDiv, "Please enter a command", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/test/parse", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: command }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            const parsed = data.parsed;
+            const result = `
+✅ Command Parsed Successfully!
+
+Action: ${parsed.action}
+Product: ${parsed.product_name || "N/A"}
+Quantity: ${parsed.quantity || "N/A"}
+Confidence: ${(parsed.confidence * 100).toFixed(1)}%
+Valid: ${parsed.is_valid ? "Yes" : "No"}
+                    `;
+            showResult(resultDiv, result, "success");
+          } else {
+            showResult(
+              resultDiv,
+              "Error: " + JSON.stringify(data, null, 2),
+              "error"
+            );
+          }
+        } catch (error) {
+          showResult(resultDiv, "Error: " + error.message, "error");
+        }
+      }
+
+      async function simulateMessage() {
+        const phone = document.getElementById("phone").value;
+        const message = document.getElementById("message").value;
+        const resultDiv = document.getElementById("messageResult");
+
+        if (!phone || !message) {
+          showResult(resultDiv, "Please enter phone and message", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/webhook", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              waId: phone,
+              type: "text",
+              text: message,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            let result = `✅ Message Processed!\n\n`;
+            result += `Status: ${data.status}\n`;
+            result += `Success: ${data.success}\n`;
+
+            if (data.message) {
+              result += `\n📱 Response Message:\n${data.message}\n`;
+            }
+
+            if (data.data) {
+              result += `\n📊 Details:\n`;
+              if (data.data.product_name) {
+                result += `   Product: ${data.data.product_name}\n`;
+              }
+              if (data.data.quantity !== undefined) {
+                result += `   Quantity: ${data.data.quantity}\n`;
+              }
+              if (data.data.new_stock !== undefined) {
+                result += `   New Stock: ${data.data.new_stock} ${
+                  data.data.unit || ""
+                }\n`;
+              }
+              if (data.data.current_stock !== undefined) {
+                result += `   Current Stock: ${data.data.current_stock} ${
+                  data.data.unit || ""
+                }\n`;
+              }
+            }
+
+            result += `\n💡 Tip: Check Firebase Console to see the data!`;
+
+            showResult(resultDiv, result, "success");
+          } else {
+            showResult(
+              resultDiv,
+              "Error: " + JSON.stringify(data, null, 2),
+              "error"
+            );
+          }
+        } catch (error) {
+          showResult(resultDiv, "Error: " + error.message, "error");
+        }
+      }
+
+      function showResult(element, text, type) {
+        element.className = "result show " + type;
+        element.innerHTML = "<pre>" + text + "</pre>";
+      }
+    </script>
+  </body>
+</html>
