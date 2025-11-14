@@ -314,11 +314,11 @@ class FirestoreDB:
         """
         product = self.get_or_create_product(shop_id, product_name)
 
-        # Find the most recent transaction for this product & shop
+        # Find the most recent transaction for this product
+        # Use product_id only so Firestore can serve this with default indexes
         trans_query = (
             self.db.collection('transactions')
-            .where('shop_id', '==', shop_id)
-            .where('product_name', '==', product.name)
+            .where('product_id', '==', product.product_id)
             .order_by('timestamp', direction=firestore.Query.DESCENDING)
             .limit(1)
         )
