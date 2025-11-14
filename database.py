@@ -2,6 +2,7 @@
 Firebase Firestore database layer
 """
 import os
+import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from google.cloud import firestore
@@ -20,13 +21,28 @@ class FirestoreDB:
         print(f"   credentials_path: {credentials_path}")
         print(f"   project_id: {project_id}")
 
+        # Option 1: Use credentials file if path exists
         if credentials_path and os.path.exists(credentials_path):
             credentials = service_account.Credentials.from_service_account_file(credentials_path)
             print(f"   Credentials loaded, project in file: {credentials.project_id}")
             self.db = firestore.Client(credentials=credentials, project=project_id)
             print(f"   Firestore client created for project: {self.db.project}")
         else:
-            # Use default credentials
+            # Option 2: Try credentials from environment JSON (for Railway, etc.)
+            creds_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+            if creds_json:
+                try:
+                    info = json.loads(creds_json)
+                    credentials = service_account.Credentials.from_service_account_info(info)
+                    effective_project = project_id or info.get("project_id")
+                    print(f"   Loaded credentials from FIREBASE_CREDENTIALS_JSON, project: {effective_project}")
+                    self.db = firestore.Client(credentials=credentials, project=effective_project)
+                    print(f"   Firestore client created for project: {self.db.project}")
+                    return
+                except Exception as e:
+                    print(f"   Error loading FIREBASE_CREDENTIALS_JSON: {e}")
+                    # Fall through to default credentials
+            # Option 3: Use default credentials (e.g., GOOGLE_APPLICATION_CREDENTIALS handled by SDK)
             print(f"   Using default credentials")
             self.db = firestore.Client(project=project_id)
             print(f"   Firestore client created for project: {self.db.project}")
