@@ -6,13 +6,13 @@
 
 ## 📊 **Your WATI Details**
 
-| Setting | Value |
-|---------|-------|
-| **API Key** | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` ✅ |
-| **Base URL** | `https://eu-app-api.wati.io` ✅ |
-| **WhatsApp Number** | `+31 683078160` ✅ |
-| **Region** | Europe (EU) ✅ |
-| **Account Type** | TRIAL ✅ |
+| Setting             | Value                           |
+| ------------------- | ------------------------------- |
+| **API Key**         | `your-wati-api-key` ✅          |
+| **Base URL**        | `https://eu-app-api.wati.io` ✅ |
+| **WhatsApp Number** | `+31 683078160` ✅              |
+| **Region**          | Europe (EU) ✅                  |
+| **Account Type**    | TRIAL ✅                        |
 
 ---
 
@@ -47,9 +47,11 @@ python test_wati_send_message.py
 ### **Step 2: Enter Your Phone Number**
 
 When prompted, enter your WhatsApp number:
+
 ```
 +919876543210
 ```
+
 (Replace with your actual number)
 
 ### **Step 3: Check WhatsApp**
@@ -77,11 +79,13 @@ python run_no_cache.py
 #### **3. Start ngrok**
 
 In a new terminal:
+
 ```bash
 ngrok http 5000
 ```
 
 You'll get a URL like:
+
 ```
 https://abc123.ngrok.io
 ```
@@ -99,11 +103,13 @@ https://abc123.ngrok.io
 #### **5. Test It!**
 
 Send a WhatsApp message to `+31 683078160`:
+
 ```
 Add 10 Maggi
 ```
 
 You should get an automated reply:
+
 ```
 ✅ 10 Maggi add ho gaya! Total stock: 10 pieces
 ```
@@ -113,6 +119,7 @@ You should get an automated reply:
 ### **Option 2: Deploy to Cloud (For Production)**
 
 Deploy your app to:
+
 - **Heroku:** https://www.heroku.com/
 - **Railway:** https://railway.app/
 - **Render:** https://render.com/
@@ -147,21 +154,25 @@ Customer                    WATI                    Your App
 ## 📝 **Commands You Can Send**
 
 ### **Add Stock:**
+
 - "I bought 10 Maggi today"
 - "Got 5 oil bottles"
 - "20 kg atta ka stock aaya"
 
 ### **Reduce Stock (Sales):**
+
 - "Sold 2 oil bottles"
 - "Customer ne 3 Maggi liya"
 - "Bech diya 7 biscuit"
 
 ### **Check Stock:**
+
 - "How much atta do we have?"
 - "Maggi kitna bacha hai?"
 - "Oil ka stock batao"
 
 ### **Total Sales:**
+
 - "Aaj ka total sale kitna hai?"
 - "What's today's total sales?"
 - "Kitna bika aaj?"
@@ -171,6 +182,7 @@ Customer                    WATI                    Your App
 ## 🔧 **Configuration Files Updated**
 
 ### **.env file:**
+
 ```env
 WATI_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 WATI_BASE_URL=https://eu-app-api.wati.io
@@ -210,17 +222,21 @@ Your Kirana Shop Management App is now fully integrated with WhatsApp!
 ## 📚 **Next Steps**
 
 ### **1. Test Sending Message**
+
 ```bash
 python test_wati_send_message.py
 ```
 
 ### **2. Setup Webhook**
+
 Follow the ngrok instructions above
 
 ### **3. Test Full Flow**
+
 Send a WhatsApp message and get automated reply
 
 ### **4. Go Live!**
+
 Deploy to cloud and start using in production
 
 ---
@@ -230,6 +246,7 @@ Deploy to cloud and start using in production
 ### **Problem: Can't send message**
 
 **Check:**
+
 - API key is correct
 - Base URL is `https://eu-app-api.wati.io`
 - Phone number has country code (+91, +1, etc.)
@@ -238,6 +255,7 @@ Deploy to cloud and start using in production
 ### **Problem: Not receiving messages**
 
 **Check:**
+
 - Webhook is configured in WATI
 - ngrok is running
 - App is running
@@ -246,6 +264,7 @@ Deploy to cloud and start using in production
 ### **Problem: Trial expired**
 
 **Solution:**
+
 - Upgrade to paid WATI plan
 - Or create new trial account
 
@@ -260,4 +279,3 @@ Deploy to cloud and start using in production
 ---
 
 **Your WhatsApp integration is ready! Start managing your shop via WhatsApp!** 🎉📱
-
