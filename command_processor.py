@@ -100,11 +100,14 @@ class CommandProcessor:
             if not parsed_command.is_valid():
                 return {
                     'success': False,
-                    'message': f"❌ Could not understand command: '{text}'\n\n"
-                              f"Please use format like:\n"
-                              f"• 'Add 10 Maggi'\n"
-                              f"• '2 oil sold'\n"
-                              f"• 'Kitna stock hai atta?'",
+                    'message': f"❌ Sorry, I couldn't understand: '{text}'\n\n"
+                              f"💡 You can say things like:\n"
+                              f"• 'I bought 10 Maggi today'\n"
+                              f"• 'Sold 2 oil bottles'\n"
+                              f"• 'How much atta stock do we have?'\n"
+                              f"• '5 biscuit packets aaye hain'\n"
+                              f"• 'Customer ne 3 cold drink liya'\n\n"
+                              f"Just tell me naturally what happened! 😊",
                     'send_reply': True
                 }
             

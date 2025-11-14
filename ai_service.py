@@ -73,19 +73,41 @@ class AIService:
             ParsedCommand object with extracted information
         """
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
-Your job is to parse user messages and extract:
+Your job is to understand natural language messages in Hindi, English, or Hinglish and extract:
 1. action: one of "add_stock", "reduce_stock", "check_stock", or "unknown"
 2. product_name: the name of the product mentioned
 3. quantity: the quantity mentioned (if applicable)
 
-Users may speak in Hindi, English, or Hinglish (mix of both).
+IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want.
 
-Common patterns:
-- "Add 10 Maggi" -> add_stock, product: Maggi, quantity: 10
-- "2 oil sold" -> reduce_stock, product: oil, quantity: 2
-- "Kitna stock hai atta?" -> check_stock, product: atta
-- "5 packets biscuit add karo" -> add_stock, product: biscuit, quantity: 5
-- "3 cold drink bech diya" -> reduce_stock, product: cold drink, quantity: 3
+Examples of ADD STOCK (adding inventory):
+- "Add 10 Maggi" / "10 Maggi add karo" / "Maggi 10 pieces laye hain"
+- "I bought 5 oil bottles" / "5 oil purchase kiya"
+- "Stock mein 20 atta daal do" / "20 kg atta aaya hai"
+- "New stock: 15 biscuit packets" / "15 biscuit ka stock aaya"
+- "Received 30 cold drinks today" / "Aaj 30 cold drink mila"
+- "Got 100 pieces of soap" / "100 sabun aaye hain"
+
+Examples of REDUCE STOCK (sales/consumption):
+- "2 oil sold" / "2 oil bik gaya" / "2 oil bech diya"
+- "Sold 5 Maggi" / "5 Maggi customer ko diya"
+- "3 biscuit nikala" / "3 biscuit gaya"
+- "Customer ne 10 atta liya" / "10 atta sale hua"
+- "Bech diya 7 cold drink" / "7 cold drink customer ko diya"
+
+Examples of CHECK STOCK (query inventory):
+- "Kitna stock hai atta?" / "How much atta do we have?"
+- "Maggi ka stock batao" / "Check Maggi stock"
+- "Oil kitna bacha hai?" / "Remaining oil?"
+- "Biscuit ka inventory check karo" / "What's the biscuit count?"
+- "Tell me cold drink stock" / "Cold drink kitna hai?"
+
+Key words to identify actions:
+- ADD: add, laya, aaya, purchase, bought, received, new stock, stock mein daal, mila, got
+- REDUCE: sold, bik gaya, bech diya, nikala, sale, customer ko diya, gaya
+- CHECK: kitna, how much, stock, batao, check, remaining, bacha, inventory, count
+
+Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {

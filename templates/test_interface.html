@@ -181,24 +181,41 @@
         <div class="section">
           <h2>📝 Test Command Parsing</h2>
           <div class="input-group">
-            <label for="command">Enter Command:</label>
-            <input type="text" id="command" placeholder="e.g., Add 10 Maggi" />
+            <label for="command">Enter Command (in your own words):</label>
+            <input
+              type="text"
+              id="command"
+              placeholder="e.g., I bought 10 Maggi today"
+            />
           </div>
           <button onclick="testCommand()">Parse Command</button>
 
           <div class="examples">
-            <h3>Example Commands (click to try):</h3>
+            <h3>💡 Try Natural Language (click to try):</h3>
             <ul>
-              <li onclick="setCommand('Add 10 Maggi')">Add 10 Maggi</li>
-              <li onclick="setCommand('2 oil sold')">2 oil sold</li>
-              <li onclick="setCommand('Kitna stock hai atta?')">
-                Kitna stock hai atta?
+              <li onclick="setCommand('I bought 10 Maggi packets today')">
+                I bought 10 Maggi packets today
               </li>
-              <li onclick="setCommand('5 packets biscuit add karo')">
-                5 packets biscuit add karo
+              <li onclick="setCommand('Sold 2 oil bottles to customer')">
+                Sold 2 oil bottles to customer
               </li>
-              <li onclick="setCommand('3 cold drink bech diya')">
-                3 cold drink bech diya
+              <li onclick="setCommand('How much atta stock do we have?')">
+                How much atta stock do we have?
+              </li>
+              <li onclick="setCommand('5 biscuit packets aaye hain')">
+                5 biscuit packets aaye hain
+              </li>
+              <li onclick="setCommand('Customer ne 3 cold drink liya')">
+                Customer ne 3 cold drink liya
+              </li>
+              <li onclick="setCommand('20 kg atta ka stock aaya')">
+                20 kg atta ka stock aaya
+              </li>
+              <li onclick="setCommand('Bech diya 7 Maggi')">
+                Bech diya 7 Maggi
+              </li>
+              <li onclick="setCommand('Oil kitna bacha hai?')">
+                Oil kitna bacha hai?
               </li>
             </ul>
           </div>
