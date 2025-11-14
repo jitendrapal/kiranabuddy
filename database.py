@@ -338,18 +338,27 @@ class FirestoreDB:
 
             # Check if transaction is from today
             trans_time = trans.get('timestamp')
-            if trans_time and trans_time >= today_start:
-                # Check if it's a sale (reduce_stock)
-                if trans.get('transaction_type') == 'reduce_stock' or trans.get('transaction_type') == 'sale':
-                    quantity = trans.get('quantity', 0)
-                    product_name = trans.get('product_name', 'Unknown')
+            if trans_time:
+                # Convert string timestamps back to datetime for comparison
+                if isinstance(trans_time, str):
+                    try:
+                        trans_time = datetime.fromisoformat(trans_time)
+                    except Exception:
+                        # Skip records with bad timestamp format
+                        continue
 
-                    total_items_sold += quantity
+                if trans_time >= today_start:
+                    # Check if it's a sale (reduce_stock)
+                    if trans.get('transaction_type') == 'reduce_stock' or trans.get('transaction_type') == 'sale':
+                        quantity = trans.get('quantity', 0)
+                        product_name = trans.get('product_name', 'Unknown')
 
-                    if product_name in products_sold:
-                        products_sold[product_name] += quantity
-                    else:
-                        products_sold[product_name] = quantity
+                        total_items_sold += quantity
+
+                        if product_name in products_sold:
+                            products_sold[product_name] += quantity
+                        else:
+                            products_sold[product_name] = quantity
 
         return {
             'success': True,
