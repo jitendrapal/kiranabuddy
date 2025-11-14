@@ -155,6 +155,36 @@ class AIService:
                 raw_message=message,
             )
 
+        # Simple heuristic: if user just types a product name (1-3 words,
+        # without any numbers), treat it as a CHECK_STOCK query.
+        if not any(ch.isdigit() for ch in normalized):
+            words = [w for w in normalized.split() if w]
+            if 1 <= len(words) <= 3:
+                # Avoid misclassifying clear non-product phrases
+                ignore_keywords = [
+                    "total",
+                    "sale",
+                    "stock",
+                    "kitna",
+                    "how much",
+                    "aaj",
+                    "today",
+                    "list",
+                    "low",
+                    "kam",
+                    "khatam",
+                ]
+                if not any(kw in normalized for kw in ignore_keywords):
+                    product_name = message.strip()
+                    return ParsedCommand(
+                        action=CommandAction.CHECK_STOCK,
+                        product_name=product_name,
+                        quantity=None,
+                        confidence=0.9,
+                        raw_message=message,
+                    )
+
+
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi, English, or Hinglish and extract:
 1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", or "unknown"
@@ -184,6 +214,7 @@ Examples of CHECK STOCK (query inventory):
 - "Oil kitna bacha hai?" / "Remaining oil?"
 - "Biscuit ka inventory check karo" / "What's the biscuit count?"
 - "Tell me cold drink stock" / "Cold drink kitna hai?"
+- "Maggi" / "Biscuit" / "Oil" (just product name -> check stock for that product)
 
 Examples of TOTAL SALES (daily sales summary):
 - "Aaj ka total sale kitna hai?" / "What's today's total sales?"
