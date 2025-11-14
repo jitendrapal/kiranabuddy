@@ -65,13 +65,40 @@ class AIService:
     def parse_command(self, message: str) -> ParsedCommand:
         """
         Parse user message to extract action, product, and quantity
-        
+
         Args:
             message: User message (text or transcribed voice)
-        
+
         Returns:
             ParsedCommand object with extracted information
         """
+        # Simple heuristic before calling OpenAI: detect obvious total-sales queries
+        normalized = message.lower().strip()
+        # Common patterns like: "kinta aaj sell huyi hai", "aaj kitna bika", "aaj ka total sale" etc.
+        if ("aaj" in normalized or "aj " in normalized) and any(
+            kw in normalized
+            for kw in [
+                "total sale",
+                "sell hui",
+                "sell huyi",
+                "sale hui",
+                "kitna bika",
+                "kitna bikri",
+                "kitna bikri hui",
+                "kitna maal becha",
+                "kitna becha",
+                "kinta aaj sell",
+                "kitna aaj sell",
+            ]
+        ):
+            return ParsedCommand(
+                action=CommandAction.TOTAL_SALES,
+                product_name=None,
+                quantity=None,
+                confidence=1.0,
+                raw_message=message,
+            )
+
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi, English, or Hinglish and extract:
 1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", or "unknown"
