@@ -650,6 +650,24 @@ class AIService:
                     )
 
 
+        # 7) Generic inventory summary: if message mentions "product/products/stock"
+        # in a general sentence (no numbers, not a specific "kitna stock" query),
+        # show full product list with stock and price.
+        inventory_keywords = ["product", "products", "stock"]
+        stock_query_markers = ["kitna", "kitni", "how much", "bacha", "remaining", "baki", "check"]
+        if (
+            not any(ch.isdigit() for ch in normalized)
+            and any(kw in normalized for kw in inventory_keywords)
+            and not any(marker in normalized for marker in stock_query_markers)
+        ):
+            return ParsedCommand(
+                action=CommandAction.LIST_PRODUCTS,
+                product_name=None,
+                quantity=None,
+                confidence=0.9,
+                raw_message=message,
+            )
+
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
 1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", "undo_last", "help", or "unknown"
