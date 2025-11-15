@@ -311,6 +311,25 @@ class AIService:
                 raw_message=message,
             )
 
+        # Generic: if message contains the word "sale" / "sales" anywhere,
+        # and it's not clearly about zero-sale / not selling, show today's sale.
+        if any(w in normalized for w in ["sale", "sales"]):
+            zero_sale_markers = [
+                "zero sale",
+                "nahi sale",
+                "nahi sell",
+                "not selling",
+                "slow moving",
+            ]
+            if not any(z in normalized for z in zero_sale_markers):
+                return ParsedCommand(
+                    action=CommandAction.TOTAL_SALES,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.98,
+                    raw_message=message,
+                )
+
         total_sales_keywords_latin = [
             "total sale",
             "sell hui",
