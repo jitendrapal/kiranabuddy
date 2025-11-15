@@ -60,29 +60,30 @@ class CommandProcessor:
                         'message': "❌ Voice message received but no audio file found.",
                         'send_reply': True
                     }
-                
+
                 # Download media if needed (for WhatsApp Cloud API)
-                if not media_url.startswith('http'):
+                if not media_url.startswith("http"):
                     media_url = self.whatsapp_service.download_media(media_url)
                     if not media_url:
                         return {
                             'success': False,
                             'message': "❌ Could not download voice message.",
-                            'send_reply': True
+                            'send_reply': True,
                         }
-                
+
                 # Transcribe audio
-                text = self.ai_service.transcribe_audio(media_url, media_format or 'ogg')
-                
+                text = self.ai_service.transcribe_audio(media_url, media_format or "ogg")
+
                 if not text:
+                    print("⚠️ Voice transcription returned no text.")
                     return {
                         'success': False,
                         'message': "❌ Could not understand voice message. Please try again.",
-                        'send_reply': True
+                        'send_reply': True,
                     }
-                
+
                 print(f"Transcribed voice message: {text}")
-            
+
             if not text:
                 return {
                     'success': False,

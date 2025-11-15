@@ -20,47 +20,52 @@ class AIService:
         self.model = model
 
     def transcribe_audio(self, audio_url: str, audio_format: str = "ogg") -> Optional[str]:
-        """
-        Transcribe audio using OpenAI Whisper
+        """Transcribe audio using OpenAI Whisper (or compatible model).
 
-        Args:
-            audio_url: URL to download audio file
-            audio_format: Audio file format (ogg, mp3, wav, etc.)
-
-        Returns:
-            Transcribed text or None if failed
+        Returns plain text or None if something goes wrong.
         """
+        temp_file_path = None
         try:
-            # Download audio file
+            print(f"🔊 Downloading audio from {audio_url} ...")
             response = requests.get(audio_url, timeout=30)
             response.raise_for_status()
+            print(f"   Downloaded {len(response.content)} bytes (format={audio_format})")
 
             # Save to temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{audio_format}') as temp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{audio_format}") as temp_file:
                 temp_file.write(response.content)
                 temp_file_path = temp_file.name
 
             # Transcribe using Whisper
-            with open(temp_file_path, 'rb') as audio_file:
+            with open(temp_file_path, "rb") as audio_file:
                 transcript = self.client.audio.transcriptions.create(
-                    model="whisper-1",
+                    model="whisper-1",  # or gpt-4o-transcribe if enabled
                     file=audio_file,
-                    language="hi"  # Hindi, but Whisper auto-detects
+                    # Let the model auto-detect language (Hindi / Hinglish / English)
                 )
 
-            # Clean up temp file
-            os.unlink(temp_file_path)
+            text = getattr(transcript, "text", None)
+            print(f"   Transcript: {repr(text)}")
 
-            return transcript.text
+            if text is None:
+                return None
+
+            text = text.strip()
+            if not text:
+                print("⚠️ Transcription returned empty text.")
+                return None
+
+            return text
 
         except Exception as e:
             print(f"Error transcribing audio: {e}")
-            if 'temp_file_path' in locals():
+            return None
+        finally:
+            if temp_file_path and os.path.exists(temp_file_path):
                 try:
                     os.unlink(temp_file_path)
-                except:
+                except Exception:
                     pass
-            return None
     def detect_language(self, message: str) -> str:
         """Very simple language detector: returns 'hindi' or 'english'.
 
