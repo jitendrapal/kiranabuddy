@@ -688,14 +688,26 @@
         const itemsToSend = [...scanCart];
         clearScanCart();
 
+        // Build one summary message so shopkeeper sees full batch in one go
+        const lines = [];
         for (const item of itemsToSend) {
           const delta = item.delta;
           if (!delta) continue;
 
           const sign = delta > 0 ? "+" : "";
-          const message = item.code + " " + sign + delta;
+          lines.push(item.code + " " + sign + delta);
+        }
 
-          appendMessage(message, "user");
+        if (!lines.length) {
+          return;
+        }
+
+        const summaryText = lines.join("\n");
+        appendMessage(summaryText, "user");
+
+        // Still send each line individually to backend so existing parsing works
+        for (const line of lines) {
+          const message = line;
 
           try {
             const response = await fetch("/webhook", {
