@@ -301,7 +301,7 @@
       }
 
       .scan-cart-items {
-        max-height: 80px;
+        max-height: 35vh;
         overflow-y: auto;
       }
 
@@ -473,20 +473,6 @@
           </div>
         </div>
 
-        <div id="scanCartPanel" class="scan-cart hidden">
-          <div class="scan-cart-header">
-            <span>Scanned items (not yet sent)</span>
-            <span id="scanCartCount">0</span>
-          </div>
-          <div id="scanCartItems" class="scan-cart-items"></div>
-          <div class="scan-cart-actions">
-            <button onclick="clearScanCart()">Clear</button>
-            <button class="primary" onclick="sendScanCartToBackend()">
-              Send to backend
-            </button>
-          </div>
-        </div>
-
         <div class="chat-input-row">
           <button class="scan-button" onclick="startBarcodeScan()">📷</button>
           <button
@@ -515,6 +501,19 @@
               <button class="scanner-close-btn" onclick="stopBarcodeScan()">
                 Close
               </button>
+              <div id="scanCartPanel" class="scan-cart hidden">
+                <div class="scan-cart-header">
+                  <span>Scanned items (not yet sent)</span>
+                  <span id="scanCartCount">0</span>
+                </div>
+                <div id="scanCartItems" class="scan-cart-items"></div>
+                <div class="scan-cart-actions">
+                  <button onclick="clearScanCart()">Clear</button>
+                  <button class="primary" onclick="sendScanCartToBackend()">
+                    Send to backend
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -527,6 +526,7 @@
       let scanInterval = null;
       // Holds scanned barcodes + quantities until user sends to backend
       let scanCart = [];
+      let scanBusy = false;
 
       async function startBarcodeScan() {
         const overlay = document.getElementById("scannerOverlay");
@@ -564,11 +564,16 @@
         });
 
         scanInterval = setInterval(async () => {
+          if (scanBusy) {
+            return;
+          }
+
           try {
             const barcodes = await detector.detect(video);
             if (barcodes && barcodes.length > 0) {
               const code = barcodes[0].rawValue || "";
               if (code) {
+                scanBusy = true;
                 handleScannedCode(code);
               }
             }
@@ -579,7 +584,10 @@
       }
 
       function handleScannedCode(code) {
-        stopBarcodeScan();
+        if (!code) {
+          scanBusy = false;
+          return;
+        }
 
         const qty = prompt(
           "Enter quantity. Use +5 to add or -3 to reduce:",
@@ -587,6 +595,7 @@
         );
 
         if (!qty || !qty.trim()) {
+          scanBusy = false;
           return;
         }
 
@@ -594,10 +603,12 @@
         let delta = parseInt(raw, 10);
         if (isNaN(delta) || delta === 0) {
           alert("Invalid quantity. Use +5 to add or -3 to reduce.");
+          scanBusy = false;
           return;
         }
 
         addToScanCart(code, delta);
+        scanBusy = false;
       }
 
       function addToScanCart(code, delta) {
@@ -661,6 +672,9 @@
         if (!scanCart.length) {
           return;
         }
+
+        // Done scanning this batch, close camera overlay
+        stopBarcodeScan();
 
         const phoneInput = document.getElementById("phone");
         const phone = phoneInput ? phoneInput.value : "";
