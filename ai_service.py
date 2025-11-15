@@ -757,7 +757,9 @@ Do not include any explanation, just the JSON."""
                     return "📦 No products registered yet."
                 return "📦 Abhi tak koi product register nahi hua."
 
-            # Build a clean multi-line list: each product on its own line
+            # Build a clean multi-line list: each product on its own line.
+            # Use CRLF (\r\n) which some WhatsApp providers respect more
+            # reliably than just \n.
             lines = []
             for p in products:
                 name = p.get('name', 'Product')
@@ -765,12 +767,14 @@ Do not include any explanation, just the JSON."""
                 unit = p.get('unit', 'pieces')
                 lines.append(f"• {name}: {stock} {unit}")
 
-            if is_english:
-                response = "📦 Your shop products:\n" + "\n".join(lines)
-            else:
-                response = "📦 Aapke shop ke products:\n" + "\n".join(lines)
+            lines_str = "\r\n".join(lines)
 
-            response += f"\nTotal products: {total}"
+            if is_english:
+                response = "📦 Your shop products:\r\n" + lines_str
+            else:
+                response = "📦 Aapke shop ke products:\r\n" + lines_str
+
+            response += f"\r\nTotal products: {total}"
             return response
 
         elif action == 'low_stock':

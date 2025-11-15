@@ -14,7 +14,7 @@ PRODUCTS = [
         "normalized_name": "tata sampann toor dal 1kg",
         "product_id": "b1420db9-3e6e-4758-89b0-70a89d386f04",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "kg",
+        "unit": "pieces",
         "updated_at": "2025-11-15T11:26:50.969302",
     },
     {
@@ -26,7 +26,7 @@ PRODUCTS = [
         "normalized_name": "aashirvaad atta 5kg",
         "product_id": "c1521eb9-4f6f-4820-90b1-81b91d297f55",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "kg",
+        "unit": "pieces",
         "updated_at": "2025-11-15T11:30:10.654321",
     },
     {
@@ -38,7 +38,7 @@ PRODUCTS = [
         "normalized_name": "amul butter 500g",
         "product_id": "d1622fc9-5e7f-4931-91c2-92c92e3a8f66",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "g",
+        "unit": "pieces",
         "updated_at": "2025-11-15T11:35:20.987654",
     },
     {
@@ -50,7 +50,7 @@ PRODUCTS = [
         "normalized_name": "mdh turmeric powder 100g",
         "product_id": "e1723gd9-6f8f-5042-92d3-a3d93f4b9g77",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "g",
+        "unit": "pieces",
         "updated_at": "2025-11-15T11:40:30.123456",
     },
     {
@@ -62,7 +62,7 @@ PRODUCTS = [
         "normalized_name": "nestle maggi 70g",
         "product_id": "f1824he9-7g9g-5153-93e4-b4e04g5c0h88",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "g",
+        "unit": "pieces",
         "updated_at": "2025-11-15T11:45:40.234567",
     },
     {
@@ -74,7 +74,7 @@ PRODUCTS = [
         "normalized_name": "tata salt 1kg",
         "product_id": "g1925if9-8h0h-5264-94f5-c5f15h6d1i99",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "kg",
+        "unit": "pieces",
         "updated_at": "2025-11-15T11:50:50.345678",
     },
     {
@@ -86,7 +86,7 @@ PRODUCTS = [
         "normalized_name": "amul milk 1l",
         "product_id": "h2026jg9-9i1i-5375-95g6-d6g26i7e2j10",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "L",
+        "unit": "pieces",
         "updated_at": "2025-11-15T11:55:00.456789",
     },
     {
@@ -98,7 +98,7 @@ PRODUCTS = [
         "normalized_name": "parle-g biscuits 200g",
         "product_id": "i2127kh9-0j2j-5486-96h7-e7h37j8f3k21",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "g",
+        "unit": "pieces",
         "updated_at": "2025-11-15T12:00:10.567890",
     },
     {
@@ -110,7 +110,7 @@ PRODUCTS = [
         "normalized_name": "surf excel detergent 1kg",
         "product_id": "j2228li9-1k3k-5597-97i8-f8i48k9g4l32",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "kg",
+        "unit": "pieces",
         "updated_at": "2025-11-15T12:05:20.678901",
     },
     {
@@ -122,7 +122,7 @@ PRODUCTS = [
         "normalized_name": "tata tea gold 500g",
         "product_id": "k2329mj9-2l4l-5608-98j9-g9j59l0h5m43",
         "shop_id": "8e70a29d-acda-423e-a27b-9b9c870616a7",
-        "unit": "g",
+        "unit": "pieces",
         "updated_at": "2025-11-15T12:10:30.789012",
     },
 ]
