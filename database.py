@@ -264,7 +264,58 @@ class FirestoreDB:
 
         # 2) Fuzzy token-overlap match: handle cases like
         #    "add 10 Tata Sampann Toor Dal" vs stored "Tata Sampann Toor Dal 1kg".
-        target_tokens = set(normalized_name.split())
+        #
+        # We aggressively clean the search text and product names to focus on
+        # brand/product words and ignore quantities or verbs like "add"/
+        # "sold" so that phrases like "add 10 parle g biscuits" match the
+        # stored product "Parle-G Biscuits 200g".
+        def _tokenize_for_match(text: str) -> set:
+            if not text:
+                return set()
+
+            # Normalize case and break hyphenated names like "Parle-G" into
+            # separate tokens "parle" and "g".
+            s = text.lower().replace("-", " ")
+
+            # Remove digits and +/- signs (quantities like "10", "+5", "-3").
+            cleaned_chars = []
+            for ch in s:
+                if ch.isdigit() or ch in "+-":
+                    cleaned_chars.append(" ")
+                else:
+                    cleaned_chars.append(ch)
+            s = "".join(cleaned_chars)
+
+            # Drop very generic words that are not part of the product name.
+            stopwords = {
+                "add",
+                "added",
+                "sold",
+                "sale",
+                "bought",
+                "purchase",
+                "customer",
+                "new",
+                "stock",
+                "ne",
+                "ko",
+                "hai",
+                "pieces",
+                "piece",
+                "packet",
+                "packets",
+                "kg",
+                "g",
+                "gm",
+                "ml",
+                "ltr",
+                "l",
+            }
+
+            tokens = [t for t in s.split() if t and t not in stopwords]
+            return set(tokens)
+
+        target_tokens = _tokenize_for_match(normalized_name)
         if not target_tokens:
             return None
 
@@ -275,7 +326,10 @@ class FirestoreDB:
             name_norm = (p.normalized_name or "").strip().lower()
             if not name_norm:
                 continue
-            product_tokens = set(name_norm.split())
+            product_tokens = _tokenize_for_match(name_norm)
+            if not product_tokens:
+                continue
+
             common = target_tokens & product_tokens
             if not common:
                 continue
