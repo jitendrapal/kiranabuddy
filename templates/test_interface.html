@@ -526,128 +526,63 @@
         }
       }
 
-      // --- Voice recording for test page ---
-      let mediaRecorder = null;
-      let audioChunks = [];
-      let isRecording = false;
+      // --- Voice-to-text for test page (browser speech recognition) ---
+      let voiceRecognizer = null;
+      let isVoiceListening = false;
 
-      async function toggleVoiceRecording() {
+      function toggleVoiceRecording() {
         const btn = document.getElementById("voiceButton");
         if (!btn) return;
 
-        if (!isRecording) {
-          // Start recording
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert("Microphone is not available on this device.");
-            return;
-          }
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
 
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
-            });
-            audioChunks = [];
-            mediaRecorder = new MediaRecorder(stream);
-
-            mediaRecorder.ondataavailable = (event) => {
-              if (event.data.size > 0) {
-                audioChunks.push(event.data);
-              }
-            };
-
-            mediaRecorder.onstop = async () => {
-              stream.getTracks().forEach((t) => t.stop());
-              if (!audioChunks.length) return;
-
-              const blob = new Blob(audioChunks, { type: "audio/webm" });
-              await uploadAndSendVoice(blob);
-            };
-
-            mediaRecorder.start();
-            isRecording = true;
-            btn.classList.add("recording");
-            btn.textContent = "■"; // stop icon
-          } catch (err) {
-            console.error("Error accessing microphone", err);
-            alert("Could not access microphone. Please check permissions.");
-          }
-        } else {
-          // Stop recording
-          if (mediaRecorder && mediaRecorder.state !== "inactive") {
-            mediaRecorder.stop();
-          }
-          isRecording = false;
-          btn.classList.remove("recording");
-          btn.textContent = "🎤";
-        }
-      }
-
-      async function uploadAndSendVoice(blob) {
-        const phoneInput = document.getElementById("phone");
-        const phone = phoneInput ? phoneInput.value : "";
-        if (!phone) {
-          appendMessage("⚠️ Test phone number missing.", "bot");
+        if (!SpeechRecognition) {
+          alert("Voice-to-text is not supported in this browser. Please type.");
           return;
         }
 
-        appendMessage("[🎤 Voice message sent]", "user");
+        if (!isVoiceListening) {
+          voiceRecognizer = new SpeechRecognition();
+          voiceRecognizer.lang = "hi-IN"; // Hindi / Hinglish friendly
+          voiceRecognizer.interimResults = false;
+          voiceRecognizer.maxAlternatives = 1;
 
-        const formData = new FormData();
-        formData.append("file", blob, "voice.webm");
+          voiceRecognizer.onresult = (event) => {
+            const result = event.results[0][0];
+            const transcript = result.transcript || "";
+            const input = document.getElementById("message");
 
-        try {
-          const uploadResp = await fetch("/test/audio-upload", {
-            method: "POST",
-            body: formData,
-          });
-
-          const uploadData = await uploadResp.json();
-          if (!uploadResp.ok || !uploadData.success) {
-            appendMessage(
-              "Error uploading audio: " +
-                (uploadData.message || uploadResp.statusText),
-              "bot"
-            );
-            return;
-          }
-
-          const audioUrl = uploadData.url;
-          const format = uploadData.format || "webm";
-
-          // Send a fake WATI-style webhook payload so the normal
-          // command processor + transcription pipeline runs.
-          const resp = await fetch("/webhook", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              waId: phone,
-              type: "audio",
-              audio: {
-                link: audioUrl,
-                mimeType: "audio/" + format,
-              },
-            }),
-          });
-
-          const data = await resp.json();
-
-          if (resp.ok) {
-            if (data.message) {
-              appendMessage(data.message, "bot");
-            } else {
-              appendMessage("✅ Voice processed (no reply text).", "bot");
+            if (input && transcript.trim()) {
+              input.value = transcript.trim();
+              simulateMessage();
+            } else if (!transcript.trim()) {
+              appendMessage(
+                "❌ Did not catch anything from voice. Please try again.",
+                "bot"
+              );
             }
-          } else {
-            appendMessage(
-              "Error: " + (data.message || JSON.stringify(data)),
-              "bot"
-            );
+          };
+
+          voiceRecognizer.onerror = (event) => {
+            console.error("Speech recognition error", event.error);
+            appendMessage("Error in voice recognition: " + event.error, "bot");
+          };
+
+          voiceRecognizer.onend = () => {
+            isVoiceListening = false;
+            btn.classList.remove("recording");
+            btn.textContent = "🎤";
+          };
+
+          isVoiceListening = true;
+          btn.classList.add("recording");
+          btn.textContent = "■"; // stop icon
+          voiceRecognizer.start();
+        } else {
+          if (voiceRecognizer) {
+            voiceRecognizer.stop();
           }
-        } catch (err) {
-          console.error("Voice flow error", err);
-          appendMessage("Error: " + err.message, "bot");
         }
       }
 
