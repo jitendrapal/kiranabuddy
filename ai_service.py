@@ -137,20 +137,40 @@ class AIService:
         # Simple heuristic before calling OpenAI: detect obvious total-sales queries
         normalized = message.lower().strip()
         # Common patterns like: "kinta aaj sell huyi hai", "aaj kitna bika", "aaj ka total sale" etc.
+        total_sales_keywords_latin = [
+            "total sale",
+            "sell hui",
+            "sell huyi",
+            "sale hui",
+            "kitna bika",
+            "kitna bikri",
+            "kitna bikri hui",
+            "kitna maal becha",
+            "kitna becha",
+            "kinta aaj sell",
+            "kitna aaj sell",
+        ]
         if ("aaj" in normalized or "aj " in normalized) and any(
-            kw in normalized
+            kw in normalized for kw in total_sales_keywords_latin
+        ):
+            return ParsedCommand(
+                action=CommandAction.TOTAL_SALES,
+                product_name=None,
+                quantity=None,
+                confidence=1.0,
+                raw_message=message,
+            )
+
+        # Additional Hindi (Devanagari) patterns for total sales, e.g. "आज की बिक्री कितनी है"
+        hindi_msg = message.strip()
+        if "आज" in hindi_msg and any(
+            kw in hindi_msg
             for kw in [
-                "total sale",
-                "sell hui",
-                "sell huyi",
-                "sale hui",
-                "kitna bika",
-                "kitna bikri",
-                "kitna bikri hui",
-                "kitna maal becha",
-                "kitna becha",
-                "kinta aaj sell",
-                "kitna aaj sell",
+                "बिक्री",
+                "सेल",
+                "बिका",
+                "बिकी",
+                "बिके",
             ]
         ):
             return ParsedCommand(
@@ -173,8 +193,25 @@ class AIService:
             "pura stock list",
             "full stock list",
             "all items",
+            # How many products/items style
+            "kitne product",
+            "kitne products",
+            "kitna product",
+            "kitna products",
+            "kitne item",
+            "kitni item",
+            "kitne items",
+            "kitni items",
+            # Hindi (Devanagari) variants
+            "कितने प्रोडक्ट",
+            "कितने प्रॉडक्ट",
+            "कितने प्रोडक्ट हैं",
+            "कितने आइटम",
+            "कितने आइटम हैं",
         ]
-        if any(kw in normalized for kw in list_keywords):
+        if any(kw in normalized for kw in list_keywords) or any(
+            kw in hindi_msg for kw in ["कितने प्रोडक्ट", "कितने प्रॉडक्ट", "कितने आइटम"]
+        ):
             return ParsedCommand(
                 action=CommandAction.LIST_PRODUCTS,
                 product_name=None,
