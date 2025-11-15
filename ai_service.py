@@ -732,5 +732,43 @@ Do not include any explanation, just the JSON."""
 
             return response
 
+        elif action == 'undo_last':
+            old_stock = result.get('old_stock')
+            new_stock = result.get('new_stock')
+            unit = result.get('unit', 'pieces')
+            if is_english:
+                return (
+                    f"✅ Last entry for {product_name} has been undone. "
+                    f"Stock: {old_stock} → {new_stock} {unit}"
+                )
+            return (
+                f"✅ {product_name} ki last entry undo ho gayi. "
+                f"Stock {old_stock} se {new_stock} {unit} ho gaya."
+            )
+
+        elif action == 'help':
+            # Return a small help message with example commands.
+            if is_english:
+                return (
+                    "Here are some things you can say:\n\n"
+                    "• 'Add 10 Maggi' (add stock)\n"
+                    "• 'Sold 2 oil bottles' (reduce stock)\n"
+                    "• 'Maggi ka stock batao' (check stock)\n"
+                    "• 'Aaj ki bikri kitni hai?' (today's total sales)\n"
+                    "• 'Show all products' or 'Kitne product hai?' (list products)\n"
+                    "• 'Which products are low?' (low stock alert)\n"
+                    "• 'Undo last entry' (undo last action)\n"
+                )
+            return (
+                "Aap yeh sab bol sakte hain:\n\n"
+                "• '10 Maggi add karo' (stock badhao)\n"
+                "• '5 oil bech diya' (stock kam karo)\n"
+                "• 'Maggi ka stock batao' (stock check)\n"
+                "• 'Aaj ki bikri kitni hai?' (aaj ka total sale)\n"
+                "• 'Sabhi product dikhao' ya 'Kitne product hain?' (saare products)\n"
+                "• 'Kaun se product kam hain?' (low stock alert)\n"
+                "• 'Antim entry wapas lo' (last entry undo)\n"
+            )
+
         return "Command processed successfully!"
 
