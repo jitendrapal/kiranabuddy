@@ -337,6 +337,32 @@
         border-color: #128c7e;
       }
 
+      .quick-reports {
+        display: flex;
+        gap: 6px;
+        padding: 8px 12px;
+        background: #f0f2f5;
+        border-bottom: 1px solid #ddd;
+        overflow-x: auto;
+      }
+
+      .report-btn {
+        font-size: 12px;
+        padding: 6px 12px;
+        border-radius: 16px;
+        border: 1px solid #128c7e;
+        background: #ffffff;
+        color: #128c7e;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .report-btn:hover {
+        background: #128c7e;
+        color: #ffffff;
+      }
+
       .hidden {
         display: none;
       }
@@ -436,6 +462,7 @@
 
         .container {
           width: 100%;
+
           height: 100vh;
           max-width: 100%;
           margin: 0;
@@ -461,6 +488,27 @@
           </div>
         </div>
         <div class="header-phone">Test phone: +919876543210</div>
+      </div>
+
+      <div class="quick-reports">
+        <button
+          class="report-btn"
+          onclick="sendQuickReport('Aaj ki bikri kitni hai?')"
+        >
+          📊 Aaj ki sale
+        </button>
+        <button
+          class="report-btn"
+          onclick="sendQuickReport('Aaj sabse zyada kya bika?')"
+        >
+          ⭐ Top product
+        </button>
+        <button
+          class="report-btn"
+          onclick="sendQuickReport('Kaun se product aaj nahi bika?')"
+        >
+          😴 Zero sale items
+        </button>
       </div>
 
       <div class="content">
@@ -831,6 +879,13 @@
         row.appendChild(bubble);
         chat.appendChild(row);
         chat.scrollTop = chat.scrollHeight;
+      }
+
+      function sendQuickReport(message) {
+        const messageInput = document.getElementById("message");
+        if (!messageInput) return;
+        messageInput.value = message;
+        simulateMessage();
       }
 
       function handleKeyDown(event) {

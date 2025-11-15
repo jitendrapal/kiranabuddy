@@ -326,6 +326,47 @@ class AIService:
                 raw_message=message,
             )
 
+        # 4) Zero-sale products today (which products did NOT sell today)
+        zero_sale_keywords_latin = [
+            "zero sale",
+            "nahi sale",
+            "nahi sell",
+            "nahi bika",
+            "nahi bik",
+            "not selling",
+            "slow moving",
+        ]
+        if ("aaj" in normalized or "aj " in normalized or "today" in normalized) and (
+            any(kw in normalized for kw in zero_sale_keywords_latin)
+        ):
+            return ParsedCommand(
+                action=CommandAction.ZERO_SALE_TODAY,
+                product_name=None,
+                quantity=None,
+                confidence=1.0,
+                raw_message=message,
+            )
+
+        # Additional Hindi (Devanagari) patterns for zero sale, e.g. "आज जो नहीं बिका"
+        if "आज" in hindi_msg and "नहीं" in hindi_msg and any(
+            kw in hindi_msg
+            for kw in [
+                "बिका",
+                "बिके",
+                "बिक",
+                "बिक्री",
+                "बिकरी",
+            ]
+        ):
+            return ParsedCommand(
+                action=CommandAction.ZERO_SALE_TODAY,
+                product_name=None,
+                quantity=None,
+                confidence=1.0,
+                raw_message=message,
+            )
+
+
         # 4) Product list / inventory summary / how many products
         list_keywords = [
             "product list",
@@ -613,8 +654,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "undo_last" | "help" | "unknown",
-    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, adjust_stock, undo_last, help, or top_product_today),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "undo_last" | "help" | "unknown",
+    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, adjust_stock, zero_sale_today, undo_last, help, or top_product_today),
     "quantity": number or null,
     "confidence": 0.0 to 1.0
 }
@@ -649,6 +690,7 @@ Do not include any explanation, just the JSON."""
                 "low_stock": CommandAction.LOW_STOCK,
                 "adjust_stock": CommandAction.ADJUST_STOCK,
                 "top_product_today": CommandAction.TOP_PRODUCT_TODAY,
+                "zero_sale_today": CommandAction.ZERO_SALE_TODAY,
                 "undo_last": CommandAction.UNDO_LAST,
                 "help": CommandAction.HELP,
                 "unknown": CommandAction.UNKNOWN,
@@ -829,6 +871,30 @@ Do not include any explanation, just the JSON."""
                     response += "❌ Koi sale nahi hui aaj!"
 
             return response
+
+        elif action == 'zero_sale_today':
+            zero_products = result.get('zero_sale_products', [])
+            total_zero = result.get('total_zero_sale_products', len(zero_products))
+
+            if not zero_products:
+                if is_english:
+                    return "✅ No zero-sale products today. All products with stock had at least one sale."
+                return "✅ Aaj koi 'zero sale' product nahi hai. Jinke paas stock tha, sab ki sale hui."
+
+            if is_english:
+                response = "😴 Products with zero sales today (still in stock):\n\n"
+            else:
+                response = "😴 Aaj yeh products nahi bike (stock mein hain):\n\n"
+
+            for p in zero_products:
+                name = p.get('name', 'Product')
+                stock = p.get('stock', 0)
+                unit = p.get('unit', 'pieces')
+                response += f"• {name}: {stock} {unit}\n"
+
+            response += f"\nTotal zero-sale products: {total_zero}"
+            return response
+
 
         elif action == 'undo_last':
             old_stock = result.get('old_stock')

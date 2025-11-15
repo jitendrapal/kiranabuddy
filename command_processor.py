@@ -227,6 +227,9 @@ class CommandProcessor:
                     base['top_product_quantity'] = 0
                 return base
 
+            elif command.action == CommandAction.ZERO_SALE_TODAY:
+                return self.db.get_zero_sale_products_today(shop_id=shop_id)
+
             elif command.action == CommandAction.LIST_PRODUCTS:
                 return self.db.get_products_summary(shop_id=shop_id)
 

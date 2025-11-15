@@ -734,3 +734,39 @@ class FirestoreDB:
             'date': today_start.strftime('%Y-%m-%d')
         }
 
+    def get_zero_sale_products_today(self, shop_id: str) -> Dict[str, Any]:
+        """Get products that had zero sales today (but are currently in stock).
+
+        Uses today's transactions (reduce_stock / sale) and the current
+        product list to find items that did not sell at all today.
+        """
+        # First fetch today's sales summary
+        sales_data = self.get_total_sales_today(shop_id)
+        if not sales_data.get("success"):
+            return sales_data
+
+        products_sold = sales_data.get("products_sold", {}) or {}
+
+        # Then get all products for the shop
+        products = self.get_products_by_shop(shop_id)
+
+        zero_sale_products: List[Dict[str, Any]] = []
+        for p in products:
+            # Only show products that still have some stock and had no sales today
+            if p.current_stock > 0 and p.name not in products_sold:
+                zero_sale_products.append(
+                    {
+                        "name": p.name,
+                        "stock": p.current_stock,
+                        "unit": p.unit,
+                    }
+                )
+
+        return {
+            "success": True,
+            "zero_sale_products": zero_sale_products,
+            "total_zero_sale_products": len(zero_sale_products),
+            "date": sales_data.get("date"),
+        }
+
+
