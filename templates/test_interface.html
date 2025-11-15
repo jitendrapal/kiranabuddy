@@ -286,6 +286,61 @@
         background: #d32f2f;
       }
 
+      .scan-cart {
+        background: #fff3cd;
+        border-top: 1px solid #ffeeba;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+
+      .scan-cart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .scan-cart-items {
+        max-height: 80px;
+        overflow-y: auto;
+      }
+
+      .scan-cart-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 2px;
+      }
+
+      .scan-cart-item-code {
+        font-family: monospace;
+      }
+
+      .scan-cart-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+      }
+
+      .scan-cart-actions button {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid #ccc;
+        background: #ffffff;
+        cursor: pointer;
+      }
+
+      .scan-cart-actions button.primary {
+        background: #128c7e;
+        color: #ffffff;
+        border-color: #128c7e;
+      }
+
+      .hidden {
+        display: none;
+      }
+
       .scanner-overlay {
         position: fixed;
         inset: 0;
@@ -418,6 +473,20 @@
           </div>
         </div>
 
+        <div id="scanCartPanel" class="scan-cart hidden">
+          <div class="scan-cart-header">
+            <span>Scanned items (not yet sent)</span>
+            <span id="scanCartCount">0</span>
+          </div>
+          <div id="scanCartItems" class="scan-cart-items"></div>
+          <div class="scan-cart-actions">
+            <button onclick="clearScanCart()">Clear</button>
+            <button class="primary" onclick="sendScanCartToBackend()">
+              Send to backend
+            </button>
+          </div>
+        </div>
+
         <div class="chat-input-row">
           <button class="scan-button" onclick="startBarcodeScan()">📷</button>
           <button
@@ -456,6 +525,8 @@
       // --- Simple barcode scanner for test page ---
       let scannerStream = null;
       let scanInterval = null;
+      // Holds scanned barcodes + quantities until user sends to backend
+      let scanCart = [];
 
       async function startBarcodeScan() {
         const overlay = document.getElementById("scannerOverlay");
@@ -509,20 +580,139 @@
 
       function handleScannedCode(code) {
         stopBarcodeScan();
-        const input = document.getElementById("message");
-        if (!input) return;
 
         const qty = prompt(
           "Enter quantity. Use +5 to add or -3 to reduce:",
           "+1"
         );
 
-        if (qty && qty.trim()) {
-          input.value = code + " " + qty.trim();
-          simulateMessage();
+        if (!qty || !qty.trim()) {
+          return;
+        }
+
+        const raw = qty.trim();
+        let delta = parseInt(raw, 10);
+        if (isNaN(delta) || delta === 0) {
+          alert("Invalid quantity. Use +5 to add or -3 to reduce.");
+          return;
+        }
+
+        addToScanCart(code, delta);
+      }
+
+      function addToScanCart(code, delta) {
+        if (!code) return;
+
+        const existing = scanCart.find((item) => item.code === code);
+        if (existing) {
+          existing.delta += delta;
         } else {
-          input.value = code;
-          input.focus();
+          scanCart.push({ code, delta });
+        }
+
+        updateScanCartUI();
+      }
+
+      function updateScanCartUI() {
+        const panel = document.getElementById("scanCartPanel");
+        const itemsContainer = document.getElementById("scanCartItems");
+        const countEl = document.getElementById("scanCartCount");
+
+        if (!panel || !itemsContainer || !countEl) return;
+
+        // Remove any items that ended up with 0 quantity
+        scanCart = scanCart.filter((item) => item.delta !== 0);
+
+        if (scanCart.length === 0) {
+          panel.classList.add("hidden");
+          itemsContainer.innerHTML = "";
+          countEl.textContent = "0";
+          return;
+        }
+
+        panel.classList.remove("hidden");
+        countEl.textContent = String(scanCart.length);
+        itemsContainer.innerHTML = "";
+
+        scanCart.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "scan-cart-item";
+
+          const codeSpan = document.createElement("span");
+          codeSpan.className = "scan-cart-item-code";
+          codeSpan.textContent = item.code;
+
+          const qtySpan = document.createElement("span");
+          qtySpan.textContent =
+            item.delta > 0 ? "+" + item.delta : String(item.delta);
+
+          row.appendChild(codeSpan);
+          row.appendChild(qtySpan);
+          itemsContainer.appendChild(row);
+        });
+      }
+
+      function clearScanCart() {
+        scanCart = [];
+        updateScanCartUI();
+      }
+
+      async function sendScanCartToBackend() {
+        if (!scanCart.length) {
+          return;
+        }
+
+        const phoneInput = document.getElementById("phone");
+        const phone = phoneInput ? phoneInput.value : "";
+
+        if (!phone) {
+          appendMessage("⚠️ Test phone number missing.", "bot");
+          return;
+        }
+
+        // Copy and clear immediately so UI updates
+        const itemsToSend = [...scanCart];
+        clearScanCart();
+
+        for (const item of itemsToSend) {
+          const delta = item.delta;
+          if (!delta) continue;
+
+          const sign = delta > 0 ? "+" : "";
+          const message = item.code + " " + sign + delta;
+
+          appendMessage(message, "user");
+
+          try {
+            const response = await fetch("/webhook", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                waId: phone,
+                type: "text",
+                text: message,
+              }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+              if (data.message) {
+                appendMessage(data.message, "bot");
+              } else {
+                appendMessage("✅ Message processed (no reply text).", "bot");
+              }
+            } else {
+              appendMessage(
+                "Error: " + (data.message || JSON.stringify(data)),
+                "bot"
+              );
+            }
+          } catch (error) {
+            appendMessage("Error: " + error.message, "bot");
+          }
         }
       }
 
