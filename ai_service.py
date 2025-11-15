@@ -4,6 +4,7 @@ OpenAI integration for voice transcription and command parsing
 import os
 import json
 import tempfile
+import re
 from typing import Optional, Dict, Any
 import requests
 from openai import OpenAI
@@ -235,6 +236,61 @@ class AIService:
                         )
                 except ValueError:
                     pass
+        # Simple heuristic for Hindi/Hinglish numeric commands like
+        # "10 मैगी ऐड कर दो" or "10 maggi add karo" or "5 oil bech diya".
+        if any(ch.isdigit() for ch in normalized):
+            m = re.search(r"(\d+)", normalized)
+            if m:
+                try:
+                    qty_val = float(m.group(1))
+                except ValueError:
+                    qty_val = None
+                if qty_val and qty_val > 0:
+                    add_keywords = ["add", "a dd", "aad", "ऐड", "एड", "dal do", "daal do", "डाल", "डाल दो"]
+                    reduce_keywords = ["sold", "sell", "bech", "बेच", "bik", "बिक", "nikal", "निकाल", "निकाला"]
+
+                    action = None
+                    if any(kw in normalized for kw in add_keywords):
+                        action = CommandAction.ADD_STOCK
+                    elif any(kw in normalized for kw in reduce_keywords):
+                        action = CommandAction.REDUCE_STOCK
+
+                    if action is not None:
+                        # Try to infer product name as the words between the number
+                        # and the first verb-like keyword.
+                        orig_words = message.split()
+                        norm_words = normalized.split()
+                        if len(orig_words) == len(norm_words):
+                            num_idx = next(
+                                (i for i, w in enumerate(norm_words) if any(ch.isdigit() for ch in w)),
+                                None,
+                            )
+                            verb_indices = [
+                                i
+                                for i, w in enumerate(norm_words)
+                                if any(kw in w for kw in add_keywords + reduce_keywords)
+                            ]
+                            verb_idx = verb_indices[0] if verb_indices else None
+
+                            product_tokens = []
+                            if num_idx is not None and verb_idx is not None and verb_idx > num_idx:
+                                product_tokens = orig_words[num_idx + 1 : verb_idx]
+                            elif verb_idx is not None and verb_idx > 0:
+                                product_tokens = [orig_words[verb_idx - 1]]
+
+                            product_name = " ".join(t.strip() for t in product_tokens).strip() or message.strip()
+                        else:
+                            product_name = message.strip()
+
+                        return ParsedCommand(
+                            action=action,
+                            product_name=product_name,
+                            quantity=qty_val,
+                            confidence=0.95,
+                            raw_message=message,
+                        )
+
+
 
         # Simple heuristic: numeric-only message with 8-16 digits (likely barcode)
         # Treat as a CHECK_STOCK query where the barcode itself is the product name.
