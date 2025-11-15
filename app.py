@@ -3,6 +3,7 @@ Flask application for Kirana Shop Management
 """
 from flask import Flask, request, jsonify, render_template, send_from_directory
 import os
+import uuid
 from config import Config
 from database import FirestoreDB
 from ai_service import AIService
@@ -76,6 +77,49 @@ def index():
 def test_interface():
     """Test interface - No WhatsApp required!"""
     return render_template('test_interface.html')
+
+
+@app.route('/test/audio-upload', methods=['POST'])
+def test_audio_upload():
+    """Upload voice note from test interface and return a temporary URL.
+
+    The test chat records audio in the browser, sends it here, we save it
+    under a temp folder, and return a URL that the WhatsApp-style webhook
+    pipeline can download for transcription.
+    """
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file part'}), 400
+
+    file = request.files['file']
+    if not file or file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'}), 400
+
+    # Derive extension (default to .webm which is what most browsers use)
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = '.webm'
+
+    audio_dir = os.path.join(app.root_path, 'temp_audio')
+    os.makedirs(audio_dir, exist_ok=True)
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(audio_dir, filename)
+    file.save(file_path)
+
+    # Public URL that this same Flask app can serve and that the
+    # transcription code can access via requests.get()
+    base_url = request.host_url.rstrip('/')
+    url = f"{base_url}/test/audio/{filename}"
+
+    return jsonify({'success': True, 'url': url, 'format': ext.lstrip('.')})
+
+
+@app.route('/test/audio/<path:filename>')
+def test_audio_file(filename):
+    """Serve uploaded test audio file for transcription."""
+    audio_dir = os.path.join(app.root_path, 'temp_audio')
+    return send_from_directory(audio_dir, filename)
+
 
 
 @app.route('/favicon.ico')
