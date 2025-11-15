@@ -37,12 +37,12 @@ class AIService:
                 temp_file.write(response.content)
                 temp_file_path = temp_file.name
 
-            # Transcribe using Whisper
+            # Transcribe using Whisper, but always return English text
+            # (use Whisper translation so Hindi audio becomes English text)
             with open(temp_file_path, "rb") as audio_file:
-                transcript = self.client.audio.transcriptions.create(
+                transcript = self.client.audio.translations.create(
                     model="whisper-1",  # or gpt-4o-transcribe if enabled
                     file=audio_file,
-                    # Let the model auto-detect language (Hindi / Hinglish / English)
                 )
 
             text = getattr(transcript, "text", None)
