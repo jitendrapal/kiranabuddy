@@ -757,16 +757,18 @@ Do not include any explanation, just the JSON."""
                     return "📦 No products registered yet."
                 return "📦 Abhi tak koi product register nahi hua."
 
-            if is_english:
-                response = "📦 Your shop products:\n\n"
-            else:
-                response = "📦 Aapke shop ke products:\n\n"
-
+            # Build a clean multi-line list: each product on its own line
+            lines = []
             for p in products:
                 name = p.get('name', 'Product')
                 stock = p.get('stock', 0)
                 unit = p.get('unit', 'pieces')
-                response += f"• {name}: {stock} {unit}\n"
+                lines.append(f"• {name}: {stock} {unit}")
+
+            if is_english:
+                response = "📦 Your shop products:\n" + "\n".join(lines)
+            else:
+                response = "📦 Aapke shop ke products:\n" + "\n".join(lines)
 
             response += f"\nTotal products: {total}"
             return response
