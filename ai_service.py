@@ -279,12 +279,12 @@ class AIService:
 
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
-Your job is to understand natural language messages in Hindi, English, or Hinglish and extract:
+Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
 1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", or "unknown"
 2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, or adjust_stock, or top_product_today)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1).
 
-IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want.
+IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
 
 Examples of ADD STOCK (adding inventory):
 - "Add 10 Maggi" / "10 Maggi add karo" / "Maggi 10 pieces laye hain"
@@ -293,6 +293,7 @@ Examples of ADD STOCK (adding inventory):
 - "New stock: 15 biscuit packets" / "15 biscuit ka stock aaya"
 - "Received 30 cold drinks today" / "Aaj 30 cold drink mila"
 - "Got 100 pieces of soap" / "100 sabun aaye hain"
+- "१० मैगी ऐड कर दो" / "10 मैगी ऐड कर दो" (Hindi script) -> treat as add_stock for product_name "मैगी" with quantity 10.
 
 Examples of REDUCE STOCK (sales/consumption):
 - "2 oil sold" / "2 oil bik gaya" / "2 oil bech diya"
@@ -300,6 +301,7 @@ Examples of REDUCE STOCK (sales/consumption):
 - "3 biscuit nikala" / "3 biscuit gaya"
 - "Customer ne 10 atta liya" / "10 atta sale hua"
 - "Bech diya 7 cold drink" / "7 cold drink customer ko diya"
+- "१० मैगी बिक गए" / "10 मैगी बिक गए" (Hindi script) -> treat as reduce_stock for product_name "मैगी" with quantity 10.
 
 Examples of CHECK STOCK (query inventory):
 - "Kitna stock hai atta?" / "How much atta do we have?"
@@ -317,17 +319,17 @@ Examples of TOTAL SALES (daily sales summary):
 - "Total sale today" / "Aaj ka total"
 - "Kitna maal becha aaj?" / "Sales report for today"
 
-
 Examples of ADJUST STOCK (fixing wrong entries):
 - "Galat entry ho gayi, Maggi 3 nahi 1 the" -> user earlier recorded 3 Maggi but correct is 1 piece; treat as adjust_stock with product_name "Maggi" and quantity 1.
 - "Oil 5 nahi 2 tha" -> adjust_stock for Oil with quantity 2.
-
 
 Key words to identify actions:
 - ADD: add, laya, aaya, purchase, bought, received, new stock, stock mein daal, mila, got
 - REDUCE: sold, bik gaya, bech diya, nikala, sale, customer ko diya, gaya
 - CHECK: kitna, how much, stock, batao, check, remaining, bacha, inventory, count (for specific product)
 - TOTAL_SALES: total sale, aaj ka sale, today's sales, kitna bika, business, sales report, aaj ka total
+
+Messages may contain Devanagari Hindi words like "मैगी", "ऐड कर दो", "बिक गए". Parse them the same way as the Hinglish examples above.
 
 Be intelligent and understand the INTENT, not just exact phrases.
 

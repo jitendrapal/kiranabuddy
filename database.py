@@ -28,6 +28,25 @@ DEMO_BARCODE_PRODUCTS: Dict[str, Dict[str, Any]] = {
     "8904000000002": {"name": "Britannia Good Day 600g", "brand": "Britannia", "unit": "gram"},
 }
 
+# Map some common Hindi product names (Devanagari) to a canonical key
+# so that "मैगी" and "Maggi" are treated as the same product.
+HINDI_PRODUCT_CANONICAL = {
+    "मैगी": "maggi",
+    "मैग्गी": "maggi",
+    "मेगी": "maggi",
+}
+
+
+def canonical_product_key(name: str) -> str:
+    """Return a canonical normalized key for product lookup.
+
+    This ensures different scripts/spellings (e.g. "मैगी", "Maggi")
+    map to the same normalized_name such as "maggi".
+    """
+    base = (name or "").strip().lower()
+    return HINDI_PRODUCT_CANONICAL.get(base, base)
+
+
 
 
 class FirestoreDB:
@@ -134,10 +153,15 @@ class FirestoreDB:
         If product_name looks like a known demo barcode, map it to a
         branded Indian product from DEMO_BARCODE_PRODUCTS so that
         scanner-based flows show proper names.
-        """
-        normalized_name = product_name.lower().strip()
 
-        # 1) Try exact name match first
+        Also normalize common Hindi-script names (e.g. "मैगी") so they
+        resolve to the same product as their Latin-script equivalents
+        ("Maggi").
+        """
+        # First build a canonical normalized key for lookups
+        normalized_name = canonical_product_key(product_name)
+
+        # 1) Try exact name match first (using canonical normalized_name)
         docs = (
             self.db.collection("products")
             .where("shop_id", "==", shop_id)
@@ -160,7 +184,7 @@ class FirestoreDB:
                     return existing
 
             canonical_name = info.get("name", product_name).strip()
-            canonical_norm = canonical_name.lower()
+            canonical_norm = canonical_product_key(canonical_name)
             unit_from_catalog = info.get("unit", unit)
 
             product_id = str(uuid.uuid4())
