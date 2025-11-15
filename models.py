@@ -107,11 +107,61 @@ class Product:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'Product':
-        if 'created_at' in data and data['created_at']:
-            data['created_at'] = datetime.fromisoformat(data['created_at'])
-        if 'updated_at' in data and data['updated_at']:
-            data['updated_at'] = datetime.fromisoformat(data['updated_at'])
-        return Product(**data)
+        """Create Product from Firestore dict.
+
+        Be tolerant of older / messy schemas:
+        - map legacy `price` -> `selling_price`
+        - strip spaces around field names like ` selling_price`
+        - ignore any unexpected extra fields.
+        """
+        # Work on a shallow copy so we don't mutate the caller's dict
+        raw = dict(data or {})
+
+        # 1) Normalize keys by stripping whitespace (handles " selling_price")
+        normalized: Dict[str, Any] = {}
+        for k, v in raw.items():
+            clean_key = k.strip() if isinstance(k, str) else k
+            # Don't override an existing normalized key
+            if clean_key not in normalized:
+                normalized[clean_key] = v
+
+        # 2) Legacy field mapping: `price` -> `selling_price`
+        if 'price' in normalized and 'selling_price' not in normalized:
+            try:
+                normalized['selling_price'] = float(normalized['price']) if normalized['price'] is not None else None
+            except Exception:
+                normalized['selling_price'] = None
+            normalized.pop('price', None)
+
+        # 3) Convert timestamps
+        if 'created_at' in normalized and normalized['created_at']:
+            try:
+                normalized['created_at'] = datetime.fromisoformat(normalized['created_at'])
+            except Exception:
+                normalized['created_at'] = None
+        if 'updated_at' in normalized and normalized['updated_at']:
+            try:
+                normalized['updated_at'] = datetime.fromisoformat(normalized['updated_at'])
+            except Exception:
+                normalized['updated_at'] = None
+
+        # 4) Filter to known Product fields only so unexpected keys don't break __init__
+        allowed_keys = {
+            'product_id',
+            'shop_id',
+            'name',
+            'normalized_name',
+            'current_stock',
+            'unit',
+            'brand',
+            'barcode',
+            'selling_price',
+            'created_at',
+            'updated_at',
+        }
+        cleaned = {k: v for k, v in normalized.items() if k in allowed_keys}
+
+        return Product(**cleaned)
 
 
 @dataclass
