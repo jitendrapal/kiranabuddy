@@ -11,6 +11,24 @@ import uuid
 
 from models import Shop, User, Product, Transaction, UserRole, TransactionType
 
+# Dummy Indian products catalog for barcode-based demo.
+# In a real deployment you would load this from your own product master data.
+DEMO_BARCODE_PRODUCTS: Dict[str, Dict[str, Any]] = {
+    # Dal variants
+    "8901000000001": {"name": "Tata Sampann Toor Dal 1kg", "brand": "Tata Sampann", "unit": "kg"},
+    "8901000000002": {"name": "Tata Sampann Moong Dal 1kg", "brand": "Tata Sampann", "unit": "kg"},
+    "8901000000003": {"name": "Tata Sampann Masoor Dal 1kg", "brand": "Tata Sampann", "unit": "kg"},
+    # Oil
+    "8902000000001": {"name": "Fortune Sunlite Refined Sunflower Oil 1L", "brand": "Fortune", "unit": "litre"},
+    "8902000000002": {"name": "Fortune Kachi Ghani Mustard Oil 1L", "brand": "Fortune", "unit": "litre"},
+    # Atta
+    "8903000000001": {"name": "Aashirvaad Atta 10kg", "brand": "Aashirvaad", "unit": "kg"},
+    # Biscuits
+    "8904000000001": {"name": "Parle-G Biscuits 800g", "brand": "Parle", "unit": "gram"},
+    "8904000000002": {"name": "Britannia Good Day 600g", "brand": "Britannia", "unit": "gram"},
+}
+
+
 
 class FirestoreDB:
     """Firestore database manager"""
@@ -111,16 +129,57 @@ class FirestoreDB:
     # ==================== PRODUCT OPERATIONS ====================
 
     def get_or_create_product(self, shop_id: str, product_name: str, unit: str = "pieces") -> Product:
-        """Get existing product or create new one"""
+        """Get existing product or create new one.
+
+        If product_name looks like a known demo barcode, map it to a
+        branded Indian product from DEMO_BARCODE_PRODUCTS so that
+        scanner-based flows show proper names.
+        """
         normalized_name = product_name.lower().strip()
 
-        # Try to find existing product
-        docs = self.db.collection('products').where('shop_id', '==', shop_id).where('normalized_name', '==', normalized_name).limit(1).stream()
-
+        # 1) Try exact name match first
+        docs = (
+            self.db.collection("products")
+            .where("shop_id", "==", shop_id)
+            .where("normalized_name", "==", normalized_name)
+            .limit(1)
+            .stream()
+        )
         for doc in docs:
             return Product.from_dict(doc.to_dict())
 
-        # Create new product
+        # 2) If input looks like a barcode AND we have it in our demo catalog,
+        #    use the demo product definition (brand + proper name).
+        barcode_candidate = normalized_name.replace(" ", "")
+        if barcode_candidate.isdigit() and barcode_candidate in DEMO_BARCODE_PRODUCTS:
+            info = DEMO_BARCODE_PRODUCTS[barcode_candidate]
+
+            # See if we already created this barcode product for this shop
+            for existing in self.get_products_by_shop(shop_id):
+                if existing.barcode == barcode_candidate:
+                    return existing
+
+            canonical_name = info.get("name", product_name).strip()
+            canonical_norm = canonical_name.lower()
+            unit_from_catalog = info.get("unit", unit)
+
+            product_id = str(uuid.uuid4())
+            product = Product(
+                product_id=product_id,
+                shop_id=shop_id,
+                name=canonical_name,
+                normalized_name=canonical_norm,
+                current_stock=0.0,
+                unit=unit_from_catalog,
+                brand=info.get("brand"),
+                barcode=barcode_candidate,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            self.db.collection("products").document(product_id).set(product.to_dict())
+            return product
+
+        # 3) Fallback: create a new product with the given name
         product_id = str(uuid.uuid4())
         product = Product(
             product_id=product_id,
@@ -130,10 +189,10 @@ class FirestoreDB:
             current_stock=0.0,
             unit=unit,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
 
-        self.db.collection('products').document(product_id).set(product.to_dict())
+        self.db.collection("products").document(product_id).set(product.to_dict())
         return product
 
     def update_product_stock(self, product_id: str, new_stock: float) -> None:

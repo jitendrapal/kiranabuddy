@@ -88,9 +88,11 @@ class Product:
     normalized_name: str  # lowercase, for matching
     current_stock: float
     unit: str = "pieces"
+    brand: Optional[str] = None
+    barcode: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
         if self.created_at:
@@ -98,7 +100,7 @@ class Product:
         if self.updated_at:
             data['updated_at'] = self.updated_at.isoformat()
         return data
-    
+
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'Product':
         if 'created_at' in data and data['created_at']:
