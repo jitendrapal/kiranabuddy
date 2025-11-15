@@ -219,6 +219,63 @@ class FirestoreDB:
         self.db.collection("products").document(product_id).set(product.to_dict())
         return product
 
+    def find_existing_product_by_name(self, shop_id: str, product_name: str) -> Optional[Product]:
+        """Find an existing product for natural-language commands without creating new ones.
+
+        This is used for the shopkeeper voice/text flow where we *only* want to
+        update existing catalog items. It tries an exact normalized_name match
+        first, then falls back to a simple token-overlap match against all
+        products for the shop.
+        """
+        if not product_name:
+            return None
+
+        normalized_name = canonical_product_key(product_name)
+
+        # 1) Exact normalized_name match
+        docs = (
+            self.db.collection("products")
+            .where("shop_id", "==", shop_id)
+            .where("normalized_name", "==", normalized_name)
+            .limit(1)
+            .stream()
+        )
+        for doc in docs:
+            return Product.from_dict(doc.to_dict())
+
+        # 2) Fuzzy token-overlap match: handle cases like
+        #    "add 10 Tata Sampann Toor Dal" vs stored "Tata Sampann Toor Dal 1kg".
+        target_tokens = set(normalized_name.split())
+        if not target_tokens:
+            return None
+
+        best_product = None
+        best_score = 0
+
+        for p in self.get_products_by_shop(shop_id):
+            name_norm = (p.normalized_name or "").strip().lower()
+            if not name_norm:
+                continue
+            product_tokens = set(name_norm.split())
+            common = target_tokens & product_tokens
+            if not common:
+                continue
+
+            score = len(common)
+            coverage = score / max(1, len(product_tokens))
+
+            # Require at least half the product tokens to match to avoid
+            # obviously wrong matches.
+            if coverage < 0.5:
+                continue
+
+            if score > best_score:
+                best_score = score
+                best_product = p
+
+        return best_product
+
+
     def update_product_stock(self, product_id: str, new_stock: float) -> None:
         """Update product stock"""
         self.db.collection('products').document(product_id).update({

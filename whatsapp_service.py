@@ -32,22 +32,28 @@ class WhatsAppService:
             raise ValueError(f"Unsupported provider: {provider}")
     
     def send_message(self, to_phone: str, message: str) -> bool:
-        """
-        Send text message to WhatsApp user
-        
+        """Send text message to WhatsApp user.
+
         Args:
             to_phone: Recipient phone number (with country code)
             message: Message text
-        
+
         Returns:
             True if sent successfully, False otherwise
         """
+        # Debug log so we can inspect newlines / formatting actually sent
+        try:
+            print("[WhatsAppService] Outgoing message to", to_phone, "=", repr(message))
+        except Exception:
+            # Don't let logging issues break sending
+            pass
+
         if self.provider == "wati":
             return self._send_wati_message(to_phone, message)
         elif self.provider == "whatsapp_cloud":
             return self._send_whatsapp_cloud_message(to_phone, message)
         return False
-    
+
     def _send_wati_message(self, to_phone: str, message: str) -> bool:
         """Send message via WATI API"""
         try:

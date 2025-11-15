@@ -164,26 +164,51 @@ class CommandProcessor:
         """
         try:
             if command.action == CommandAction.ADD_STOCK:
+                # For voice/text commands, only update existing products from the
+                # shop's catalog. Do NOT auto-create new products if the name
+                # doesn't match.
+                product = self.db.find_existing_product_by_name(shop_id, command.product_name)
+                if not product:
+                    return {
+                        'success': False,
+                        'message': f"❌ '{command.product_name}' product list mein nahi mila. Pehle product ko list mein add karo ya sahi naam bolo.",
+                    }
                 return self.db.add_stock(
                     shop_id=shop_id,
-                    product_name=command.product_name,
+                    product_name=product.name,
                     quantity=command.quantity,
                     user_phone=user_phone,
                 )
 
             elif command.action == CommandAction.REDUCE_STOCK:
+                product = self.db.find_existing_product_by_name(shop_id, command.product_name)
+                if not product:
+                    return {
+                        'success': False,
+                        'message': f"❌ '{command.product_name}' product list mein nahi mila. Pehle product ko list mein add karo ya sahi naam bolo.",
+                    }
                 return self.db.reduce_stock(
                     shop_id=shop_id,
-                    product_name=command.product_name,
+                    product_name=product.name,
                     quantity=command.quantity,
                     user_phone=user_phone,
                 )
 
             elif command.action == CommandAction.CHECK_STOCK:
-                return self.db.check_stock(
-                    shop_id=shop_id,
-                    product_name=command.product_name,
-                )
+                product = self.db.find_existing_product_by_name(shop_id, command.product_name)
+                if not product:
+                    return {
+                        'success': False,
+                        'message': f"❌ '{command.product_name}' product list mein nahi mila. Pehle product ko list mein add karo ya sahi naam bolo.",
+                    }
+                # Build the same shape as db.check_stock would return, but without
+                # creating any new product.
+                return {
+                    'success': True,
+                    'product_name': product.name,
+                    'current_stock': product.current_stock,
+                    'unit': product.unit,
+                }
 
             elif command.action == CommandAction.TOTAL_SALES:
                 return self.db.get_total_sales_today(shop_id=shop_id)
@@ -209,9 +234,17 @@ class CommandProcessor:
                 return self.db.get_low_stock_products(shop_id=shop_id)
 
             elif command.action == CommandAction.ADJUST_STOCK:
+                product = self.db.find_existing_product_by_name(shop_id, command.product_name)
+                if not product:
+                    return {
+                        'success': False,
+                        'message': f"❌ '{command.product_name}' product list mein nahi mila. Pehle product ko list mein add karo ya sahi naam bolo.",
+                    }
+                # Use the canonical product.name so DB lookup is stable, but do
+                # not allow creating a new product implicitly.
                 return self.db.adjust_last_transaction(
                     shop_id=shop_id,
-                    product_name=command.product_name,
+                    product_name=product.name,
                     correct_quantity=command.quantity,
                     user_phone=user_phone,
                 )
