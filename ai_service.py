@@ -1041,10 +1041,11 @@ Do not include any explanation, just the JSON."""
 
             # Use CRLF for clean multi-line formatting
             nl = "\r\n"
+            shown = len(zero_products)
             if is_english:
-                response = f"😴 Products with zero sales today (still in stock):{nl}{nl}"
+                response = f"😴 Top {shown} products with zero sales today (still in stock):{nl}{nl}"
             else:
-                response = f"😴 Aaj yeh products nahi bike (stock mein hain):{nl}{nl}"
+                response = f"😴 Aaj ke top {shown} product jinki sale zero hai (stock mein hain):{nl}{nl}"
 
             for p in zero_products:
                 name = p.get('name', 'Product')
@@ -1052,7 +1053,18 @@ Do not include any explanation, just the JSON."""
                 unit = p.get('unit', 'pieces')
                 response += f"• {name}: {stock} {unit}{nl}"
 
-            response += f"{nl}Total zero-sale products: {total_zero}"
+            # Mention total zero-sale products if there are more than shown
+            if total_zero > shown:
+                if is_english:
+                    response += f"{nl}Total zero-sale products today: {total_zero} (showing top {shown})."
+                else:
+                    response += f"{nl}Aaj zero-sale products kul: {total_zero} (sirf top {shown} dikhaye gaye)."
+            else:
+                if is_english:
+                    response += f"{nl}Total zero-sale products today: {total_zero}"
+                else:
+                    response += f"{nl}Aaj zero-sale products: {total_zero}"
+
             return response
 
 

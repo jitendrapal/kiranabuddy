@@ -884,10 +884,11 @@ class FirestoreDB:
         }
 
     def get_zero_sale_products_today(self, shop_id: str) -> Dict[str, Any]:
-        """Get products that had zero sales today (but are currently in stock).
+        """Get **top 3** products that had zero sales today (but are in stock).
 
-        Uses today's transactions (reduce_stock / sale) and the current
-        product list to find items that did not sell at all today.
+        We still compute the full zero-sale list, but only return up to
+        the "top 3" items (by current stock) to keep the WhatsApp reply
+        short and useful.
         """
         # First fetch today's sales summary
         sales_data = self.get_total_sales_today(shop_id)
@@ -901,7 +902,7 @@ class FirestoreDB:
 
         zero_sale_products: List[Dict[str, Any]] = []
         for p in products:
-            # Only show products that still have some stock and had no sales today
+            # Only consider products that still have some stock and had no sales today
             if p.current_stock > 0 and p.name not in products_sold:
                 zero_sale_products.append(
                     {
@@ -911,10 +912,20 @@ class FirestoreDB:
                     }
                 )
 
+        # Sort by current stock (descending = most stock left unsold first)
+        zero_sale_products_sorted = sorted(
+            zero_sale_products,
+            key=lambda item: float(item.get("stock", 0) or 0),
+            reverse=True,
+        )
+
+        # Only keep top 3 items for the response, but keep total count
+        top_three = zero_sale_products_sorted[:3]
+
         return {
             "success": True,
-            "zero_sale_products": zero_sale_products,
-            "total_zero_sale_products": len(zero_sale_products),
+            "zero_sale_products": top_three,
+            "total_zero_sale_products": len(zero_sale_products_sorted),
             "date": sales_data.get("date"),
         }
 
