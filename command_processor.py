@@ -93,8 +93,13 @@ class CommandProcessor:
             
             # Step 3: Parse command using AI
             parsed_command = self.ai_service.parse_command(text)
+
             # Detect language for response (Hindi vs English)
-            response_language = self.ai_service.detect_language(text)
+            # For *voice* messages, always reply in English as requested.
+            if message_type == "voice":
+                response_language = "english"
+            else:
+                response_language = self.ai_service.detect_language(text)
 
             print(f"Parsed command: action={parsed_command.action.value}, "
                   f"product={parsed_command.product_name}, quantity={parsed_command.quantity}, "
