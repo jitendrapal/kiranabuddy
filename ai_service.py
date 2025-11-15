@@ -954,19 +954,21 @@ Do not include any explanation, just the JSON."""
                     return "✅ No items are low on stock right now. Everything looks good."
                 return "✅ Abhi koi item low stock mein nahi hai. Sab theek hai."
 
+            # Use CRLF for clean multi-line formatting
+            nl = "\r\n"
             if is_english:
-                response = f"⚠️ Low stock items (≤ {threshold}):\n\n"
+                response = f"⚠️ Low stock items (≤ {threshold}):{nl}{nl}"
             else:
-                response = f"⚠️ Low stock items (≤ {threshold}):\n\n"
+                response = f"⚠️ Low stock items (≤ {threshold}):{nl}{nl}"
 
             for p in low_products:
                 name = p.get('name', 'Product')
                 stock = p.get('stock', 0)
                 unit = p.get('unit', 'pieces')
-                response += f"• {name}: {stock} {unit}\n"
+                response += f"• {name}: {stock} {unit}{nl}"
 
             total_low = result.get('total_low_products', len(low_products))
-            response += f"\nTotal low-stock products: {total_low}"
+            response += f"{nl}Total low-stock products: {total_low}"
             return response
 
         elif action == 'check_stock':
@@ -1037,18 +1039,20 @@ Do not include any explanation, just the JSON."""
                     return "✅ No zero-sale products today. All products with stock had at least one sale."
                 return "✅ Aaj koi 'zero sale' product nahi hai. Jinke paas stock tha, sab ki sale hui."
 
+            # Use CRLF for clean multi-line formatting
+            nl = "\r\n"
             if is_english:
-                response = "😴 Products with zero sales today (still in stock):\n\n"
+                response = f"😴 Products with zero sales today (still in stock):{nl}{nl}"
             else:
-                response = "😴 Aaj yeh products nahi bike (stock mein hain):\n\n"
+                response = f"😴 Aaj yeh products nahi bike (stock mein hain):{nl}{nl}"
 
             for p in zero_products:
                 name = p.get('name', 'Product')
                 stock = p.get('stock', 0)
                 unit = p.get('unit', 'pieces')
-                response += f"• {name}: {stock} {unit}\n"
+                response += f"• {name}: {stock} {unit}{nl}"
 
-            response += f"\nTotal zero-sale products: {total_zero}"
+            response += f"{nl}Total zero-sale products: {total_zero}"
             return response
 
 
@@ -1068,26 +1072,27 @@ Do not include any explanation, just the JSON."""
 
         elif action == 'help':
             # Return a small help message with example commands.
+            nl = "\r\n"
             if is_english:
                 return (
-                    "Here are some things you can say:\n\n"
-                    "• 'Add 10 Maggi' (add stock)\n"
-                    "• 'Sold 2 oil bottles' (reduce stock)\n"
-                    "• 'Maggi ka stock batao' (check stock)\n"
-                    "• 'Aaj ki bikri kitni hai?' (today's total sales)\n"
-                    "• 'Show all products' or 'Kitne product hai?' (list products)\n"
-                    "• 'Which products are low?' (low stock alert)\n"
-                    "• 'Undo last entry' (undo last action)\n"
+                    f"Here are some things you can say:{nl}{nl}"
+                    f"• 'Add 10 Maggi' (add stock){nl}"
+                    f"• 'Sold 2 oil bottles' (reduce stock){nl}"
+                    f"• 'Maggi ka stock batao' (check stock){nl}"
+                    f"• 'Aaj ki bikri kitni hai?' (today's total sales){nl}"
+                    f"• 'Show all products' or 'Kitne product hai?' (list products){nl}"
+                    f"• 'Which products are low?' (low stock alert){nl}"
+                    f"• 'Undo last entry' (undo last action){nl}"
                 )
             return (
-                "Aap yeh sab bol sakte hain:\n\n"
-                "• '10 Maggi add karo' (stock badhao)\n"
-                "• '5 oil bech diya' (stock kam karo)\n"
-                "• 'Maggi ka stock batao' (stock check)\n"
-                "• 'Aaj ki bikri kitni hai?' (aaj ka total sale)\n"
-                "• 'Sabhi product dikhao' ya 'Kitne product hain?' (saare products)\n"
-                "• 'Kaun se product kam hain?' (low stock alert)\n"
-                "• 'Antim entry wapas lo' (last entry undo)\n"
+                f"Aap yeh sab bol sakte hain:{nl}{nl}"
+                f"• '10 Maggi add karo' (stock badhao){nl}"
+                f"• '5 oil bech diya' (stock kam karo){nl}"
+                f"• 'Maggi ka stock batao' (stock check){nl}"
+                f"• 'Aaj ki bikri kitni hai?' (aaj ka total sale){nl}"
+                f"• 'Sabhi product dikhao' ya 'Kitne product hain?' (saare products){nl}"
+                f"• 'Kaun se product kam hain?' (low stock alert){nl}"
+                f"• 'Antim entry wapas lo' (last entry undo){nl}"
             )
 
         return "Command processed successfully!"
