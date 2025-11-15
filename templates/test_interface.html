@@ -208,6 +208,8 @@
         font-size: 14px;
         line-height: 1.4;
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+        /* Preserve newlines (\n / \r\n) from backend so each line shows on chat */
+        white-space: pre-line;
       }
 
       .chat-message.user .message-bubble {
