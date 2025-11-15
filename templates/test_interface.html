@@ -638,8 +638,8 @@
         }
 
         const qty = prompt(
-          "Enter quantity. Use +5 to add or -3 to reduce:",
-          "+1"
+          "Enter quantity sold.\n- Just type 5 to sell 5 (stock will reduce)\n- Use +5 to add stock instead\n- Use -3 to reduce 3",
+          "1"
         );
 
         if (!qty || !qty.trim()) {
@@ -650,9 +650,16 @@
         const raw = qty.trim();
         let delta = parseInt(raw, 10);
         if (isNaN(delta) || delta === 0) {
-          alert("Invalid quantity. Use +5 to add or -3 to reduce.");
+          alert(
+            "Invalid quantity. Example: 5 (sell 5), +5 (add 5 to stock), -3 (reduce 3)."
+          );
           scanBusy = false;
           return;
+        }
+
+        // If user did not type + or -, treat it as a sale (reduce stock)
+        if (!raw.startsWith("+") && !raw.startsWith("-")) {
+          delta = -Math.abs(delta);
         }
 
         addToScanCart(code, delta);

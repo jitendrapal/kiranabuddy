@@ -860,42 +860,44 @@ Do not include any explanation, just the JSON."""
             products_sold = result.get('products_sold', {}) or {}
             revenue_by_product = result.get('revenue_by_product', {}) or {}
 
-            if is_english:
-                response = "📊 Today's total sales:\n\n"
-            else:
-                response = "📊 Aaj ka total sale:\n\n"
+            # Use CRLF (\r\n) so WhatsApp-style clients show clean line breaks
+            nl = "\r\n"
 
-            response += f"✅ Total items sold: {total_items}\n"
+            if is_english:
+                response = f"📊 Today's total sales:{nl}"
+            else:
+                response = f"📊 Aaj ka total sale:{nl}"
+
+            response += f"✅ Total items sold: {total_items}{nl}"
 
             # Show total revenue if available
             if total_revenue is not None:
                 try:
                     total_revenue_val = float(total_revenue)
                     if is_english:
-                        response += f"💰 Total revenue: ₹{total_revenue_val:,.2f}\n\n"
+                        response += f"💰 Total revenue: ₹{total_revenue_val:,.2f}{nl}"
                     else:
-                        response += f"💰 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}\n\n"
+                        response += f"💰 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}{nl}"
                 except Exception:
-                    response += "\n"
-            else:
-                response += "\n"
+                    # If formatting fails, just add a blank line
+                    response += nl
 
             if products_sold:
                 if is_english:
-                    response += "📦 Product-wise breakdown:\n"
+                    response += f"📦 Product-wise breakdown:{nl}"
                 else:
-                    response += "📦 Product-wise breakdown:\n"
+                    response += f"📦 Product-wise breakdown:{nl}"
 
                 for product, qty in products_sold.items():
                     revenue = revenue_by_product.get(product)
                     if revenue is not None:
                         try:
                             rev_val = float(revenue)
-                            response += f"   • {product}: {qty} (₹{rev_val:,.2f})\n"
+                            response += f"• {product}: {qty} (₹{rev_val:,.2f}){nl}"
                         except Exception:
-                            response += f"   • {product}: {qty}\n"
+                            response += f"• {product}: {qty}{nl}"
                     else:
-                        response += f"   • {product}: {qty}\n"
+                        response += f"• {product}: {qty}{nl}"
             else:
                 if is_english:
                     response += "❌ No sales yet today!"
