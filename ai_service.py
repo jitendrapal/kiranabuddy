@@ -211,6 +211,19 @@ class AIService:
                 raw_message=message,
             )
 
+        # Simple heuristic: numeric-only message with 8-16 digits (likely barcode)
+        # Treat as a CHECK_STOCK query where the barcode itself is the product name.
+        stripped = normalized.replace(" ", "")
+        if stripped.isdigit() and 8 <= len(stripped) <= 16:
+            return ParsedCommand(
+                action=CommandAction.CHECK_STOCK,
+                product_name=stripped,
+                quantity=None,
+                confidence=0.95,
+                raw_message=message,
+            )
+
+
         # Simple heuristic: if user just types a product name (1-3 words,
         # without any numbers), treat it as a CHECK_STOCK query.
         if not any(ch.isdigit() for ch in normalized):

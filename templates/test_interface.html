@@ -256,6 +256,64 @@
         justify-content: center;
       }
 
+      .scan-button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: #128c7e;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .scanner-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .scanner-overlay.show {
+        display: flex;
+      }
+
+      .scanner-box {
+        width: 90%;
+        max-width: 420px;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #scannerVideo {
+        width: 100%;
+        max-height: 60vh;
+        background: #000;
+      }
+
+      .scanner-controls {
+        padding: 8px;
+        background: #111;
+        text-align: right;
+      }
+
+      .scanner-close-btn {
+        background: #f44336;
+        border: none;
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
       .header-title {
         display: flex;
         align-items: center;
@@ -344,6 +402,8 @@
         </div>
 
         <div class="chat-input-row">
+          <button class="scan-button" onclick="startBarcodeScan()">📷</button>
+
           <input type="hidden" id="phone" value="+919876543210" />
           <input
             type="text"
@@ -354,10 +414,99 @@
           />
           <button class="send-button" onclick="simulateMessage()">➤</button>
         </div>
+
+        <div class="scanner-overlay" id="scannerOverlay">
+          <div class="scanner-box">
+            <video id="scannerVideo" autoplay playsinline></video>
+            <div class="scanner-controls">
+              <button class="scanner-close-btn" onclick="stopBarcodeScan()">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <script>
+      // --- Simple barcode scanner for test page ---
+      let scannerStream = null;
+      let scanInterval = null;
+
+      async function startBarcodeScan() {
+        const overlay = document.getElementById("scannerOverlay");
+        const video = document.getElementById("scannerVideo");
+
+        if (!("BarcodeDetector" in window)) {
+          alert(
+            "Barcode scanning is not supported in this browser. Please type the code manually."
+          );
+          return;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert("Camera is not available on this device.");
+          return;
+        }
+
+        overlay.classList.add("show");
+
+        try {
+          scannerStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
+          video.srcObject = scannerStream;
+          await video.play();
+        } catch (err) {
+          console.error("Error opening camera", err);
+          alert("Could not open camera. Please check permissions.");
+          stopBarcodeScan();
+          return;
+        }
+
+        const detector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "code_128", "upc_a", "upc_e"],
+        });
+
+        scanInterval = setInterval(async () => {
+          try {
+            const barcodes = await detector.detect(video);
+            if (barcodes && barcodes.length > 0) {
+              const code = barcodes[0].rawValue || "";
+              if (code) {
+                handleScannedCode(code);
+              }
+            }
+          } catch (e) {
+            console.error("Barcode detection error", e);
+          }
+        }, 500);
+      }
+
+      function handleScannedCode(code) {
+        stopBarcodeScan();
+        const input = document.getElementById("message");
+        if (input) {
+          input.value = code;
+          input.focus();
+        }
+      }
+
+      function stopBarcodeScan() {
+        const overlay = document.getElementById("scannerOverlay");
+        if (overlay) {
+          overlay.classList.remove("show");
+        }
+        if (scanInterval) {
+          clearInterval(scanInterval);
+          scanInterval = null;
+        }
+        if (scannerStream) {
+          scannerStream.getTracks().forEach((t) => t.stop());
+          scannerStream = null;
+        }
+      }
+
       function appendMessage(text, sender) {
         const chat = document.getElementById("chatWindow");
         if (!chat) return;
