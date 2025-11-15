@@ -231,7 +231,12 @@ class CommandProcessor:
                 return self.db.get_zero_sale_products_today(shop_id=shop_id)
 
             elif command.action == CommandAction.LIST_PRODUCTS:
-                return self.db.get_products_summary(shop_id=shop_id)
+                # If product_name is provided (e.g. "dal"), treat it as a
+                # keyword filter to show only matching products/brands.
+                return self.db.get_products_summary(
+                    shop_id=shop_id,
+                    keyword=command.product_name,
+                )
 
             elif command.action == CommandAction.LOW_STOCK:
                 return self.db.get_low_stock_products(shop_id=shop_id)

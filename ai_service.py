@@ -372,7 +372,25 @@ class AIService:
             )
 
 
-        # 4) Product list / inventory summary / how many products
+        # 4) Generic keyword-based product search.
+        # If user sends a short single word like "dal", "atta", "rice" etc.,
+        # treat it as a request to list all matching products/brands with
+        # stock and price.
+        one_word = normalized.strip()
+        if " " not in one_word and one_word:
+            # Avoid obviously non-product words which are handled by other
+            # rules above.
+            blocked = {"help", "undo", "sale", "stock", "products", "product"}
+            if one_word not in blocked and not any(ch.isdigit() for ch in one_word):
+                return ParsedCommand(
+                    action=CommandAction.LIST_PRODUCTS,
+                    product_name=one_word,
+                    quantity=None,
+                    confidence=0.95,
+                    raw_message=message,
+                )
+
+        # 5) Product list / inventory summary / how many products
         list_keywords = [
             "product list",
             "products list",
@@ -424,7 +442,7 @@ class AIService:
                 raw_message=message,
             )
 
-        # 5) Low stock queries (which products are low)
+        # 6) Low stock queries (which products are low)
         low_stock_keywords = [
             "low stock",
             "kam stock",
@@ -799,6 +817,8 @@ Do not include any explanation, just the JSON."""
         elif action == 'list_products':
             products = result.get('products', [])
             total = result.get('total_products', len(products))
+            keyword = result.get('keyword')
+
             if not products:
                 if is_english:
                     return "📦 No products registered yet."
@@ -810,16 +830,38 @@ Do not include any explanation, just the JSON."""
             lines = []
             for p in products:
                 name = p.get('name', 'Product')
+                brand = p.get('brand') or ""
                 stock = p.get('stock', 0)
                 unit = p.get('unit', 'pieces')
-                lines.append(f"• {name}: {stock} {unit}")
+                price = p.get('price')
+
+                price_part = ""
+                if price is not None:
+                    try:
+                        price_val = float(price)
+                        price_part = f" (₹{price_val:,.2f})"
+                    except Exception:
+                        price_part = ""
+
+                if brand:
+                    display_name = f"{name} ({brand})"
+                else:
+                    display_name = name
+
+                lines.append(f"• {display_name}: {stock} {unit}{price_part}")
 
             lines_str = "\r\n".join(lines)
 
-            if is_english:
-                response = "📦 Your shop products:\r\n" + lines_str
+            if keyword:
+                if is_english:
+                    response = f"📦 Products matching '{keyword}':\r\n" + lines_str
+                else:
+                    response = f"📦 '{keyword}' wale products:\r\n" + lines_str
             else:
-                response = "📦 Aapke shop ke products:\r\n" + lines_str
+                if is_english:
+                    response = "📦 Your shop products:\r\n" + lines_str
+                else:
+                    response = "📦 Aapke shop ke products:\r\n" + lines_str
 
             response += f"\r\nTotal products: {total}"
             return response

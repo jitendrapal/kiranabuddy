@@ -409,23 +409,49 @@ class FirestoreDB:
         """Get all products for a shop"""
         docs = self.db.collection('products').where('shop_id', '==', shop_id).stream()
         return [Product.from_dict(doc.to_dict()) for doc in docs]
-    def get_products_summary(self, shop_id: str) -> Dict[str, Any]:
-        """Get summary of all products and current stock for a shop"""
+
+    def get_products_summary(self, shop_id: str, keyword: Optional[str] = None) -> Dict[str, Any]:
+        """Get summary of products and current stock for a shop.
+
+        If `keyword` is provided (e.g. "dal"), only products whose name,
+        brand or normalized_name contains that keyword (case-insensitive)
+        are returned.
+        """
         products = self.get_products_by_shop(shop_id)
+
+        keyword_norm = (keyword or "").strip().lower() or None
 
         product_list = []
         for p in products:
-            product_list.append({
-                'name': p.name,
-                'stock': p.current_stock,
-                'unit': p.unit,
-            })
+            try:
+                if keyword_norm:
+                    name_norm = (p.name or "").lower()
+                    brand_norm = (getattr(p, "brand", "") or "").lower()
+                    normalized_name = (getattr(p, "normalized_name", "") or "").lower()
+                    haystack = f"{name_norm} {brand_norm} {normalized_name}"
+                    if keyword_norm not in haystack:
+                        continue
+
+                product_list.append(
+                    {
+                        "name": p.name,
+                        "brand": getattr(p, "brand", None),
+                        "stock": p.current_stock,
+                        "unit": p.unit,
+                        "price": getattr(p, "selling_price", None),
+                    }
+                )
+            except Exception:
+                # Be defensive; skip any bad records
+                continue
 
         return {
-            'success': True,
-            'total_products': len(product_list),
-            'products': product_list,
+            "success": True,
+            "total_products": len(product_list),
+            "products": product_list,
+            "keyword": keyword_norm,
         }
+
     def get_low_stock_products(self, shop_id: str, threshold: Optional[float] = None) -> Dict[str, Any]:
         """Get products whose stock is at or below a threshold"""
         # Allow overriding threshold via env var, default to 5 units
