@@ -122,6 +122,92 @@ class AIService:
         else:
             return "english"
 
+    def _normalize_hindi_to_hinglish(self, text: str) -> str:
+        """Convert common Hindi (Devanagari) phrases into simple Hinglish.
+
+        This is a lightweight, rule-based transliteration for very common
+        shop phrases so that voice transcripts like "१० मैगी ऐड कर दो"
+        become "10 maggi add kar do" before parsing and sending to the LLM.
+        """
+        if not text:
+            return text
+
+        # Only do work if there is Devanagari script present
+        if not any("\u0900" <= ch <= "\u097f" for ch in text):
+            return text
+
+        # Map Devanagari digits to ASCII digits
+        devanagari_digits = "०१२३४५६७८९"
+        latin_digits = "0123456789"
+        digit_map = {ord(d): latin_digits[i] for i, d in enumerate(devanagari_digits)}
+        text = text.translate(digit_map)
+
+        # Very small dictionary of high-value words
+        word_map = {
+            # Products / nouns
+            "मैगी": "maggi",
+            "मैग्गी": "maggi",
+            "मेगी": "maggi",
+            "प्रोडक्ट": "product",
+            "प्रोडक्ट्स": "products",
+            "प्रॉडक्ट": "product",
+            "आइटम": "item",
+            "आइटम्स": "items",
+            "स्टॉक": "stock",
+            "स्टाक": "stock",
+            "बिक्री": "bikri",
+            "सेल": "sale",
+
+            # Verbs / helpers
+            "ऐड": "add",
+            "एड": "add",
+            "बेच": "bech",
+            "बिक": "bik",
+            "कर": "kar",
+            "करो": "karo",
+            "करो।": "karo.",
+            "करना": "karna",
+            "दो": "do",
+            "लो": "lo",
+
+            # Particles / small words
+            "आज": "aaj",
+            "कल": "kal",
+            "की": "ki",
+            "का": "ka",
+            "के": "ke",
+            "है": "hai",
+            "हैं": "hain",
+            "कितनी": "kitni",
+            "कितना": "kitna",
+            "कितने": "kitne",
+            "कौन": "kaun",
+            "से": "se",
+            "कम": "kam",
+        }
+
+        punctuation = ",.!?:\"'“”‘’"
+
+        def map_word(token: str) -> str:
+            # Preserve simple leading/trailing punctuation
+            leading = ""
+            trailing = ""
+            core = token
+            while core and core[0] in punctuation:
+                leading += core[0]
+                core = core[1:]
+            while core and core[-1] in punctuation:
+                trailing = core[-1] + trailing
+                core = core[:-1]
+
+            mapped_core = word_map.get(core, core)
+            return f"{leading}{mapped_core}{trailing}"
+
+        tokens = text.split()
+        mapped_tokens = [map_word(tok) for tok in tokens]
+        return " ".join(mapped_tokens)
+
+
 
 
     def parse_command(self, message: str) -> ParsedCommand:
@@ -134,8 +220,11 @@ class AIService:
         Returns:
             ParsedCommand object with extracted information
         """
+        # Normalize common Hindi script to Hinglish for more robust parsing
+        hinglish_message = self._normalize_hindi_to_hinglish(message)
+
         # Simple heuristic before calling OpenAI: detect some common intents
-        normalized = message.lower().strip()
+        normalized = hinglish_message.lower().strip()
         hindi_msg = message.strip()
 
         # 1) Help / guidance commands
@@ -532,7 +621,10 @@ Return ONLY a JSON object with this exact structure:
 
 Do not include any explanation, just the JSON."""
 
-        user_prompt = f"Parse this message: {message}"
+        # Use the Hinglish-normalized version for the LLM, so that
+        # Devanagari voice transcripts become easy Hinglish like
+        # "10 maggi add kar do".
+        user_prompt = f"Parse this message: {hinglish_message}"
 
         try:
             response = self.client.chat.completions.create(
