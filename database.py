@@ -220,19 +220,38 @@ class FirestoreDB:
         return product
 
     def find_existing_product_by_name(self, shop_id: str, product_name: str) -> Optional[Product]:
-        """Find an existing product for natural-language commands without creating new ones.
+        """Find an existing product for natural-language/Barcode commands.
 
-        This is used for the shopkeeper voice/text flow where we *only* want to
-        update existing catalog items. It tries an exact normalized_name match
-        first, then falls back to a simple token-overlap match against all
-        products for the shop.
+        IMPORTANT: This function **never** creates a new product. It is used in
+        the shopkeeper flows (text / voice / barcode) where we only want to
+        update existing catalog items.
+
+        It supports:
+        - Exact normalized_name match for text names ("Maggi", "Tata Salt 1kg")
+        - Barcode match when the input looks like a barcode (all digits)
+        - Fuzzy token-overlap match for partial names, e.g.
+          "Tata Sampann Toor Dal" -> "Tata Sampann Toor Dal 1kg"
         """
         if not product_name:
             return None
 
         normalized_name = canonical_product_key(product_name)
 
-        # 1) Exact normalized_name match
+        # 0) If this looks like a barcode (all digits, typical length), try to
+        #    match by barcode field first.
+        stripped = normalized_name.replace(" ", "")
+        if stripped.isdigit() and 8 <= len(stripped) <= 16:
+            docs = (
+                self.db.collection("products")
+                .where("shop_id", "==", shop_id)
+                .where("barcode", "==", stripped)
+                .limit(1)
+                .stream()
+            )
+            for doc in docs:
+                return Product.from_dict(doc.to_dict())
+
+        # 1) Exact normalized_name match for text-based names
         docs = (
             self.db.collection("products")
             .where("shop_id", "==", shop_id)
