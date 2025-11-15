@@ -15,17 +15,57 @@ from models import Shop, User, Product, Transaction, UserRole, TransactionType
 # In a real deployment you would load this from your own product master data.
 DEMO_BARCODE_PRODUCTS: Dict[str, Dict[str, Any]] = {
     # Dal variants
-    "8901000000001": {"name": "Tata Sampann Toor Dal 1kg", "brand": "Tata Sampann", "unit": "kg"},
-    "8901000000002": {"name": "Tata Sampann Moong Dal 1kg", "brand": "Tata Sampann", "unit": "kg"},
-    "8901000000003": {"name": "Tata Sampann Masoor Dal 1kg", "brand": "Tata Sampann", "unit": "kg"},
+    "8901000000001": {
+        "name": "Tata Sampann Toor Dal 1kg",
+        "brand": "Tata Sampann",
+        "unit": "kg",
+        "selling_price": 150.0,
+    },
+    "8901000000002": {
+        "name": "Tata Sampann Moong Dal 1kg",
+        "brand": "Tata Sampann",
+        "unit": "kg",
+        "selling_price": 140.0,
+    },
+    "8901000000003": {
+        "name": "Tata Sampann Masoor Dal 1kg",
+        "brand": "Tata Sampann",
+        "unit": "kg",
+        "selling_price": 130.0,
+    },
     # Oil
-    "8902000000001": {"name": "Fortune Sunlite Refined Sunflower Oil 1L", "brand": "Fortune", "unit": "litre"},
-    "8902000000002": {"name": "Fortune Kachi Ghani Mustard Oil 1L", "brand": "Fortune", "unit": "litre"},
+    "8902000000001": {
+        "name": "Fortune Sunlite Refined Sunflower Oil 1L",
+        "brand": "Fortune",
+        "unit": "litre",
+        "selling_price": 190.0,
+    },
+    "8902000000002": {
+        "name": "Fortune Kachi Ghani Mustard Oil 1L",
+        "brand": "Fortune",
+        "unit": "litre",
+        "selling_price": 210.0,
+    },
     # Atta
-    "8903000000001": {"name": "Aashirvaad Atta 10kg", "brand": "Aashirvaad", "unit": "kg"},
+    "8903000000001": {
+        "name": "Aashirvaad Atta 10kg",
+        "brand": "Aashirvaad",
+        "unit": "kg",
+        "selling_price": 420.0,
+    },
     # Biscuits
-    "8904000000001": {"name": "Parle-G Biscuits 800g", "brand": "Parle", "unit": "gram"},
-    "8904000000002": {"name": "Britannia Good Day 600g", "brand": "Britannia", "unit": "gram"},
+    "8904000000001": {
+        "name": "Parle-G Biscuits 800g",
+        "brand": "Parle",
+        "unit": "gram",
+        "selling_price": 60.0,
+    },
+    "8904000000002": {
+        "name": "Britannia Good Day 600g",
+        "brand": "Britannia",
+        "unit": "gram",
+        "selling_price": 70.0,
+    },
 }
 
 # Map some common Hindi product names (Devanagari) to a canonical key
@@ -186,6 +226,7 @@ class FirestoreDB:
             canonical_name = info.get("name", product_name).strip()
             canonical_norm = canonical_product_key(canonical_name)
             unit_from_catalog = info.get("unit", unit)
+            selling_price = info.get("selling_price")
 
             product_id = str(uuid.uuid4())
             product = Product(
@@ -197,6 +238,7 @@ class FirestoreDB:
                 unit=unit_from_catalog,
                 brand=info.get("brand"),
                 barcode=barcode_candidate,
+                selling_price=selling_price,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
             )
@@ -422,10 +464,20 @@ class FirestoreDB:
 
     # ==================== TRANSACTION OPERATIONS ====================
 
-    def create_transaction(self, shop_id: str, product_id: str, product_name: str,
-                          transaction_type: TransactionType, quantity: float,
-                          previous_stock: float, new_stock: float,
-                          user_phone: str, notes: Optional[str] = None) -> Transaction:
+    def create_transaction(
+        self,
+        shop_id: str,
+        product_id: str,
+        product_name: str,
+        transaction_type: TransactionType,
+        quantity: float,
+        previous_stock: float,
+        new_stock: float,
+        user_phone: str,
+        unit_price: Optional[float] = None,
+        total_amount: Optional[float] = None,
+        notes: Optional[str] = None,
+    ) -> Transaction:
         """Create a new transaction record"""
         transaction_id = str(uuid.uuid4())
         transaction = Transaction(
@@ -439,10 +491,12 @@ class FirestoreDB:
             new_stock=new_stock,
             user_phone=user_phone,
             timestamp=datetime.utcnow(),
-            notes=notes
+            unit_price=unit_price,
+            total_amount=total_amount,
+            notes=notes,
         )
 
-        self.db.collection('transactions').document(transaction_id).set(transaction.to_dict())
+        self.db.collection("transactions").document(transaction_id).set(transaction.to_dict())
         return transaction
 
     def get_transactions_by_shop(self, shop_id: str, limit: int = 100) -> List[Transaction]:
@@ -511,7 +565,11 @@ class FirestoreDB:
     # ==================== INVENTORY OPERATIONS ====================
 
     def add_stock(self, shop_id: str, product_name: str, quantity: float, user_phone: str) -> Dict[str, Any]:
-        """Add stock to a product"""
+        """Add stock to a product
+
+        For now, price is not tracked on stock additions (only on sales), so
+        we do not set unit_price/total_amount here.
+        """
         product = self.get_or_create_product(shop_id, product_name)
         previous_stock = product.current_stock
         new_stock = previous_stock + quantity
@@ -520,7 +578,7 @@ class FirestoreDB:
         self.update_product_stock(product.product_id, new_stock)
 
         # Create transaction record
-        transaction = self.create_transaction(
+        self.create_transaction(
             shop_id=shop_id,
             product_id=product.product_id,
             product_name=product.name,
@@ -529,29 +587,67 @@ class FirestoreDB:
             previous_stock=previous_stock,
             new_stock=new_stock,
             user_phone=user_phone,
-            notes=f"Added {quantity} {product.unit}"
+            notes=f"Added {quantity} {product.unit}",
         )
 
         return {
-            'success': True,
-            'product_name': product.name,
-            'quantity': quantity,
-            'previous_stock': previous_stock,
-            'new_stock': new_stock,
-            'unit': product.unit
+            "success": True,
+            "product_name": product.name,
+            "quantity": quantity,
+            "previous_stock": previous_stock,
+            "new_stock": new_stock,
+            "unit": product.unit,
         }
 
     def reduce_stock(self, shop_id: str, product_name: str, quantity: float, user_phone: str) -> Dict[str, Any]:
-        """Reduce stock from a product (sale or consumption)"""
+        """Reduce stock from a product (sale or consumption).
+
+        We treat every reduce_stock as a sale and compute revenue using the
+        product's selling_price if available.
+        """
         product = self.get_or_create_product(shop_id, product_name)
         previous_stock = product.current_stock
         new_stock = max(0, previous_stock - quantity)  # Don't go negative
+
+        # Determine price for this sale
+        unit_price: Optional[float] = None
+        total_amount: Optional[float] = None
+        try:
+            # 1) Use product.selling_price if already stored
+            if getattr(product, "selling_price", None) is not None:
+                unit_price = float(product.selling_price)
+            else:
+                # 2) Fallback for older barcode products: look up demo catalog
+                barcode = getattr(product, "barcode", None)
+                if barcode and barcode in DEMO_BARCODE_PRODUCTS:
+                    demo_info = DEMO_BARCODE_PRODUCTS[barcode]
+                    sp = demo_info.get("selling_price")
+                    if sp is not None:
+                        unit_price = float(sp)
+                        # Persist selling_price back to product document for future
+                        try:
+                            self.db.collection("products").document(product.product_id).update(
+                                {
+                                    "selling_price": unit_price,
+                                    "updated_at": datetime.utcnow().isoformat(),
+                                }
+                            )
+                        except Exception:
+                            # If we can't update price, still continue with this sale
+                            pass
+
+            if unit_price is not None:
+                total_amount = unit_price * float(quantity)
+        except Exception:
+            # Be defensive; if anything goes wrong, fall back to None
+            unit_price = None
+            total_amount = None
 
         # Update product stock
         self.update_product_stock(product.product_id, new_stock)
 
         # Create transaction record
-        transaction = self.create_transaction(
+        self.create_transaction(
             shop_id=shop_id,
             product_id=product.product_id,
             product_name=product.name,
@@ -560,16 +656,20 @@ class FirestoreDB:
             previous_stock=previous_stock,
             new_stock=new_stock,
             user_phone=user_phone,
-            notes=f"Reduced {quantity} {product.unit}"
+            unit_price=unit_price,
+            total_amount=total_amount,
+            notes=f"Reduced {quantity} {product.unit}",
         )
 
         return {
-            'success': True,
-            'product_name': product.name,
-            'quantity': quantity,
-            'previous_stock': previous_stock,
-            'new_stock': new_stock,
-            'unit': product.unit
+            "success": True,
+            "product_name": product.name,
+            "quantity": quantity,
+            "previous_stock": previous_stock,
+            "new_stock": new_stock,
+            "unit": product.unit,
+            "unit_price": unit_price,
+            "total_amount": total_amount,
         }
     def adjust_last_transaction(self, shop_id: str, product_name: str, correct_quantity: float,
                                 user_phone: str) -> Dict[str, Any]:
@@ -685,26 +785,33 @@ class FirestoreDB:
         }
 
     def get_total_sales_today(self, shop_id: str) -> Dict[str, Any]:
-        """Get total sales for today"""
+        """Get total sales for today (items + revenue).
+
+        We look at today's transactions and consider any transaction of type
+        "reduce_stock" or "sale" as a sale event. If price information is
+        available (unit_price/total_amount), we also accumulate revenue.
+        """
         from datetime import datetime, timedelta
 
         # Get start of today (midnight)
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Query transactions for today
-        transactions_ref = self.db.collection('transactions').where('shop_id', '==', shop_id)
+        transactions_ref = self.db.collection("transactions").where("shop_id", "==", shop_id)
 
         # Filter by date and type
         all_transactions = transactions_ref.stream()
 
-        total_items_sold = 0
-        products_sold = {}
+        total_items_sold = 0.0
+        total_revenue = 0.0
+        products_sold: Dict[str, float] = {}
+        revenue_by_product: Dict[str, float] = {}
 
         for trans_doc in all_transactions:
             trans = trans_doc.to_dict()
 
             # Check if transaction is from today
-            trans_time = trans.get('timestamp')
+            trans_time = trans.get("timestamp")
             if trans_time:
                 # Convert string timestamps back to datetime for comparison
                 if isinstance(trans_time, str):
@@ -716,22 +823,38 @@ class FirestoreDB:
 
                 if trans_time >= today_start:
                     # Check if it's a sale (reduce_stock)
-                    if trans.get('transaction_type') == 'reduce_stock' or trans.get('transaction_type') == 'sale':
-                        quantity = trans.get('quantity', 0)
-                        product_name = trans.get('product_name', 'Unknown')
+                    if trans.get("transaction_type") in ("reduce_stock", "sale"):
+                        quantity = float(trans.get("quantity", 0) or 0)
+                        product_name = trans.get("product_name", "Unknown") or "Unknown"
 
                         total_items_sold += quantity
+                        products_sold[product_name] = products_sold.get(product_name, 0.0) + quantity
 
-                        if product_name in products_sold:
-                            products_sold[product_name] += quantity
-                        else:
-                            products_sold[product_name] = quantity
+                        # Revenue (if price is stored)
+                        unit_price = trans.get("unit_price")
+                        total_amount = trans.get("total_amount")
+
+                        # Prefer stored total_amount; otherwise compute from unit_price
+                        sale_amount = 0.0
+                        try:
+                            if total_amount is not None:
+                                sale_amount = float(total_amount)
+                            elif unit_price is not None:
+                                sale_amount = float(unit_price) * quantity
+                        except Exception:
+                            sale_amount = 0.0
+
+                        if sale_amount:
+                            total_revenue += sale_amount
+                            revenue_by_product[product_name] = revenue_by_product.get(product_name, 0.0) + sale_amount
 
         return {
-            'success': True,
-            'total_items_sold': total_items_sold,
-            'products_sold': products_sold,
-            'date': today_start.strftime('%Y-%m-%d')
+            "success": True,
+            "total_items_sold": total_items_sold,
+            "total_revenue": round(total_revenue, 2),
+            "products_sold": products_sold,
+            "revenue_by_product": {k: round(v, 2) for k, v in revenue_by_product.items()},
+            "date": today_start.strftime("%Y-%m-%d"),
         }
 
     def get_zero_sale_products_today(self, shop_id: str) -> Dict[str, Any]:

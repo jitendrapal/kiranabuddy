@@ -93,6 +93,7 @@ class Product:
     unit: str = "pieces"
     brand: Optional[str] = None
     barcode: Optional[str] = None
+    selling_price: Optional[float] = None  # current selling price per unit (in rupees)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -126,14 +127,16 @@ class Transaction:
     new_stock: float
     user_phone: str
     timestamp: datetime
+    unit_price: Optional[float] = None  # price per unit at time of transaction (in rupees)
+    total_amount: Optional[float] = None  # quantity * unit_price
     notes: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
         data['transaction_type'] = self.transaction_type.value
         data['timestamp'] = self.timestamp.isoformat()
         return data
-    
+
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'Transaction':
         data['transaction_type'] = TransactionType(data['transaction_type'])

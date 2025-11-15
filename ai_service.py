@@ -278,7 +278,8 @@ class AIService:
             )
 
         # 3) Total-sales queries (today's sales)
-        # Common patterns like: "kinta aaj sell huyi hai", "aaj kitna bika", "aaj ka total sale" etc.
+        # Common patterns like: "kinta aaj sell huyi hai", "aaj kitna bika", "aaj ka total sale",
+        # and also Hinglish phrases like "aaj ki bikri kitni hai" / "aaj ki bikri".
         total_sales_keywords_latin = [
             "total sale",
             "sell hui",
@@ -295,6 +296,10 @@ class AIService:
             "kitna aaj sell",
             "aaj ka sale",
             "aaj ka total sale",
+            # Extra common patterns requested by user
+            "aaj ki bikri",
+            "bikri kitni",
+            "bikri kitni hai",
         ]
         if ("aaj" in normalized or "aj " in normalized) and any(
             kw in normalized for kw in total_sales_keywords_latin
@@ -851,19 +856,46 @@ Do not include any explanation, just the JSON."""
 
         elif action == 'total_sales':
             total_items = result.get('total_items_sold', 0)
-            products_sold = result.get('products_sold', {})
+            total_revenue = result.get('total_revenue')
+            products_sold = result.get('products_sold', {}) or {}
+            revenue_by_product = result.get('revenue_by_product', {}) or {}
 
             if is_english:
-                response = f"📊 Today's total sales:\n\n"
+                response = "📊 Today's total sales:\n\n"
             else:
-                response = f"📊 Aaj ka total sale:\n\n"
+                response = "📊 Aaj ka total sale:\n\n"
 
-            response += f"✅ Total items sold: {total_items}\n\n"
+            response += f"✅ Total items sold: {total_items}\n"
+
+            # Show total revenue if available
+            if total_revenue is not None:
+                try:
+                    total_revenue_val = float(total_revenue)
+                    if is_english:
+                        response += f"💰 Total revenue: ₹{total_revenue_val:,.2f}\n\n"
+                    else:
+                        response += f"💰 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}\n\n"
+                except Exception:
+                    response += "\n"
+            else:
+                response += "\n"
 
             if products_sold:
-                response += "📦 Product-wise breakdown:\n"
+                if is_english:
+                    response += "📦 Product-wise breakdown:\n"
+                else:
+                    response += "📦 Product-wise breakdown:\n"
+
                 for product, qty in products_sold.items():
-                    response += f"   • {product}: {qty}\n"
+                    revenue = revenue_by_product.get(product)
+                    if revenue is not None:
+                        try:
+                            rev_val = float(revenue)
+                            response += f"   • {product}: {qty} (₹{rev_val:,.2f})\n"
+                        except Exception:
+                            response += f"   • {product}: {qty}\n"
+                    else:
+                        response += f"   • {product}: {qty}\n"
             else:
                 if is_english:
                     response += "❌ No sales yet today!"
