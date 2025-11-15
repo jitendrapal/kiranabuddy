@@ -31,6 +31,8 @@ class CommandAction(Enum):
     LOW_STOCK = "low_stock"
     ADJUST_STOCK = "adjust_stock"
     TOP_PRODUCT_TODAY = "top_product_today"
+    UNDO_LAST = "undo_last"
+    HELP = "help"
     UNKNOWN = "unknown"
 
 
@@ -159,6 +161,8 @@ class ParsedCommand:
             CommandAction.LIST_PRODUCTS,
             CommandAction.LOW_STOCK,
             CommandAction.TOP_PRODUCT_TODAY,
+            CommandAction.UNDO_LAST,
+            CommandAction.HELP,
         ]:
             # These commands don't require product or quantity
             return True

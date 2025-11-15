@@ -134,8 +134,61 @@ class AIService:
         Returns:
             ParsedCommand object with extracted information
         """
-        # Simple heuristic before calling OpenAI: detect obvious total-sales queries
+        # Simple heuristic before calling OpenAI: detect some common intents
         normalized = message.lower().strip()
+        hindi_msg = message.strip()
+
+        # 1) Help / guidance commands
+        help_keywords_latin = [
+            "what can i say",
+            "how to use",
+            "help me",
+            "how do i use",
+            "kya bol sakta",
+            "kya bol sakti",
+        ]
+        help_keywords_hindi = [
+            "मैं क्या कह सकता हूँ",
+            "मैं क्या कह सकती हूँ",
+            "मैं क्या बोल सकता हूँ",
+            "मैं क्या बोल सकती हूँ",
+        ]
+        if any(kw in normalized for kw in help_keywords_latin) or any(
+            kw in hindi_msg for kw in help_keywords_hindi
+        ):
+            return ParsedCommand(
+                action=CommandAction.HELP,
+                product_name=None,
+                quantity=None,
+                confidence=1.0,
+                raw_message=message,
+            )
+
+        # 2) Undo last entry (shop-level)
+        undo_keywords_latin = [
+            "undo last entry",
+            "undo last action",
+            "last entry undo",
+            "pichli entry wapas",
+            "pichli entry hata do",
+        ]
+        undo_keywords_hindi = [
+            "अंतिम एंट्री वापस लो",
+            "आखिरी एंट्री वापस लो",
+            "पिछली एंट्री वापस लो",
+        ]
+        if any(kw in normalized for kw in undo_keywords_latin) or any(
+            kw in hindi_msg for kw in undo_keywords_hindi
+        ):
+            return ParsedCommand(
+                action=CommandAction.UNDO_LAST,
+                product_name=None,
+                quantity=None,
+                confidence=1.0,
+                raw_message=message,
+            )
+
+        # 3) Total-sales queries (today's sales)
         # Common patterns like: "kinta aaj sell huyi hai", "aaj kitna bika", "aaj ka total sale" etc.
         total_sales_keywords_latin = [
             "total sale",
@@ -143,12 +196,16 @@ class AIService:
             "sell huyi",
             "sale hui",
             "kitna bika",
+            "kitni bikri",
             "kitna bikri",
+            "kitni bikri hui",
             "kitna bikri hui",
             "kitna maal becha",
             "kitna becha",
             "kinta aaj sell",
             "kitna aaj sell",
+            "aaj ka sale",
+            "aaj ka total sale",
         ]
         if ("aaj" in normalized or "aj " in normalized) and any(
             kw in normalized for kw in total_sales_keywords_latin
@@ -162,7 +219,6 @@ class AIService:
             )
 
         # Additional Hindi (Devanagari) patterns for total sales, e.g. "आज की बिक्री कितनी है"
-        hindi_msg = message.strip()
         if "आज" in hindi_msg and any(
             kw in hindi_msg
             for kw in [
@@ -181,7 +237,7 @@ class AIService:
                 raw_message=message,
             )
 
-        # Simple heuristic for product list / inventory summary
+        # 4) Product list / inventory summary / how many products
         list_keywords = [
             "product list",
             "products list",
@@ -193,6 +249,8 @@ class AIService:
             "pura stock list",
             "full stock list",
             "all items",
+            "show all products",
+            "show products",
             # How many products/items style
             "kitne product",
             "kitne products",
@@ -202,15 +260,26 @@ class AIService:
             "kitni item",
             "kitne items",
             "kitni items",
+            "how many products",
+            "how many items",
             # Hindi (Devanagari) variants
             "कितने प्रोडक्ट",
             "कितने प्रॉडक्ट",
             "कितने प्रोडक्ट हैं",
             "कितने आइटम",
             "कितने आइटम हैं",
+            "सभी प्रोडक्ट",
+            "सब प्रोडक्ट",
         ]
         if any(kw in normalized for kw in list_keywords) or any(
-            kw in hindi_msg for kw in ["कितने प्रोडक्ट", "कितने प्रॉडक्ट", "कितने आइटम"]
+            kw in hindi_msg
+            for kw in [
+                "कितने प्रोडक्ट",
+                "कितने प्रॉडक्ट",
+                "कितने आइटम",
+                "सभी प्रोडक्ट",
+                "सभी प्रॉडक्ट",
+            ]
         ):
             return ParsedCommand(
                 action=CommandAction.LIST_PRODUCTS,
@@ -220,7 +289,7 @@ class AIService:
                 raw_message=message,
             )
 
-        # Simple heuristic for low stock queries
+        # 5) Low stock queries (which products are low)
         low_stock_keywords = [
             "low stock",
             "kam stock",
@@ -231,7 +300,13 @@ class AIService:
             "khatam hone wala",
             "khatam hone wale",
         ]
-        if any(kw in normalized for kw in low_stock_keywords):
+        if any(kw in normalized for kw in low_stock_keywords) or (
+            "low" in normalized
+            and any(w in normalized for w in ["product", "products", "item", "items"])
+        ) or (
+            "कम" in hindi_msg
+            and any(w in hindi_msg for w in ["प्रोडक्ट", "प्रॉडक्ट", "आइटम"])
+        ):
             return ParsedCommand(
                 action=CommandAction.LOW_STOCK,
                 product_name=None,
@@ -373,8 +448,8 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", or "unknown"
-2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, or adjust_stock, or top_product_today)
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", "undo_last", "help", or "unknown"
+2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, adjust_stock, undo_last, help, or top_product_today)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1).
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
@@ -411,10 +486,31 @@ Examples of TOTAL SALES (daily sales summary):
 - "Aaj ka business kaisa raha?" / "How was today's business?"
 - "Total sale today" / "Aaj ka total"
 - "Kitna maal becha aaj?" / "Sales report for today"
+- "आज की बिक्री कितनी है?" (Hindi script) -> treat as total_sales for today.
+
+Examples of LIST PRODUCTS (all products / how many products):
+- "Show all products"
+- "How many products do we have?"
+- "Kitne product hai?" / "Kitne items hai?"
+- "सभी प्रोडक्ट दिखाओ" / "कितने प्रोडक्ट हैं?"
+
+Examples of LOW STOCK (which products are low on stock):
+- "Which products are low?"
+- "Low stock items?"
+- "Kaun se product kam hain?"
+- "कौन से प्रोडक्ट कम हैं?"
 
 Examples of ADJUST STOCK (fixing wrong entries):
 - "Galat entry ho gayi, Maggi 3 nahi 1 the" -> user earlier recorded 3 Maggi but correct is 1 piece; treat as adjust_stock with product_name "Maggi" and quantity 1.
 - "Oil 5 nahi 2 tha" -> adjust_stock for Oil with quantity 2.
+
+Examples of UNDO LAST (undo last entry for the shop):
+- "Undo last entry" / "Undo last action" -> treat as "undo_last" with no product_name and no quantity.
+- "अंतिम एंट्री वापस लो" -> treat as "undo_last" with no product_name and no quantity.
+
+Examples of HELP (show guidance / examples):
+- "What can I say?" -> action "help" (no product, no quantity).
+- "मैं क्या कह सकता हूँ?" / "मैं क्या कह सकती हूँ?" -> action "help".
 
 Key words to identify actions:
 - ADD: add, laya, aaya, purchase, bought, received, new stock, stock mein daal, mila, got
@@ -428,8 +524,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "unknown",
-    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, adjust_stock, or top_product_today),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "undo_last" | "help" | "unknown",
+    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, adjust_stock, undo_last, help, or top_product_today),
     "quantity": number or null,
     "confidence": 0.0 to 1.0
 }
@@ -461,7 +557,9 @@ Do not include any explanation, just the JSON."""
                 "low_stock": CommandAction.LOW_STOCK,
                 "adjust_stock": CommandAction.ADJUST_STOCK,
                 "top_product_today": CommandAction.TOP_PRODUCT_TODAY,
-                "unknown": CommandAction.UNKNOWN
+                "undo_last": CommandAction.UNDO_LAST,
+                "help": CommandAction.HELP,
+                "unknown": CommandAction.UNKNOWN,
             }
 
             action = action_map.get(result.get('action', 'unknown'), CommandAction.UNKNOWN)

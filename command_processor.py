@@ -168,21 +168,21 @@ class CommandProcessor:
                     shop_id=shop_id,
                     product_name=command.product_name,
                     quantity=command.quantity,
-                    user_phone=user_phone
+                    user_phone=user_phone,
                 )
-            
+
             elif command.action == CommandAction.REDUCE_STOCK:
                 return self.db.reduce_stock(
                     shop_id=shop_id,
                     product_name=command.product_name,
                     quantity=command.quantity,
-                    user_phone=user_phone
+                    user_phone=user_phone,
                 )
-            
+
             elif command.action == CommandAction.CHECK_STOCK:
                 return self.db.check_stock(
                     shop_id=shop_id,
-                    product_name=command.product_name
+                    product_name=command.product_name,
                 )
 
             elif command.action == CommandAction.TOTAL_SALES:
@@ -216,10 +216,23 @@ class CommandProcessor:
                     user_phone=user_phone,
                 )
 
+            elif command.action == CommandAction.UNDO_LAST:
+                return self.db.undo_last_transaction_for_shop(
+                    shop_id=shop_id,
+                    user_phone=user_phone,
+                )
+
+            elif command.action == CommandAction.HELP:
+                # No DB change; generate_response will format the help message.
+                return {
+                    'success': True,
+                    'help': True,
+                }
+
             else:
                 return {
                     'success': False,
-                    'message': 'Unknown command'
+                    'message': 'Unknown command',
                 }
 
         except Exception as e:

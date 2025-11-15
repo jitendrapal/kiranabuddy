@@ -320,6 +320,59 @@ class FirestoreDB:
         docs = self.db.collection('transactions').where('shop_id', '==', shop_id).order_by('timestamp', direction=firestore.Query.DESCENDING).limit(limit).stream()
         return [Transaction.from_dict(doc.to_dict()) for doc in docs]
 
+
+    def undo_last_transaction_for_shop(self, shop_id: str, user_phone: str) -> Dict[str, Any]:
+        """Undo the most recent inventory transaction for this shop.
+
+        This resets the affected product's stock to the "previous_stock" value
+        stored on that transaction and records an ADJUSTMENT entry.
+        """
+        # Get the last transaction for this shop
+        tx_list = self.get_transactions_by_shop(shop_id, limit=1)
+        if not tx_list:
+            return {
+                "success": False,
+                "message": "❌ Koi previous entry nahi mili, undo nahi kar sakte.",
+            }
+
+        last_tx = tx_list[0]
+        product = self.get_product(last_tx.product_id)
+        if not product:
+            return {
+                "success": False,
+                "message": "❌ Last entry ka product nahi mila, undo nahi kar sakte.",
+            }
+
+        # Revert stock back to the recorded previous_stock
+        previous_stock = product.current_stock
+        new_stock = last_tx.previous_stock
+        self.update_product_stock(product.product_id, new_stock)
+
+        # Record an adjustment transaction capturing the delta
+        delta_effect = new_stock - previous_stock
+        notes = f"Undo last transaction {last_tx.transaction_id} for {product.name}"
+        adjustment = self.create_transaction(
+            shop_id=shop_id,
+            product_id=product.product_id,
+            product_name=product.name,
+            transaction_type=TransactionType.ADJUSTMENT,
+            quantity=delta_effect,
+            previous_stock=previous_stock,
+            new_stock=new_stock,
+            user_phone=user_phone,
+            notes=notes,
+        )
+
+        return {
+            "success": True,
+            "product_name": product.name,
+            "old_stock": previous_stock,
+            "new_stock": new_stock,
+            "unit": product.unit,
+            "undone_transaction_id": last_tx.transaction_id,
+            "adjustment_id": adjustment.transaction_id,
+        }
+
     def get_transactions_by_product(self, product_id: str, limit: int = 50) -> List[Transaction]:
         """Get recent transactions for a product"""
         docs = self.db.collection('transactions').where('product_id', '==', product_id).order_by('timestamp', direction=firestore.Query.DESCENDING).limit(limit).stream()
