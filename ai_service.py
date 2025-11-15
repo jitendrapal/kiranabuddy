@@ -211,6 +211,26 @@ class AIService:
                 raw_message=message,
             )
 
+        # Simple heuristic: barcode + quantity pattern, e.g. "8901000000001 +5" or "8901000000001 -3"
+        parts = normalized.split()
+        if len(parts) == 2 and parts[0].isdigit() and 8 <= len(parts[0]) <= 16:
+            sign_part = parts[1]
+            if (sign_part.startswith("+") or sign_part.startswith("-")) and sign_part[1:].strip().isdigit():
+                try:
+                    delta = int(sign_part.replace(" ", ""))
+                    qty = abs(delta)
+                    if qty > 0:
+                        action = CommandAction.ADD_STOCK if delta > 0 else CommandAction.REDUCE_STOCK
+                        return ParsedCommand(
+                            action=action,
+                            product_name=parts[0],
+                            quantity=qty,
+                            confidence=0.98,
+                            raw_message=message,
+                        )
+                except ValueError:
+                    pass
+
         # Simple heuristic: numeric-only message with 8-16 digits (likely barcode)
         # Treat as a CHECK_STOCK query where the barcode itself is the product name.
         stripped = normalized.replace(" ", "")
@@ -222,7 +242,6 @@ class AIService:
                 confidence=0.95,
                 raw_message=message,
             )
-
 
         # Simple heuristic: if user just types a product name (1-3 words,
         # without any numbers), treat it as a CHECK_STOCK query.

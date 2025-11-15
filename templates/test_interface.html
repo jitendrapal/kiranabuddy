@@ -486,7 +486,17 @@
       function handleScannedCode(code) {
         stopBarcodeScan();
         const input = document.getElementById("message");
-        if (input) {
+        if (!input) return;
+
+        const qty = prompt(
+          "Enter quantity. Use +5 to add or -3 to reduce:",
+          "+1"
+        );
+
+        if (qty && qty.trim()) {
+          input.value = code + " " + qty.trim();
+          simulateMessage();
+        } else {
           input.value = code;
           input.focus();
         }
