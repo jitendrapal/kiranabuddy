@@ -280,6 +280,37 @@ class AIService:
         # 3) Total-sales queries (today's sales)
         # Common patterns like: "kinta aaj sell huyi hai", "aaj kitna bika", "aaj ka total sale",
         # and also Hinglish phrases like "aaj ki bikri kitni hai" / "aaj ki bikri".
+
+        # If shopkeeper simply writes "sale" or "sales", treat it as
+        # "show me today's sale".
+        simple_sale_words = ["sale", "sales"]
+        if normalized.strip() in simple_sale_words:
+            return ParsedCommand(
+                action=CommandAction.TOTAL_SALES,
+                product_name=None,
+                quantity=None,
+                confidence=0.99,
+                raw_message=message,
+            )
+
+        # Extra phrases user asked for, mapped directly to today's sale.
+        extra_total_sale_phrases = [
+            "kitne aaj bika",
+            "kitna bikri huya",
+            "kitna bikri hua",
+            "total sale",
+            "kitna aaj sale huya",
+            "kitna aaj sale hua",
+        ]
+        if any(phrase in normalized for phrase in extra_total_sale_phrases):
+            return ParsedCommand(
+                action=CommandAction.TOTAL_SALES,
+                product_name=None,
+                quantity=None,
+                confidence=0.99,
+                raw_message=message,
+            )
+
         total_sales_keywords_latin = [
             "total sale",
             "sell hui",
@@ -301,7 +332,8 @@ class AIService:
             "bikri kitni",
             "bikri kitni hai",
         ]
-        if ("aaj" in normalized or "aj " in normalized) and any(
+        # Also handle English phrasing like "total sale - show me the sale of today".
+        if ("aaj" in normalized or "aj " in normalized or "today" in normalized) and any(
             kw in normalized for kw in total_sales_keywords_latin
         ):
             return ParsedCommand(
