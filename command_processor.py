@@ -1,7 +1,7 @@
 """
 Command processing logic for Kirana Shop Management
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from models import CommandAction, ParsedCommand
 from database import FirestoreDB
 from ai_service import AIService
@@ -91,9 +91,6 @@ class CommandProcessor:
                     'send_reply': True
                 }
 
-            # Step 3: Parse command using AI
-            parsed_command = self.ai_service.parse_command(text)
-
             # Detect language for response (Hindi vs English)
             # For *voice* messages, always reply in English as requested.
             if message_type == "voice":
@@ -101,23 +98,39 @@ class CommandProcessor:
             else:
                 response_language = self.ai_service.detect_language(text)
 
-            print(f"Parsed command: action={parsed_command.action.value}, "
-                  f"product={parsed_command.product_name}, quantity={parsed_command.quantity}, "
-                  f"language={response_language}")
+            # Special handling: batch of multiple barcode + quantity lines
+            batch_result = self._try_process_barcode_batch(
+                shop_id=shop_id,
+                user_phone=from_phone,
+                text=text,
+                response_language=response_language,
+            )
+            if batch_result is not None:
+                return batch_result
+
+            # Step 3: Parse single command using AI
+            parsed_command = self.ai_service.parse_command(text)
+
+            print(
+                f"Parsed command: action={parsed_command.action.value}, "
+                f"product={parsed_command.product_name}, "
+                f"quantity={parsed_command.quantity}, "
+                f"language={response_language}"
+            )
 
             # Step 4: Validate command
             if not parsed_command.is_valid():
                 return {
                     'success': False,
                     'message': f"❌ Sorry, I couldn't understand: '{text}'\n\n"
-                              f"💡 You can say things like:\n"
-                              f"• 'I bought 10 Maggi today'\n"
-                              f"• 'Sold 2 oil bottles'\n"
-                              f"• 'How much atta stock do we have?'\n"
-                              f"• '5 biscuit packets aaye hain'\n"
-                              f"• 'Customer ne 3 cold drink liya'\n\n"
-                              f"Just tell me naturally what happened! 😊",
-                    'send_reply': True
+                    f"💡 You can say things like:\n"
+                    f"• 'I bought 10 Maggi today'\n"
+                    f"• 'Sold 2 oil bottles'\n"
+                    f"• 'How much atta stock do we have?'\n"
+                    f"• '5 biscuit packets aaye hain'\n"
+                    f"• 'Customer ne 3 cold drink liya'\n\n"
+                    f"Just tell me naturally what happened! 😊",
+                    'send_reply': True,
                 }
 
             # Step 5: Execute command
@@ -137,7 +150,7 @@ class CommandProcessor:
                 'success': result['success'],
                 'message': response_message,
                 'send_reply': True,
-                'result': result
+                'result': result,
             }
 
         except Exception as e:
@@ -153,6 +166,98 @@ class CommandProcessor:
                 'send_reply': True,
                 'error': error_details
             }
+
+
+    def _try_process_barcode_batch(
+        self,
+        shop_id: str,
+        user_phone: str,
+        text: str,
+        response_language: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Detect and process a batch of barcode + quantity lines in one go.
+
+        This is used for scanner-style input where the user sends multiple lines like:
+        "8901000000001 -1"\n"8902000000002 +5".
+
+        If the message is not a pure batch of such lines, returns None so the
+        normal single-command flow can handle it.
+        """
+
+        # Normalize newlines and split into non-empty lines
+        normalized_text = text.replace("\r\n", "\n").replace("\r", "\n")
+        raw_lines = normalized_text.split("\n")
+        lines = [line.strip() for line in raw_lines if line.strip()]
+
+        # Need at least 2 lines to treat as a batch
+        if len(lines) <= 1:
+            return None
+
+        parsed_commands: List[ParsedCommand] = []
+
+        # Try to parse each line as its own simple command (typically barcode + delta)
+        for line in lines:
+            cmd = self.ai_service.parse_command(line)
+
+            # If any line is not a clear stock-add/reduce command, bail out and
+            # let the normal flow handle the whole message.
+            if (not cmd.is_valid() or
+                    cmd.action not in (CommandAction.ADD_STOCK, CommandAction.REDUCE_STOCK) or
+                    not cmd.product_name or
+                    cmd.quantity is None):
+                return None
+
+            parsed_commands.append(cmd)
+
+        # At this point, treat as a batch of valid stock updates
+        results: List[Dict[str, Any]] = []
+        messages: List[str] = []
+        all_success = True
+
+        # Use CRLF so WhatsApp-style clients render line breaks correctly
+        nl = "\r\n"
+
+        for cmd in parsed_commands:
+            res = self._execute_command(shop_id, user_phone, cmd)
+            results.append(res)
+
+            if not res.get("success"):
+                all_success = False
+                messages.append(res.get("message", "❌ Command failed."))
+            else:
+                # Reuse existing response generator for each line
+                line_msg = self.ai_service.generate_response(
+                    cmd.action.value,
+                    res,
+                    language=response_language,
+                )
+                messages.append(line_msg)
+
+        if not messages:
+            return {
+                "success": False,
+                "message": "❌ No valid product updates found.",
+                "send_reply": True,
+                "result": {"batch": True, "items": results},
+            }
+
+        if response_language == "english":
+            header = "✅ Products updated:" + nl
+        else:
+            # Simple Hinglish/Hindi-friendly header
+            header = "✅ Products update ho gaye:" + nl
+
+        full_message = header + nl.join(messages)
+
+        return {
+            "success": all_success,
+            "message": full_message,
+            "send_reply": True,
+            "result": {
+                "batch": True,
+                "items": results,
+            },
+        }
 
     def _execute_command(self, shop_id: str, user_phone: str,
                         command: ParsedCommand) -> Dict[str, Any]:

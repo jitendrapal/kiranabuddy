@@ -1092,10 +1092,16 @@ class FirestoreDB:
     def get_expiry_products(self, shop_id: str, days: int = 30) -> Dict[str, Any]:
         """Get products that are expired or expiring within the next `days` days.
 
-        This assumes each Product optionally has an `expiry_date` field, stored either
-        as a string (e.g. "2025-12-31" or "31-12-2025") or a Firestore timestamp.
-        We fetch all products for the shop, interpret their expiry dates, and then
-        split them into:
+        Supports two schemas on the Product document:
+        1) Simple per-product expiry (legacy):
+           - `expiry_date`: string or timestamp for the whole product.
+        2) Per-batch expiry (recommended):
+           - `batches`: {
+           -   "batch_001": {"expiry": "2025-02-10", "qty": 12},
+           -   "batch_002": {"expiry": "2025-03-15", "qty": 10},
+           - }
+
+        We then split into:
         - `expired_products`: expiry date < today
         - `expiring_products`: today <= expiry date <= today + days
         """
@@ -1116,6 +1122,58 @@ class FirestoreDB:
         expiring: List[Dict[str, Any]] = []
 
         for p in products:
+            # Prefer per-batch expiry if available
+            batches = getattr(p, "batches", None) or {}
+            if batches:
+                for batch_id, batch_data in batches.items():
+                    try:
+                        batch = batch_data or {}
+                        expiry_raw = batch.get("expiry") or batch.get("expiry_date")
+                        if not expiry_raw:
+                            continue
+
+                        exp_date = None
+                        if isinstance(expiry_raw, datetime):
+                            exp_date = expiry_raw.date()
+                        elif isinstance(expiry_raw, str):
+                            text = expiry_raw.strip()
+                            for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
+                                try:
+                                    exp_date = datetime.strptime(text, fmt).date()
+                                    break
+                                except Exception:
+                                    continue
+
+                        if not exp_date:
+                            continue
+
+                        qty_raw = batch.get("qty") or batch.get("quantity")
+                        try:
+                            stock_val = float(qty_raw) if qty_raw is not None else p.current_stock
+                        except Exception:
+                            stock_val = p.current_stock
+
+                        info = {
+                            "name": p.name,
+                            "brand": getattr(p, "brand", None),
+                            "stock": stock_val,
+                            "unit": p.unit,
+                            "expiry_date": exp_date.isoformat(),
+                            "batch_id": batch_id,
+                        }
+
+                        if exp_date < today:
+                            expired.append(info)
+                        elif today <= exp_date <= cutoff:
+                            expiring.append(info)
+                    except Exception:
+                        # Be defensive: a bad batch should not break the whole report
+                        continue
+
+                # If batches are present, we don't also use the legacy per-product expiry
+                continue
+
+            # Legacy/simple per-product expiry path
             expiry_raw = getattr(p, "expiry_date", None)
             if not expiry_raw:
                 continue

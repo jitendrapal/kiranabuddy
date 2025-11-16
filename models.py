@@ -98,7 +98,14 @@ class Product:
     barcode: Optional[str] = None
     selling_price: Optional[float] = None  # current selling price per unit (in rupees)
     cost_price: Optional[float] = None  # purchase cost per unit (for profit calculation)
-    expiry_date: Optional[str] = None  # optional expiry date, e.g. '2025-12-31'
+    # Optional single expiry date for the whole product (legacy/simple mode)
+    expiry_date: Optional[str] = None  # e.g. '2025-12-31'
+    # Optional per-batch expiry/quantity info, e.g.:
+    # {
+    #     "batch_001": {"expiry": "2025-02-10", "qty": 12},
+    #     "batch_002": {"expiry": "2025-03-15", "qty": 10},
+    # }
+    batches: Optional[Dict[str, Any]] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -163,6 +170,7 @@ class Product:
             'selling_price',
             'cost_price',
             'expiry_date',
+            'batches',
             'created_at',
             'updated_at',
         }
