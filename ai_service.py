@@ -606,12 +606,16 @@ class AIService:
             )
 
         # Simple heuristic: barcode + quantity pattern, e.g. "8901000000001 +5" or "8901000000001 -3"
+        #
+        # Supports decimal quantities as well, so loose items can be sold by
+        # weight/volume when using the scanner, e.g. "8901000000001 -0.5" for
+        # 0.5 kg/litre.
         parts = normalized.split()
         if len(parts) == 2 and parts[0].isdigit() and 8 <= len(parts[0]) <= 16:
             sign_part = parts[1]
-            if (sign_part.startswith("+") or sign_part.startswith("-")) and sign_part[1:].strip().isdigit():
+            if sign_part.startswith("+") or sign_part.startswith("-"):
                 try:
-                    delta = int(sign_part.replace(" ", ""))
+                    delta = float(sign_part.replace(" ", ""))
                     qty = abs(delta)
                     if qty > 0:
                         action = CommandAction.ADD_STOCK if delta > 0 else CommandAction.REDUCE_STOCK
