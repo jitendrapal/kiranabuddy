@@ -626,13 +626,36 @@ class AIService:
                     pass
         # Simple heuristic for Hindi/Hinglish numeric commands like
         # "10 मैगी ऐड कर दो" or "10 maggi add karo" or "5 oil bech diya".
+        #
+        # Now supports loose items by understanding decimal quantities and
+        # simple weight/volume units like kg/gm/ltr/ml. For example:
+        #   "0.5 kg dal add karo"  -> quantity = 0.5
+        #   "250 gm sugar bech diya" -> quantity = 0.25 (kg)
         if any(ch.isdigit() for ch in normalized):
-            m = re.search(r"(\d+)", normalized)
+            # Capture first number, with optional decimal, plus an optional unit word.
+            # Example matches:
+            #   "0.5 kg dal"  -> qty_str="0.5", unit_word="kg"
+            #   "250 gm sugar" -> qty_str="250", unit_word="gm"
+            #   "10 maggi"     -> qty_str="10", unit_word=None
+            m = re.search(r"(\d+(?:\.\d+)?)[ ]*(kg|kilogram|kilo|g|gm|gram|grams|ml|ltr|liter|litre|l|piece|pieces|pc|pcs)?\b", normalized)
             if m:
+                qty_val = None
+                unit_word = m.group(2).lower() if m.group(2) else None
+
                 try:
                     qty_val = float(m.group(1))
                 except ValueError:
                     qty_val = None
+
+                # For loose items, convert grams/ml to kg/litre equivalents so
+                # that stock can be tracked as a float in base units.
+                if qty_val is not None and unit_word:
+                    if unit_word in {"g", "gm", "gram", "grams"}:
+                        qty_val = qty_val / 1000.0  # grams -> kilograms
+                    elif unit_word in {"ml"}:
+                        qty_val = qty_val / 1000.0  # millilitres -> litres
+                    # For kg/ltr/pieces we keep the quantity as-is.
+
                 if qty_val and qty_val > 0:
                     add_keywords = ["add", "a dd", "aad", "ऐड", "एड", "dal do", "daal do", "डाल", "डाल दो"]
                     reduce_keywords = ["sold", "sell", "bech", "बेच", "bik", "बिक", "nikal", "निकाल", "निकाला"]
