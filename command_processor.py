@@ -235,6 +235,9 @@ class CommandProcessor:
             elif command.action == CommandAction.ZERO_SALE_TODAY:
                 return self.db.get_zero_sale_products_today(shop_id=shop_id)
 
+            elif command.action == CommandAction.EXPIRY_PRODUCTS:
+                return self.db.get_expiry_products(shop_id=shop_id)
+
             elif command.action == CommandAction.LIST_PRODUCTS:
                 # If product_name is provided (e.g. "dal"), treat it as a
                 # keyword filter to show only matching products/brands.

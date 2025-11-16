@@ -32,6 +32,7 @@ class CommandAction(Enum):
     ADJUST_STOCK = "adjust_stock"
     TOP_PRODUCT_TODAY = "top_product_today"
     ZERO_SALE_TODAY = "zero_sale_today"
+    EXPIRY_PRODUCTS = "expiry_products"
     UNDO_LAST = "undo_last"
     HELP = "help"
     UNKNOWN = "unknown"
@@ -94,6 +95,7 @@ class Product:
     brand: Optional[str] = None
     barcode: Optional[str] = None
     selling_price: Optional[float] = None  # current selling price per unit (in rupees)
+    expiry_date: Optional[str] = None  # optional expiry date, e.g. '2025-12-31'
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -156,6 +158,7 @@ class Product:
             'brand',
             'barcode',
             'selling_price',
+            'expiry_date',
             'created_at',
             'updated_at',
         }
@@ -216,6 +219,7 @@ class ParsedCommand:
             CommandAction.LOW_STOCK,
             CommandAction.TOP_PRODUCT_TODAY,
             CommandAction.ZERO_SALE_TODAY,
+            CommandAction.EXPIRY_PRODUCTS,
             CommandAction.UNDO_LAST,
             CommandAction.HELP,
         ]:

@@ -422,6 +422,29 @@ class AIService:
                 raw_message=message,
             )
 
+        # 5) Expiry / near-expiry products
+        # Examples:
+        # - "expiry products"
+        # - "expiry items"
+        # - "kaun sa maal expire hone wala hai"
+        # - "expiring stock"
+        expiry_keywords = [
+            "expiry",
+            "expire",
+            "expiring",
+            "expired",
+        ]
+        if any(kw in normalized for kw in expiry_keywords):
+            return ParsedCommand(
+                action=CommandAction.EXPIRY_PRODUCTS,
+                product_name=None,
+                quantity=None,
+                confidence=0.98,
+                raw_message=message,
+            )
+
+
+
 
         # 4) Generic keyword-based product search.
         # If user sends a short single word like "dal", "atta", "rice" etc.,
@@ -693,8 +716,8 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", "undo_last", "help", or "unknown"
-2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, adjust_stock, undo_last, help, or top_product_today)
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", or "unknown"
+2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, or help)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1).
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
@@ -806,6 +829,7 @@ Do not include any explanation, just the JSON."""
                 "adjust_stock": CommandAction.ADJUST_STOCK,
                 "top_product_today": CommandAction.TOP_PRODUCT_TODAY,
                 "zero_sale_today": CommandAction.ZERO_SALE_TODAY,
+                "expiry_products": CommandAction.EXPIRY_PRODUCTS,
                 "undo_last": CommandAction.UNDO_LAST,
                 "help": CommandAction.HELP,
                 "unknown": CommandAction.UNKNOWN,
@@ -1078,6 +1102,59 @@ Do not include any explanation, just the JSON."""
                     response += f"{nl}Aaj zero-sale products: {total_zero}"
 
             return response
+
+        elif action == 'expiry_products':
+            expired = result.get('expired_products', []) or []
+            expiring = result.get('expiring_products', []) or []
+            days = result.get('days_ahead', 30)
+
+            if not expired and not expiring:
+                if is_english:
+                    return f"✅ No products are expired or expiring in the next {days} days."
+                return f"✅ Agle {days} din mein koi product expiry ke kareeb nahi hai."
+
+            nl = "\r\n"
+            lines = []
+
+            if expiring:
+                if is_english:
+                    lines.append(f"⏰ Products expiring in next {days} days:")
+                else:
+                    lines.append(f"⏰ Agle {days} din mein expiry ke kareeb products:")
+                for p in expiring:
+                    name = p.get('name', 'Product')
+                    brand = p.get('brand') or ""
+                    stock = p.get('stock', 0)
+                    unit = p.get('unit', 'pieces')
+                    expiry_date = p.get('expiry_date', '')
+                    if brand:
+                        display_name = f"{name} ({brand})"
+                    else:
+                        display_name = name
+                    lines.append(f"• {display_name}: {stock} {unit} — expiry {expiry_date}")
+
+            if expired:
+                if lines:
+                    lines.append("")  # blank line between sections
+                if is_english:
+                    lines.append("❌ Already expired products:")
+                else:
+                    lines.append("❌ Jo products ab tak expire ho chuke hain:")
+                for p in expired:
+                    name = p.get('name', 'Product')
+                    brand = p.get('brand') or ""
+                    stock = p.get('stock', 0)
+                    unit = p.get('unit', 'pieces')
+                    expiry_date = p.get('expiry_date', '')
+                    if brand:
+                        display_name = f"{name} ({brand})"
+                    else:
+                        display_name = name
+                    lines.append(f"• {display_name}: {stock} {unit} — expiry {expiry_date}")
+
+            return nl.join(lines)
+
+
 
 
         elif action == 'undo_last':

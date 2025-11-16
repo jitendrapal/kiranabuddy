@@ -3,7 +3,7 @@ Firebase Firestore database layer
 """
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from google.cloud import firestore
 from google.oauth2 import service_account
@@ -928,5 +928,80 @@ class FirestoreDB:
             "total_zero_sale_products": len(zero_sale_products_sorted),
             "date": sales_data.get("date"),
         }
+
+    def get_expiry_products(self, shop_id: str, days: int = 30) -> Dict[str, Any]:
+        """Get products that are expired or expiring within the next `days` days.
+
+        This assumes each Product optionally has an `expiry_date` field, stored either
+        as a string (e.g. "2025-12-31" or "31-12-2025") or a Firestore timestamp.
+        We fetch all products for the shop, interpret their expiry dates, and then
+        split them into:
+        - `expired_products`: expiry date < today
+        - `expiring_products`: today <= expiry date <= today + days
+        """
+        # Allow overriding the window via environment if needed
+        window_days = days
+        try:
+            env_days = os.getenv("EXPIRY_ALERT_DAYS")
+            if env_days is not None:
+                window_days = int(env_days)
+        except Exception:
+            window_days = days
+
+        today = datetime.utcnow().date()
+        cutoff = today + timedelta(days=window_days)
+
+        products = self.get_products_by_shop(shop_id)
+        expired: List[Dict[str, Any]] = []
+        expiring: List[Dict[str, Any]] = []
+
+        for p in products:
+            expiry_raw = getattr(p, "expiry_date", None)
+            if not expiry_raw:
+                continue
+
+            exp_date = None
+            # Handle Firestore timestamp or datetime
+            if isinstance(expiry_raw, datetime):
+                exp_date = expiry_raw.date()
+            elif isinstance(expiry_raw, str):
+                text = expiry_raw.strip()
+                # Try a few common formats
+                for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
+                    try:
+                        exp_date = datetime.strptime(text, fmt).date()
+                        break
+                    except Exception:
+                        continue
+
+            if not exp_date:
+                # Skip if we cannot parse the date safely
+                continue
+
+            info = {
+                "name": p.name,
+                "brand": getattr(p, "brand", None),
+                "stock": p.current_stock,
+                "unit": p.unit,
+                "expiry_date": exp_date.isoformat(),
+            }
+
+            if exp_date < today:
+                expired.append(info)
+            elif today <= exp_date <= cutoff:
+                expiring.append(info)
+
+        # Sort by date (nearest first), then by name for stability
+        expiring_sorted = sorted(expiring, key=lambda item: (item["expiry_date"], item["name"]))
+        expired_sorted = sorted(expired, key=lambda item: (item["expiry_date"], item["name"]))
+
+        return {
+            "success": True,
+            "expired_products": expired_sorted,
+            "expiring_products": expiring_sorted,
+            "days_ahead": window_days,
+            "today": today.isoformat(),
+        }
+
 
 
