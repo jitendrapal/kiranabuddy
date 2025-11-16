@@ -381,21 +381,27 @@
       }
 
       .scan-cart-controls .sale-btn {
-        background: #f44336;
+        background: #ffcdd2; /* light red when not selected */
+        color: #b71c1c;
+        border-color: #ef9a9a;
+      }
+
+      .scan-cart-controls .sale-btn.active {
+        background: #f44336; /* strong red when selected */
         color: #ffffff;
         border-color: #d32f2f;
       }
 
       .scan-cart-controls .add-btn {
-        background: #4caf50;
-        color: #ffffff;
-        border-color: #388e3c;
+        background: #c8e6c9; /* light green when not selected */
+        color: #1b5e20;
+        border-color: #a5d6a7;
       }
 
-      .scan-cart-controls button.active {
-        background: #128c7e;
+      .scan-cart-controls .add-btn.active {
+        background: #4caf50; /* strong green when selected */
         color: #ffffff;
-        border-color: #128c7e;
+        border-color: #388e3c;
       }
 
       .scan-cart-actions {
@@ -409,8 +415,17 @@
         padding: 4px 8px;
         border-radius: 999px;
         border: 1px solid #ccc;
-        background: #ffffff;
         cursor: pointer;
+      }
+
+      .scan-cart-actions .clear-btn {
+        background: #f44336;
+        color: #ffffff;
+        border-color: #d32f2f;
+      }
+
+      .scan-cart-actions .clear-btn:hover {
+        background: #d32f2f;
       }
 
       .scan-cart-actions button.primary {
@@ -764,7 +779,9 @@
                 </div>
                 <div id="scanCartItems" class="scan-cart-items"></div>
                 <div class="scan-cart-actions">
-                  <button onclick="clearScanCart()">Clear</button>
+                  <button class="clear-btn" onclick="clearScanCart()">
+                    Clear
+                  </button>
                   <button class="primary" onclick="sendScanCartToBackend()">
                     Send to backend
                   </button>
