@@ -486,7 +486,7 @@
         height: 28px;
         border-radius: 50%;
         border: none;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.25);
         color: #ffffff;
         display: flex;
         align-items: center;
@@ -496,21 +496,22 @@
       }
 
       .menu-button:hover {
-        background: rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.45);
       }
 
       .menu-dropdown {
         position: absolute;
         top: 34px;
         right: 0;
-        background: #ffffff;
-        color: #000000;
+        background: #263238;
+        color: #ffffff;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         padding: 4px 0;
         min-width: 160px;
         z-index: 2000;
         display: none;
+        border: 1px solid rgba(255, 255, 255, 0.15);
       }
 
       .menu-dropdown.show {
@@ -525,10 +526,11 @@
         padding: 8px 12px;
         font-size: 13px;
         cursor: pointer;
+        color: inherit;
       }
 
       .menu-item:hover {
-        background: #f0f2f5;
+        background: rgba(255, 255, 255, 0.08);
       }
 
       /* Mobile full-screen layout */
