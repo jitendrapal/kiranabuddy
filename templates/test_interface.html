@@ -304,7 +304,7 @@
       }
 
       .scan-cart-items {
-        max-height: 35vh;
+        max-height: 50vh;
         overflow-y: auto;
       }
 
@@ -465,23 +465,17 @@
       }
 
       .scanner-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.75);
+        margin-top: 8px;
         display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
       }
 
       .scanner-overlay.show {
-        display: flex;
+        display: block;
       }
 
       .scanner-box {
-        width: 90%;
-        max-width: 420px;
-        background: #000;
+        width: 100%;
+        background: #111;
         border-radius: 12px;
         overflow: hidden;
         display: flex;
@@ -490,12 +484,12 @@
 
       #scannerVideo {
         width: 100%;
-        max-height: 45vh;
+        max-height: 30vh;
         background: #000;
       }
 
       .scanner-controls {
-        padding: 8px;
+        padding: 8px 10px;
         background: #111;
         text-align: right;
       }
@@ -504,9 +498,10 @@
         background: #f44336;
         border: none;
         color: #fff;
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 13px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        cursor: pointer;
       }
 
       .header-title {
