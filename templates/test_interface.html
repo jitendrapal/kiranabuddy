@@ -817,6 +817,40 @@
       let lastScannedCode = null;
       let lastScanTime = 0;
 
+      // Simple beep sound when a product is scanned
+      let scanBeepContext = null;
+      function playScanBeep() {
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          if (!scanBeepContext) {
+            scanBeepContext = new AC();
+          }
+
+          const duration = 0.08; // seconds
+          const ctx = scanBeepContext;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = "square";
+          osc.frequency.value = 880; // beep frequency
+
+          gain.gain.setValueAtTime(0.25, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            ctx.currentTime + duration
+          );
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start();
+          osc.stop(ctx.currentTime + duration);
+        } catch (e) {
+          console.warn("Beep sound error", e);
+        }
+      }
+
       async function startBarcodeScan() {
         const overlay = document.getElementById("scannerOverlay");
         const video = document.getElementById("scannerVideo");
@@ -892,6 +926,7 @@
         // User can adjust quantity and switch to Add in the list below.
         const delta = -1;
         addToScanCart(code, delta);
+        playScanBeep();
         scanBusy = false;
       }
 
