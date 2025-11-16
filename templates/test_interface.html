@@ -294,6 +294,9 @@
         border-top: 1px solid #ffeeba;
         padding: 8px 10px;
         font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
       }
 
       .scan-cart-header {
@@ -304,7 +307,8 @@
       }
 
       .scan-cart-items {
-        max-height: 50vh;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
       }
 
@@ -481,6 +485,7 @@
       .scanner-box {
         width: 95%;
         max-width: 1000px;
+        height: 95vh;
         max-height: 95vh;
         background: #000;
         border-radius: 12px;
@@ -499,6 +504,10 @@
         padding: 8px;
         background: #111;
         text-align: right;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
       .scanner-close-btn {
@@ -508,6 +517,7 @@
         padding: 6px 12px;
         border-radius: 4px;
         font-size: 13px;
+        align-self: flex-end;
       }
 
       .header-title {
