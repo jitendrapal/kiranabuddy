@@ -817,7 +817,8 @@
 
         if (!isVoiceListening) {
           voiceRecognizer = new SpeechRecognition();
-          voiceRecognizer.lang = "hi-IN"; // Hindi / Hinglish friendly
+          // Always capture voice in English letters so 'dal' is recognized, not 'दाल'
+          voiceRecognizer.lang = "en-IN"; // English (India)
           voiceRecognizer.interimResults = false;
           voiceRecognizer.maxAlternatives = 1;
 
