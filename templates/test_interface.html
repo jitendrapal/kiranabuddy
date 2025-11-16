@@ -471,6 +471,66 @@
         background: #d32f2f;
       }
 
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .header-menu-container {
+        position: relative;
+      }
+
+      .menu-button {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .menu-button:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      .menu-dropdown {
+        position: absolute;
+        top: 34px;
+        right: 0;
+        background: #ffffff;
+        color: #000000;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        padding: 4px 0;
+        min-width: 160px;
+        z-index: 2000;
+        display: none;
+      }
+
+      .menu-dropdown.show {
+        display: block;
+      }
+
+      .menu-item {
+        width: 100%;
+        border: none;
+        background: transparent;
+        text-align: left;
+        padding: 8px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .menu-item:hover {
+        background: #f0f2f5;
+      }
+
       /* Mobile full-screen layout */
       @media (max-width: 600px) {
         html,
@@ -515,13 +575,44 @@
         </div>
         <div class="header-right">
           <div class="header-phone">Test phone: +919876543210</div>
-          <button
-            class="notification-bell"
-            onclick="sendQuickReport('expiry products')"
-            title="Expiry items"
-          >
-            🔔
-          </button>
+          <div class="header-actions">
+            <button
+              class="notification-bell"
+              onclick="sendQuickReport('expiry products')"
+              title="Expiry items"
+            >
+              🔔
+            </button>
+            <div class="header-menu-container">
+              <button
+                class="menu-button"
+                onclick="toggleHeaderMenu()"
+                title="More options"
+              >
+                ⋮
+              </button>
+              <div id="headerMenu" class="menu-dropdown">
+                <button
+                  class="menu-item"
+                  onclick="sendQuickReport('expiry products'); toggleHeaderMenu(false);"
+                >
+                  Expiry
+                </button>
+                <button
+                  class="menu-item"
+                  onclick="sendQuickReport('Monthly estimated profit'); toggleHeaderMenu(false);"
+                >
+                  Total profit
+                </button>
+                <button
+                  class="menu-item"
+                  onclick="sendQuickReport('Show all stock'); toggleHeaderMenu(false);"
+                >
+                  Show stock
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -550,8 +641,8 @@
         <div class="chat-window" id="chatWindow">
           <div class="chat-message bot">
             <div class="message-bubble">
-              Namaste! Main aapka KiranaBuddy hoon. Yahan aap WhatsApp jaisi
-              chat mein commands test kar sakte ho.
+              Namaste! Main aapka KiranaBuddy hoon. Yahan aap chat mein stock |
+              sale |profit | expiry jaan sakte ho. Type kare aur jane!
             </div>
           </div>
         </div>
@@ -835,6 +926,29 @@
       // --- Voice-to-text for test page (browser speech recognition) ---
       let voiceRecognizer = null;
       let isVoiceListening = false;
+
+      function toggleHeaderMenu(force) {
+        const menu = document.getElementById("headerMenu");
+        if (!menu) return;
+        if (typeof force === "boolean") {
+          if (force) {
+            menu.classList.add("show");
+          } else {
+            menu.classList.remove("show");
+          }
+        } else {
+          menu.classList.toggle("show");
+        }
+      }
+
+      document.addEventListener("click", function (event) {
+        const menu = document.getElementById("headerMenu");
+        const container = document.querySelector(".header-menu-container");
+        if (!menu || !container) return;
+        if (!container.contains(event.target)) {
+          menu.classList.remove("show");
+        }
+      });
 
       function toggleVoiceRecording() {
         const btn = document.getElementById("voiceButton");
