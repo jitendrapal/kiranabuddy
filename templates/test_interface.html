@@ -1145,9 +1145,14 @@
         const summaryText = lines.join("\n");
         appendMessage(summaryText, "user");
 
+        // Collect a single combined reply with updated counts
+        const summaryLines = [];
+        const errorLines = [];
+
         // Still send each line individually to backend so existing parsing works
-        for (const line of lines) {
-          const message = line;
+        for (let i = 0; i < lines.length; i++) {
+          const message = lines[i];
+          const item = itemsToSend[i];
 
           try {
             const response = await fetch("/webhook", {
@@ -1165,20 +1170,56 @@
             const data = await response.json();
 
             if (response.ok) {
-              if (data.message) {
-                appendMessage(data.message, "bot");
+              if (data.success === false) {
+                errorLines.push("❌ " + (data.message || message));
               } else {
-                appendMessage("✅ Message processed (no reply text).", "bot");
+                const result = data.data || {};
+                const name =
+                  result.product_name || (item && item.code) || message;
+                const unit = result.unit || "";
+                const newStock =
+                  result.new_stock !== undefined ? result.new_stock : undefined;
+                const qtyFromResult =
+                  result.quantity !== undefined ? result.quantity : undefined;
+                const qty =
+                  qtyFromResult !== undefined
+                    ? qtyFromResult
+                    : Math.abs((item && item.delta) || 0);
+                const isAdd = item && item.delta > 0;
+
+                let lineText;
+                if (newStock !== undefined) {
+                  if (isAdd) {
+                    lineText = `+${qty} ${name} added. New stock: ${newStock} ${unit}`;
+                  } else {
+                    lineText = `${qty} ${name} sold. Remaining stock: ${newStock} ${unit}`;
+                  }
+                } else {
+                  // Fallback if we don't get structured stock info
+                  lineText = data.message || message;
+                }
+
+                summaryLines.push(lineText);
               }
             } else {
-              appendMessage(
-                "Error: " + (data.message || JSON.stringify(data)),
-                "bot"
+              errorLines.push(
+                "❌ Error: " + (data.message || JSON.stringify(data))
               );
             }
           } catch (error) {
-            appendMessage("Error: " + error.message, "bot");
+            errorLines.push("❌ Error: " + error.message);
           }
+        }
+
+        if (summaryLines.length) {
+          appendMessage(
+            "✅ Products updated:\n" + summaryLines.join("\n"),
+            "bot"
+          );
+        }
+
+        if (errorLines.length) {
+          appendMessage(errorLines.join("\n"), "bot");
         }
       }
 
