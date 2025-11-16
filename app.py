@@ -307,6 +307,50 @@ def get_transactions(shop_id):
         return jsonify({'error': str(e)}), 500
 
 
+
+
+@app.route('/api/product-by-barcode', methods=['GET'])
+def get_product_by_barcode():
+    """Lookup a product by barcode for the test interface.
+
+    Uses the phone number to resolve the correct shop, then finds an
+    existing product for that shop whose barcode matches.
+    """
+    try:
+        barcode = (request.args.get('barcode') or '').strip()
+        phone = (request.args.get('phone') or '').strip()
+
+        if not barcode:
+            return jsonify({'success': False, 'message': 'barcode is required'}), 400
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop or user not found for phone'}), 404
+            shop_id = shop.shop_id
+
+        product = db.find_existing_product_by_name(shop_id, barcode)
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'product': {
+                'name': product.name,
+                'brand': getattr(product, 'brand', None),
+                'unit': product.unit,
+                'barcode': product.barcode,
+            },
+        }), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/api/test/parse', methods=['POST'])
 def test_parse():
     """Test endpoint to parse a command without executing it"""

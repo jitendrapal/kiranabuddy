@@ -312,11 +312,50 @@
         display: flex;
         justify-content: space-between;
         font-size: 12px;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
+        gap: 8px;
+      }
+
+      .scan-cart-item-name {
+        font-weight: 600;
+        font-size: 12px;
       }
 
       .scan-cart-item-code {
         font-family: monospace;
+        font-size: 11px;
+        opacity: 0.7;
+      }
+
+      .scan-cart-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+      }
+
+      .scan-cart-qty {
+        font-size: 12px;
+      }
+
+      .scan-cart-controls {
+        display: flex;
+        gap: 4px;
+      }
+
+      .scan-cart-controls button {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        border: 1px solid #ccc;
+        background: #ffffff;
+        cursor: pointer;
+      }
+
+      .scan-cart-controls button.active {
+        background: #128c7e;
+        color: #ffffff;
+        border-color: #128c7e;
       }
 
       .scan-cart-actions {
@@ -798,14 +837,50 @@
       function addToScanCart(code, delta) {
         if (!code) return;
 
-        const existing = scanCart.find((item) => item.code === code);
+        let existing = scanCart.find((item) => item.code === code);
         if (existing) {
           existing.delta += delta;
         } else {
-          scanCart.push({ code, delta });
+          existing = { code, delta, name: null, unit: null };
+          scanCart.push(existing);
+
+          // Fire-and-forget lookup to show product name instead of raw barcode
+          fetchProductNameForItem(existing);
         }
 
         updateScanCartUI();
+      }
+
+      async function fetchProductNameForItem(item) {
+        try {
+          const phoneInput = document.getElementById("phone");
+          const phone = phoneInput ? phoneInput.value : "";
+          if (!phone || !item || !item.code) return;
+
+          const params = new URLSearchParams({
+            barcode: item.code,
+            phone: phone,
+          });
+
+          const resp = await fetch(
+            `/api/product-by-barcode?${params.toString()}`
+          );
+          if (!resp.ok) return;
+
+          const data = await resp.json();
+          if (!data || !data.success || !data.product) return;
+
+          item.name = data.product.name || null;
+          item.unit = data.product.unit || null;
+
+          updateScanCartUI();
+        } catch (e) {
+          console.error(
+            "Failed to lookup product name for barcode",
+            item.code,
+            e
+          );
+        }
       }
 
       function updateScanCartUI() {
@@ -833,16 +908,59 @@
           const row = document.createElement("div");
           row.className = "scan-cart-item";
 
-          const codeSpan = document.createElement("span");
-          codeSpan.className = "scan-cart-item-code";
-          codeSpan.textContent = item.code;
+          const left = document.createElement("div");
+          const nameEl = document.createElement("div");
+          nameEl.className = "scan-cart-item-name";
+          nameEl.textContent = item.name || item.code;
 
-          const qtySpan = document.createElement("span");
-          qtySpan.textContent =
-            item.delta > 0 ? "+" + item.delta : String(item.delta);
+          const codeEl = document.createElement("div");
+          codeEl.className = "scan-cart-item-code";
+          codeEl.textContent = item.name ? item.code : "";
 
-          row.appendChild(codeSpan);
-          row.appendChild(qtySpan);
+          left.appendChild(nameEl);
+          left.appendChild(codeEl);
+
+          const right = document.createElement("div");
+          right.className = "scan-cart-right";
+
+          const qtyEl = document.createElement("div");
+          qtyEl.className = "scan-cart-qty";
+          const absQty = Math.abs(item.delta);
+          const modeLabel = item.delta > 0 ? "Add" : "Sale";
+          qtyEl.textContent = `${modeLabel}: ${absQty}`;
+
+          const controls = document.createElement("div");
+          controls.className = "scan-cart-controls";
+
+          const saleBtn = document.createElement("button");
+          saleBtn.textContent = "Sale";
+          if (item.delta < 0) {
+            saleBtn.classList.add("active");
+          }
+          saleBtn.onclick = () => {
+            item.delta = -Math.abs(item.delta || 1);
+            updateScanCartUI();
+          };
+
+          const addBtn = document.createElement("button");
+          addBtn.textContent = "Add";
+          if (item.delta > 0) {
+            addBtn.classList.add("active");
+          }
+          addBtn.onclick = () => {
+            item.delta = Math.abs(item.delta || 1);
+            updateScanCartUI();
+          };
+
+          controls.appendChild(saleBtn);
+          controls.appendChild(addBtn);
+
+          right.appendChild(qtyEl);
+          right.appendChild(controls);
+
+          row.appendChild(left);
+          row.appendChild(right);
+
           itemsContainer.appendChild(row);
         });
       }
