@@ -429,13 +429,25 @@ class AIService:
         # stock and price.
         one_word = normalized.strip()
         if " " not in one_word and one_word:
+            # Map common spelling variants (especially from voice) to a base keyword.
+            # Example: "daal" (spoken) → "dal" (product names), "aata" → "atta".
+            category_aliases = {
+                "daal": "dal",
+                "dall": "dal",
+                "aata": "atta",
+                "ata": "atta",
+                # "oil" already matches product names; kept for clarity/extensibility.
+                "oil": "oil",
+            }
+            base_word = category_aliases.get(one_word, one_word)
+
             # Avoid obviously non-product words which are handled by other
             # rules above.
             blocked = {"help", "undo", "sale", "stock", "products", "product"}
-            if one_word not in blocked and not any(ch.isdigit() for ch in one_word):
+            if base_word not in blocked and not any(ch.isdigit() for ch in base_word):
                 return ParsedCommand(
                     action=CommandAction.LIST_PRODUCTS,
-                    product_name=one_word,
+                    product_name=base_word,
                     quantity=None,
                     confidence=0.95,
                     raw_message=message,
