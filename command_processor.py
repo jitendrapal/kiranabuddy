@@ -10,34 +10,34 @@ from whatsapp_service import WhatsAppService
 
 class CommandProcessor:
     """Process commands from WhatsApp messages"""
-    
+
     def __init__(self, db: FirestoreDB, ai_service: AIService, whatsapp_service: WhatsAppService):
         """Initialize command processor"""
         self.db = db
         self.ai_service = ai_service
         self.whatsapp_service = whatsapp_service
-    
-    def process_message(self, from_phone: str, message_type: str, 
-                       text: Optional[str] = None, 
+
+    def process_message(self, from_phone: str, message_type: str,
+                       text: Optional[str] = None,
                        media_url: Optional[str] = None,
                        media_format: Optional[str] = None) -> Dict[str, Any]:
         """
         Process incoming WhatsApp message
-        
+
         Args:
             from_phone: Sender's phone number
             message_type: "text" or "voice"
             text: Message text (for text messages)
             media_url: Media URL or ID (for voice messages)
             media_format: Media format (ogg, mp3, etc.)
-        
+
         Returns:
             Result dictionary with success status and response message
         """
         try:
             # Step 1: Get or validate user and shop
             user = self.db.get_user_by_phone(from_phone)
-            
+
             if not user:
                 # Try to find shop by owner phone
                 shop = self.db.get_shop_by_phone(from_phone)
@@ -51,7 +51,7 @@ class CommandProcessor:
                 shop_id = shop.shop_id
             else:
                 shop_id = user.shop_id
-            
+
             # Step 2: Get message text (transcribe if voice)
             if message_type == "voice":
                 if not media_url:
@@ -90,7 +90,7 @@ class CommandProcessor:
                     'message': "❌ No message text found.",
                     'send_reply': True
                 }
-            
+
             # Step 3: Parse command using AI
             parsed_command = self.ai_service.parse_command(text)
 
@@ -119,7 +119,7 @@ class CommandProcessor:
                               f"Just tell me naturally what happened! 😊",
                     'send_reply': True
                 }
-            
+
             # Step 5: Execute command
             result = self._execute_command(shop_id, from_phone, parsed_command)
 
@@ -139,7 +139,7 @@ class CommandProcessor:
                 'send_reply': True,
                 'result': result
             }
-            
+
         except Exception as e:
             print(f"❌ ERROR in process_message: {e}")
             import traceback
@@ -153,17 +153,17 @@ class CommandProcessor:
                 'send_reply': True,
                 'error': error_details
             }
-    
-    def _execute_command(self, shop_id: str, user_phone: str, 
+
+    def _execute_command(self, shop_id: str, user_phone: str,
                         command: ParsedCommand) -> Dict[str, Any]:
         """
         Execute parsed command
-        
+
         Args:
             shop_id: Shop ID
             user_phone: User's phone number
             command: Parsed command
-        
+
         Returns:
             Result dictionary
         """
@@ -231,6 +231,15 @@ class CommandProcessor:
                     base['top_product_name'] = None
                     base['top_product_quantity'] = 0
                 return base
+
+            elif command.action == CommandAction.TODAY_PROFIT:
+                # For now, profit is estimated as the same as total revenue
+                # because purchase cost is not yet tracked separately.
+                return self.db.get_total_sales_today(shop_id=shop_id)
+
+            elif command.action == CommandAction.MONTHLY_PROFIT:
+                return self.db.get_total_sales_current_month(shop_id=shop_id)
+
 
             elif command.action == CommandAction.ZERO_SALE_TODAY:
                 return self.db.get_zero_sale_products_today(shop_id=shop_id)

@@ -27,6 +27,8 @@ class CommandAction(Enum):
     REDUCE_STOCK = "reduce_stock"
     CHECK_STOCK = "check_stock"
     TOTAL_SALES = "total_sales"
+    TODAY_PROFIT = "today_profit"
+    MONTHLY_PROFIT = "monthly_profit"
     LIST_PRODUCTS = "list_products"
     LOW_STOCK = "low_stock"
     ADJUST_STOCK = "adjust_stock"
@@ -95,6 +97,7 @@ class Product:
     brand: Optional[str] = None
     barcode: Optional[str] = None
     selling_price: Optional[float] = None  # current selling price per unit (in rupees)
+    cost_price: Optional[float] = None  # purchase cost per unit (for profit calculation)
     expiry_date: Optional[str] = None  # optional expiry date, e.g. '2025-12-31'
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -158,6 +161,7 @@ class Product:
             'brand',
             'barcode',
             'selling_price',
+            'cost_price',
             'expiry_date',
             'created_at',
             'updated_at',
@@ -215,6 +219,8 @@ class ParsedCommand:
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
         elif self.action in [
             CommandAction.TOTAL_SALES,
+            CommandAction.TODAY_PROFIT,
+            CommandAction.MONTHLY_PROFIT,
             CommandAction.LIST_PRODUCTS,
             CommandAction.LOW_STOCK,
             CommandAction.TOP_PRODUCT_TODAY,

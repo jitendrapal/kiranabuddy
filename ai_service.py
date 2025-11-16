@@ -382,6 +382,43 @@ class AIService:
                 raw_message=message,
             )
 
+        # 3b) Profit queries (estimated profit)
+        # Examples:
+        # - "Today's estimated profit"
+        # - "Aaj ka profit"
+        # - "Monthly estimated profit" / "mahine ka profit"
+        if ("profit" in normalized) or ("munafa" in normalized):
+            monthly_markers = ["month", "mahina", "mahine", "mahine ka", "monthly"]
+            today_markers = ["aaj", "aj ", "today"]
+
+            if any(m in normalized for m in monthly_markers):
+                return ParsedCommand(
+                    action=CommandAction.MONTHLY_PROFIT,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.99,
+                    raw_message=message,
+                )
+
+            if any(t in normalized for t in today_markers):
+                return ParsedCommand(
+                    action=CommandAction.TODAY_PROFIT,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.99,
+                    raw_message=message,
+                )
+
+            # If period is not specified, default to today's profit
+            return ParsedCommand(
+                action=CommandAction.TODAY_PROFIT,
+                product_name=None,
+                quantity=None,
+                confidence=0.95,
+                raw_message=message,
+            )
+
+
         # 4) Zero-sale products today (which products did NOT sell today)
         zero_sale_keywords_latin = [
             "zero sale",
@@ -716,8 +753,8 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", or "unknown"
-2. product_name: the name of the product mentioned (not needed for total_sales, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, or help)
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", or "unknown"
+2. product_name: the name of the product mentioned (not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, or help)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1).
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
@@ -785,6 +822,7 @@ Key words to identify actions:
 - REDUCE: sold, bik gaya, bech diya, nikala, sale, customer ko diya, gaya
 - CHECK: kitna, how much, stock, batao, check, remaining, bacha, inventory, count (for specific product)
 - TOTAL_SALES: total sale, aaj ka sale, today's sales, kitna bika, business, sales report, aaj ka total
+- PROFIT: profit, munafa, estimated profit
 
 Messages may contain Devanagari Hindi words like "मैगी", "ऐड कर दो", "बिक गए". Parse them the same way as the Hinglish examples above.
 
@@ -792,8 +830,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "undo_last" | "help" | "unknown",
-    "product_name": "product name" or null (not needed for total_sales, list_products, low_stock, adjust_stock, zero_sale_today, undo_last, help, or top_product_today),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "unknown",
+    "product_name": "product name" or null (not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, or top_product_today),
     "quantity": number or null,
     "confidence": 0.0 to 1.0
 }
@@ -824,6 +862,8 @@ Do not include any explanation, just the JSON."""
                 "reduce_stock": CommandAction.REDUCE_STOCK,
                 "check_stock": CommandAction.CHECK_STOCK,
                 "total_sales": CommandAction.TOTAL_SALES,
+                "today_profit": CommandAction.TODAY_PROFIT,
+                "monthly_profit": CommandAction.MONTHLY_PROFIT,
                 "list_products": CommandAction.LIST_PRODUCTS,
                 "low_stock": CommandAction.LOW_STOCK,
                 "adjust_stock": CommandAction.ADJUST_STOCK,
@@ -1065,6 +1105,148 @@ Do not include any explanation, just the JSON."""
                     response += "❌ Koi sale nahi hui aaj!"
 
             return response
+
+        elif action == 'today_profit':
+            total_items = result.get('total_items_sold', 0)
+            total_revenue = result.get('total_revenue')
+            total_cost = result.get('total_cost')
+            total_profit = result.get('total_profit')
+
+            nl = "\r\n"
+
+            if total_revenue is None:
+                if is_english:
+                    return (
+                        "💰 Today's profit: ₹0.00" + nl +
+                        "ℹ️ No sales recorded today, so profit is zero."
+                    )
+                return (
+                    "💰 Aaj ka munafa: ₹0.00" + nl +
+                    "ℹ️ Aaj koi sale record nahi hui, isliye munafa zero hai."
+                )
+
+            try:
+                total_revenue_val = float(total_revenue)
+            except Exception:
+                total_revenue_val = 0.0
+
+            total_cost_val = None
+            if total_cost is not None:
+                try:
+                    total_cost_val = float(total_cost)
+                except Exception:
+                    total_cost_val = None
+
+            total_profit_val = None
+            if total_profit is not None:
+                try:
+                    total_profit_val = float(total_profit)
+                except Exception:
+                    total_profit_val = None
+
+            # Fallback: if profit not provided but we have revenue and cost, compute it
+            if total_profit_val is None and total_cost_val is not None:
+                total_profit_val = total_revenue_val - total_cost_val
+
+            # If still None, treat profit as revenue (best-effort)
+            if total_profit_val is None:
+                total_profit_val = total_revenue_val
+
+            if is_english:
+                lines = [
+                    "💰 Today's profit:",
+                    f"✅ Total items sold: {total_items}",
+                    f"📦 Total sales (revenue): ₹{total_revenue_val:,.2f}",
+                ]
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Purchase cost (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Profit: ₹{total_profit_val:,.2f}")
+            else:
+                lines = [
+                    "💰 Aaj ka munafa:",
+                    f"✅ Total items sold: {total_items}",
+                    f"📦 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}",
+                ]
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Khareed ka kharcha (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Munafa: ₹{total_profit_val:,.2f}")
+
+            return nl.join(lines)
+
+        elif action == 'monthly_profit':
+            total_items = result.get('total_items_sold', 0)
+            total_revenue = result.get('total_revenue')
+            total_cost = result.get('total_cost')
+            total_profit = result.get('total_profit')
+            month_label = result.get('month')
+
+            nl = "\r\n"
+
+            if total_revenue is None:
+                if is_english:
+                    header = "💰 This month's profit: ₹0.00"
+                    note = "ℹ️ No sales recorded this month, so profit is zero."
+                else:
+                    header = "💰 Is mahine ka munafa: ₹0.00"
+                    note = "ℹ️ Is mahine koi sale record nahi hui, isliye munafa zero hai."
+                if month_label:
+                    header = f"{header} (month: {month_label})"
+                return header + nl + note
+
+            try:
+                total_revenue_val = float(total_revenue)
+            except Exception:
+                total_revenue_val = 0.0
+
+            total_cost_val = None
+            if total_cost is not None:
+                try:
+                    total_cost_val = float(total_cost)
+                except Exception:
+                    total_cost_val = None
+
+            total_profit_val = None
+            if total_profit is not None:
+                try:
+                    total_profit_val = float(total_profit)
+                except Exception:
+                    total_profit_val = None
+
+            # Fallback: if profit not provided but we have revenue and cost, compute it
+            if total_profit_val is None and total_cost_val is not None:
+                total_profit_val = total_revenue_val - total_cost_val
+
+            # If still None, treat profit as revenue (best-effort)
+            if total_profit_val is None:
+                total_profit_val = total_revenue_val
+
+            if is_english:
+                header = "💰 This month's profit:"
+                if month_label:
+                    header += f" (month: {month_label})"
+                lines = [
+                    header,
+                    f"✅ Total items sold: {total_items}",
+                    f"📦 Total sales (revenue): ₹{total_revenue_val:,.2f}",
+                ]
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Purchase cost (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Profit: ₹{total_profit_val:,.2f}")
+            else:
+                header = "💰 Is mahine ka munafa:"
+                if month_label:
+                    header += f" (month: {month_label})"
+                lines = [
+                    header,
+                    f"✅ Total items sold: {total_items}",
+                    f"📦 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}",
+                ]
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Khareed ka kharcha (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Munafa: ₹{total_profit_val:,.2f}")
+
+            return nl.join(lines)
+
 
         elif action == 'zero_sale_today':
             zero_products = result.get('zero_sale_products', [])
