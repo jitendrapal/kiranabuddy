@@ -174,7 +174,39 @@ class Product:
             'created_at',
             'updated_at',
         }
-        cleaned = {k: v for k, v in normalized.items() if k in allowed_keys}
+        cleaned: Dict[str, Any] = {k: v for k, v in normalized.items() if k in allowed_keys}
+
+        # 5) Backfill safe defaults for missing required fields so older/demo
+        #    documents (like ones created by tools/reset_products.py) don't
+        #    crash Product.__init__.
+
+        # Ensure we always have a unit
+        if 'unit' not in cleaned or cleaned['unit'] is None:
+            cleaned['unit'] = 'pieces'
+
+        # Ensure we always have normalized_name (fallback: lowercase name)
+        if 'normalized_name' not in cleaned and 'name' in cleaned:
+            try:
+                cleaned['normalized_name'] = (cleaned['name'] or '').strip().lower()
+            except Exception:
+                cleaned['normalized_name'] = ''
+
+        # Infer current_stock from batches if not explicitly stored.
+        if 'current_stock' not in cleaned or cleaned['current_stock'] is None:
+            total_qty = 0.0
+            batches_obj = cleaned.get('batches') or normalized.get('batches')
+            if isinstance(batches_obj, dict):
+                for batch in batches_obj.values():
+                    try:
+                        if not isinstance(batch, dict):
+                            continue
+                        qty_raw = batch.get('qty') or batch.get('quantity')
+                        if qty_raw is None:
+                            continue
+                        total_qty += float(qty_raw)
+                    except Exception:
+                        continue
+            cleaned['current_stock'] = total_qty
 
         return Product(**cleaned)
 
