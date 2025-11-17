@@ -1122,10 +1122,14 @@ class FirestoreDB:
         expiring: List[Dict[str, Any]] = []
 
         for p in products:
-            # Prefer per-batch expiry if available
-            batches = getattr(p, "batches", None) or {}
-            if batches:
-                for batch_id, batch_data in batches.items():
+            # Prefer per-batch expiry if available, but only skip the legacy
+            # per-product path if we actually manage to read at least one
+            # usable batch expiry.
+            any_batch_handled = False
+            batches_obj = getattr(p, "batches", None)
+
+            if isinstance(batches_obj, dict) and batches_obj:
+                for batch_id, batch_data in batches_obj.items():
                     try:
                         batch = batch_data or {}
                         expiry_raw = batch.get("expiry") or batch.get("expiry_date")
@@ -1137,12 +1141,18 @@ class FirestoreDB:
                             exp_date = expiry_raw.date()
                         elif isinstance(expiry_raw, str):
                             text = expiry_raw.strip()
-                            for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
-                                try:
-                                    exp_date = datetime.strptime(text, fmt).date()
-                                    break
-                                except Exception:
-                                    continue
+                            # First try flexible ISO-style parsing (handles
+                            # "2025-12-31" and "2025-12-31T00:00:00" etc.).
+                            try:
+                                exp_date = datetime.fromisoformat(text).date()
+                            except Exception:
+                                # Fall back to a few common day/month/year styles.
+                                for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
+                                    try:
+                                        exp_date = datetime.strptime(text, fmt).date()
+                                        break
+                                    except Exception:
+                                        continue
 
                         if not exp_date:
                             continue
@@ -1166,12 +1176,18 @@ class FirestoreDB:
                             expired.append(info)
                         elif today <= exp_date <= cutoff:
                             expiring.append(info)
+
+                        any_batch_handled = True
                     except Exception:
                         # Be defensive: a bad batch should not break the whole report
                         continue
 
-                # If batches are present, we don't also use the legacy per-product expiry
-                continue
+                # If we successfully handled at least one batch expiry, skip the
+                # legacy per-product expiry for this product to avoid double
+                # counting. If no batch expiries were usable (e.g. bad formats),
+                # fall through to the legacy path below.
+                if any_batch_handled:
+                    continue
 
             # Legacy/simple per-product expiry path
             expiry_raw = getattr(p, "expiry_date", None)
