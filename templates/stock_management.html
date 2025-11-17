@@ -1,257 +1,621 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stock Management</title>
-  <style>
-    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f4f6; }
-    .page { max-width: 1200px; margin: 0 auto; padding: 16px; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    header h1 { font-size: 20px; margin: 0; }
-    header a { font-size: 13px; color: #2563eb; text-decoration: none; }
-    header a:hover { text-decoration: underline; }
-    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; padding: 8px 10px; background: #fff; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
-    .controls label { font-size: 13px; color: #374151; }
-    .controls input { padding: 4px 8px; font-size: 13px; border-radius: 4px; border: 1px solid #d1d5db; min-width: 180px; }
-    .btn { padding: 6px 12px; font-size: 13px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-primary { background: #2563eb; color: #fff; }
-    .btn-primary:disabled { background: #9ca3af; cursor: default; }
-    .btn-secondary { background: #e5e7eb; color: #111827; }
-    .status { font-size: 12px; color: #374151; margin-top: 4px; min-height: 16px; }
-    .status.error { color: #b91c1c; }
-    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; align-items: stretch; }
-    .product-card { background: #fff; border-radius: 8px; padding: 10px 10px 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 6px; }
-    .product-title { font-size: 14px; font-weight: 600; color: #111827; }
-    .product-sub { font-size: 12px; color: #6b7280; }
-    .field-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
-    .field-row label { min-width: 60px; color: #374151; }
-    .field-row input { flex: 1; padding: 3px 6px; font-size: 12px; border-radius: 4px; border: 1px solid #d1d5db; }
-    .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 10px; background: #e5e7eb; color: #374151; }
-    .batches { margin-top: 4px; border-top: 1px solid #e5e7eb; padding-top: 4px; }
-    .batches-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #4b5563; margin-bottom: 2px; }
-    .batch-row { display: grid; grid-template-columns: 0.9fr 0.7fr 1.1fr; gap: 4px; align-items: center; margin-bottom: 3px; }
-    .batch-row span { font-size: 11px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .batch-row input { padding: 2px 4px; font-size: 11px; border-radius: 4px; border: 1px solid #d1d5db; }
-    .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; gap: 6px; }
-    .stock-info { font-size: 11px; color: #4b5563; }
-    .save-status { font-size: 11px; color: #059669; min-height: 14px; }
-    .save-status.error { color: #b91c1c; }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <header>
-      <h1>Stock Management</h1>
-      <a href="/test">&larr; Back to Test Chat</a>
-    </header>
-
-    <section class="controls">
-      <label for="phoneInput">Shop phone (WhatsApp number):</label>
-      <input id="phoneInput" type="text" placeholder="e.g. +91XXXXXXXXXX" />
-      <button id="loadBtn" class="btn btn-primary" onclick="loadProducts()">Load products</button>
-      <span id="globalStatus" class="status"></span>
-    </section>
-
-    <div id="productsGrid" class="products-grid"></div>
-  </div>
-
-  <script>
-    let currentPhone = "";
-
-    function setGlobalStatus(text, isError) {
-      const el = document.getElementById("globalStatus");
-      el.textContent = text || "";
-      el.classList.toggle("error", !!isError);
-    }
-
-    async function loadProducts() {
-      const phoneInput = document.getElementById("phoneInput");
-      const phone = (phoneInput.value || "").trim();
-      if (!phone) {
-        setGlobalStatus("Please enter shop phone number.", true);
-        return;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Management</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: #f3f4f6;
       }
-      const btn = document.getElementById("loadBtn");
-      btn.disabled = true;
-      setGlobalStatus("Loading products...", false);
-      try {
-        const resp = await fetch(`/api/stock/products?phone=${encodeURIComponent(phone)}`);
-        const data = await resp.json();
-        if (!resp.ok || !data.success) {
-          throw new Error(data.message || "Failed to load products");
-        }
-        currentPhone = phone;
-        renderProducts(data.products || []);
-        setGlobalStatus(`Loaded ${data.products.length} products.`, false);
-      } catch (err) {
-        console.error(err);
-        setGlobalStatus(err.message || "Error while loading products.", true);
-      } finally {
-        btn.disabled = false;
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px;
       }
-    }
-
-    function renderProducts(products) {
-      const container = document.getElementById("productsGrid");
-      container.innerHTML = "";
-      if (!products || products.length === 0) {
-        container.textContent = "No products found for this shop.";
-        return;
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
       }
-      products.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.dataset.productId = p.product_id;
-
-        const title = document.createElement("div");
-        title.className = "product-title";
-        title.textContent = p.name || "(no name)";
-        card.appendChild(title);
-
-        const sub = document.createElement("div");
-        sub.className = "product-sub";
-        const brand = p.brand ? ` · ${p.brand}` : "";
-        const unit = p.unit || "pieces";
-        sub.textContent = `${unit}${brand}`;
-        card.appendChild(sub);
-
-        const codeRow = document.createElement("div");
-        codeRow.className = "field-row";
-        const codeLabel = document.createElement("label");
-        codeLabel.textContent = "Barcode";
-        const codeInput = document.createElement("input");
-        codeInput.type = "text";
-        codeInput.value = p.barcode || "";
-        codeInput.className = "barcode-input";
-        codeRow.appendChild(codeLabel);
-        codeRow.appendChild(codeInput);
-        card.appendChild(codeRow);
-
-        const batchesWrapper = document.createElement("div");
-        batchesWrapper.className = "batches";
-        const header = document.createElement("div");
-        header.className = "batches-header";
-        header.innerHTML = `<span>Batches (qty + expiry)</span>`;
-        batchesWrapper.appendChild(header);
-
-        const batches = p.batches && typeof p.batches === "object" ? p.batches : {};
-        const keys = Object.keys(batches);
-        if (keys.length === 0) {
-          const emptyRow = document.createElement("div");
-          emptyRow.style.fontSize = "11px";
-          emptyRow.style.color = "#9ca3af";
-          emptyRow.textContent = "No batch info saved yet.";
-          batchesWrapper.appendChild(emptyRow);
-        } else {
-          keys.forEach(batchId => {
-            const b = batches[batchId] || {};
-            const row = document.createElement("div");
-            row.className = "batch-row";
-            row.dataset.batchId = batchId;
-
-            const idSpan = document.createElement("span");
-            idSpan.textContent = batchId;
-            row.appendChild(idSpan);
-
-            const qtyInput = document.createElement("input");
-            qtyInput.type = "number";
-            qtyInput.step = "0.01";
-            qtyInput.value = b.qty != null ? b.qty : (b.quantity != null ? b.quantity : "");
-            qtyInput.className = "batch-qty";
-            row.appendChild(qtyInput);
-
-            const expiryInput = document.createElement("input");
-            expiryInput.type = "date";
-            const rawExpiry = b.expiry_date || b.expiry || "";
-            expiryInput.value = rawExpiry ? String(rawExpiry).slice(0, 10) : "";
-            expiryInput.className = "batch-expiry";
-            row.appendChild(expiryInput);
-
-            batchesWrapper.appendChild(row);
-          });
-        }
-        card.appendChild(batchesWrapper);
-
-        const footer = document.createElement("div");
-        footer.className = "card-footer";
-        const stockInfo = document.createElement("div");
-        stockInfo.className = "stock-info";
-        const currentStock = typeof p.current_stock === "number" ? p.current_stock : "?";
-        stockInfo.textContent = `Total stock: ${currentStock} ${p.unit || ""}`;
-        footer.appendChild(stockInfo);
-
-        const saveArea = document.createElement("div");
-        saveArea.style.display = "flex";
-        saveArea.style.flexDirection = "column";
-        saveArea.style.alignItems = "flex-end";
-        const saveBtn = document.createElement("button");
-        saveBtn.textContent = "Save";
-        saveBtn.className = "btn btn-secondary";
-        saveBtn.onclick = () => saveProduct(card, p.product_id);
-        const saveStatus = document.createElement("div");
-        saveStatus.className = "save-status";
-        saveArea.appendChild(saveBtn);
-        saveArea.appendChild(saveStatus);
-
-        footer.appendChild(saveArea);
-        card.appendChild(footer);
-
-        container.appendChild(card);
-      });
-    }
-
-    async function saveProduct(cardEl, productId) {
-      const phone = currentPhone;
-      if (!phone) {
-        setGlobalStatus("Please load products with a phone first.", true);
-        return;
+      header h1 {
+        font-size: 20px;
+        margin: 0;
       }
-      const statusEl = cardEl.querySelector(".save-status");
-      statusEl.textContent = "Saving...";
-      statusEl.classList.remove("error");
-      const barcode = (cardEl.querySelector(".barcode-input").value || "").trim();
+      header a {
+        font-size: 13px;
+        color: #2563eb;
+        text-decoration: none;
+      }
+      header a:hover {
+        text-decoration: underline;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 8px 10px;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      }
+      .controls label {
+        font-size: 13px;
+        color: #374151;
+      }
+      .controls input {
+        padding: 4px 8px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: 1px solid #d1d5db;
+        min-width: 180px;
+      }
+      .btn {
+        padding: 6px 12px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: #2563eb;
+        color: #fff;
+      }
+      .btn-primary:disabled {
+        background: #9ca3af;
+        cursor: default;
+      }
+      .btn-secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+      .status {
+        font-size: 12px;
+        color: #374151;
+        margin-top: 4px;
+        min-height: 16px;
+      }
+      .status.error {
+        color: #b91c1c;
+      }
+      .filters {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+        padding: 6px 10px;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        font-size: 12px;
+      }
+      .filters-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .filters-label {
+        font-size: 13px;
+        color: #374151;
+        margin-right: 4px;
+      }
+      .filter-btn.active {
+        background: #2563eb;
+        color: #fff;
+      }
+      .filters input[type="search"] {
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 4px;
+        border: 1px solid #d1d5db;
+        min-width: 160px;
+      }
+      .filters .inline-label {
+        font-size: 12px;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+        align-items: stretch;
+      }
+      .product-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 10px 10px 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .product-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+      }
+      .product-sub {
+        font-size: 12px;
+        color: #6b7280;
+      }
+      .field-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 12px;
+      }
+      .field-row label {
+        min-width: 60px;
+        color: #374151;
+      }
+      .field-row input {
+        flex: 1;
+        padding: 3px 6px;
+        font-size: 12px;
+        border-radius: 4px;
+        border: 1px solid #d1d5db;
+      }
+      .badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        background: #e5e7eb;
+        color: #374151;
+      }
+      .batches {
+        margin-top: 4px;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 4px;
+      }
+      .batches-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        color: #4b5563;
+        margin-bottom: 2px;
+      }
+      .batch-row {
+        display: grid;
+        grid-template-columns: 0.9fr 0.7fr 1.1fr;
+        gap: 4px;
+        align-items: center;
+        margin-bottom: 3px;
+      }
+      .batch-row span {
+        font-size: 11px;
+        color: #6b7280;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .batch-row input {
+        padding: 2px 4px;
+        font-size: 11px;
+        border-radius: 4px;
+        border: 1px solid #d1d5db;
+      }
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 4px;
+        gap: 6px;
+      }
+      .stock-info {
+        font-size: 11px;
+        color: #4b5563;
+      }
+      .save-status {
+        font-size: 11px;
+        color: #059669;
+        min-height: 14px;
+      }
+      .save-status.error {
+        color: #b91c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>Stock Management</h1>
+        <a href="/test">&larr; Back to Test Chat</a>
+      </header>
 
-      const batchRows = cardEl.querySelectorAll(".batch-row");
-      const batches = {};
-      batchRows.forEach(row => {
-        const id = row.dataset.batchId;
-        if (!id) return;
-        const qtyStr = (row.querySelector(".batch-qty").value || "").trim();
-        const expiryStr = row.querySelector(".batch-expiry").value || "";
-        const b = {};
-        if (qtyStr !== "") {
-          const q = parseFloat(qtyStr);
-          if (!Number.isNaN(q)) b.qty = q;
-        }
-        if (expiryStr) {
-          b.expiry_date = expiryStr;
-        }
-        batches[id] = b;
-      });
+      <section class="controls">
+        <label for="phoneInput">Shop phone (WhatsApp number):</label>
+        <input id="phoneInput" type="text" placeholder="e.g. +91XXXXXXXXXX" />
+        <button id="loadBtn" class="btn btn-primary" onclick="loadProducts()">
+          Load products
+        </button>
+        <span id="globalStatus" class="status"></span>
+      </section>
 
-      const payload = { barcode, batches };
-      try {
-        const resp = await fetch(`/api/stock/products/${encodeURIComponent(productId)}?phone=${encodeURIComponent(phone)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+      <section class="filters">
+        <div class="filters-line">
+          <span class="filters-label">Quick filters:</span>
+          <button
+            class="btn btn-secondary filter-btn active"
+            data-filter="all"
+            onclick="setFilter('all', this)"
+          >
+            All
+          </button>
+          <button
+            class="btn btn-secondary filter-btn"
+            data-filter="rice"
+            onclick="setFilter('rice', this)"
+          >
+            Rice
+          </button>
+          <button
+            class="btn btn-secondary filter-btn"
+            data-filter="flour"
+            onclick="setFilter('flour', this)"
+          >
+            Flour
+          </button>
+          <button
+            class="btn btn-secondary filter-btn"
+            data-filter="oil"
+            onclick="setFilter('oil', this)"
+          >
+            Oil
+          </button>
+          <button
+            class="btn btn-secondary filter-btn"
+            data-filter="maggi"
+            onclick="setFilter('maggi', this)"
+          >
+            Maggi
+          </button>
+        </div>
+        <div class="filters-line">
+          <label class="inline-label" for="searchInput"> Search: </label>
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="name, brand or barcode"
+            oninput="onSearchChange()"
+          />
+          <label class="inline-label">
+            <input
+              type="checkbox"
+              id="hideZeroStock"
+              onchange="onHideZeroToggle()"
+            />
+            Hide zero stock
+          </label>
+        </div>
+      </section>
+
+      <div id="productsGrid" class="products-grid"></div>
+    </div>
+
+    <script>
+      let currentPhone = "";
+      let allProducts = [];
+      let currentFilter = "all";
+      let currentSearch = "";
+      let hideZeroStock = false;
+
+      function setGlobalStatus(text, isError) {
+        const el = document.getElementById("globalStatus");
+        el.textContent = text || "";
+        el.classList.toggle("error", !!isError);
+      }
+
+      async function loadProducts() {
+        const phoneInput = document.getElementById("phoneInput");
+        const phone = (phoneInput.value || "").trim();
+        if (!phone) {
+          setGlobalStatus("Please enter shop phone number.", true);
+          return;
+        }
+        const btn = document.getElementById("loadBtn");
+        btn.disabled = true;
+        setGlobalStatus("Loading products...", false);
+        try {
+          const resp = await fetch(
+            `/api/stock/products?phone=${encodeURIComponent(phone)}`
+          );
+          const data = await resp.json();
+          if (!resp.ok || !data.success) {
+            throw new Error(data.message || "Failed to load products");
+          }
+          currentPhone = phone;
+          allProducts = data.products || [];
+          applyFiltersAndRender();
+          setGlobalStatus(`Loaded ${allProducts.length} products.`, false);
+        } catch (err) {
+          console.error(err);
+          setGlobalStatus(err.message || "Error while loading products.", true);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function setFilter(filter, btnEl) {
+        currentFilter = filter || "all";
+        const buttons = document.querySelectorAll(".filter-btn");
+        buttons.forEach((b) => b.classList.remove("active"));
+        if (btnEl) {
+          btnEl.classList.add("active");
+        }
+        applyFiltersAndRender();
+      }
+
+      function onSearchChange() {
+        const input = document.getElementById("searchInput");
+        currentSearch = (input && input.value ? input.value : "").toLowerCase();
+        applyFiltersAndRender();
+      }
+
+      function onHideZeroToggle() {
+        const checkbox = document.getElementById("hideZeroStock");
+        hideZeroStock = !!(checkbox && checkbox.checked);
+        applyFiltersAndRender();
+      }
+
+      function applyFiltersAndRender() {
+        if (!Array.isArray(allProducts)) {
+          allProducts = [];
+        }
+        let filtered = allProducts.slice();
+        const f = (currentFilter || "all").toLowerCase();
+        const search = (currentSearch || "").trim();
+
+        filtered = filtered.filter((p) => {
+          if (!p) return false;
+
+          // Category quick filters
+          if (f !== "all") {
+            const name = (p.name || "").toLowerCase();
+            const brand = (p.brand || "").toLowerCase();
+            const normalized = (p.normalized_name || "").toLowerCase();
+            const text = `${name} ${brand} ${normalized}`;
+            let match = false;
+
+            if (f === "rice") {
+              match =
+                text.includes("rice") ||
+                text.includes("chawal") ||
+                text.includes("basmati");
+            } else if (f === "flour") {
+              match =
+                text.includes("flour") ||
+                text.includes("atta") ||
+                text.includes("aata") ||
+                text.includes("maida") ||
+                text.includes("suji");
+            } else if (f === "oil") {
+              match =
+                text.includes("oil") ||
+                text.includes("tel") ||
+                text.includes("ghee") ||
+                text.includes("refined");
+            } else if (f === "maggi") {
+              match =
+                text.includes("maggi") ||
+                text.includes("noodle") ||
+                text.includes("noodles");
+            }
+
+            if (!match) {
+              return false;
+            }
+          }
+
+          // Text search (name, brand, normalized name, barcode)
+          if (search) {
+            const blob = `${p.name || ""} ${p.brand || ""} ${
+              p.normalized_name || ""
+            } ${p.barcode || ""}`.toLowerCase();
+            if (!blob.includes(search)) {
+              return false;
+            }
+          }
+
+          // Hide zero-stock items
+          if (hideZeroStock) {
+            const stock =
+              typeof p.current_stock === "number" ? p.current_stock : null;
+            if (stock === null || stock === 0) {
+              return false;
+            }
+          }
+
+          return true;
         });
-        const data = await resp.json();
-        if (!resp.ok || !data.success) {
-          throw new Error(data.message || "Failed to save");
-        }
-        statusEl.textContent = "Saved";
-        statusEl.classList.remove("error");
-        setGlobalStatus("Changes saved.", false);
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = err.message || "Error";
-        statusEl.classList.add("error");
-        setGlobalStatus("Error while saving changes.", true);
-      }
-    }
-  </script>
-</body>
-</html>
 
+        renderProducts(filtered);
+      }
+
+      function renderProducts(products) {
+        const container = document.getElementById("productsGrid");
+        container.innerHTML = "";
+        if (!products || products.length === 0) {
+          container.textContent = "No products found for this shop.";
+          return;
+        }
+        products.forEach((p) => {
+          const card = document.createElement("div");
+          card.className = "product-card";
+          card.dataset.productId = p.product_id;
+
+          const title = document.createElement("div");
+          title.className = "product-title";
+          title.textContent = p.name || "(no name)";
+          card.appendChild(title);
+
+          const sub = document.createElement("div");
+          sub.className = "product-sub";
+          const brand = p.brand ? ` · ${p.brand}` : "";
+          const unit = p.unit || "pieces";
+          sub.textContent = `${unit}${brand}`;
+          card.appendChild(sub);
+
+          const codeRow = document.createElement("div");
+          codeRow.className = "field-row";
+          const codeLabel = document.createElement("label");
+          codeLabel.textContent = "Barcode";
+          const codeInput = document.createElement("input");
+          codeInput.type = "text";
+          codeInput.value = p.barcode || "";
+          codeInput.className = "barcode-input";
+          codeRow.appendChild(codeLabel);
+          codeRow.appendChild(codeInput);
+          card.appendChild(codeRow);
+
+          const batchesWrapper = document.createElement("div");
+          batchesWrapper.className = "batches";
+          const header = document.createElement("div");
+          header.className = "batches-header";
+          header.innerHTML = `<span>Batches (qty + expiry)</span>`;
+          batchesWrapper.appendChild(header);
+
+          const batches =
+            p.batches && typeof p.batches === "object" ? p.batches : {};
+          const keys = Object.keys(batches);
+          if (keys.length === 0) {
+            const emptyRow = document.createElement("div");
+            emptyRow.style.fontSize = "11px";
+            emptyRow.style.color = "#9ca3af";
+            emptyRow.textContent = "No batch info saved yet.";
+            batchesWrapper.appendChild(emptyRow);
+          } else {
+            keys.forEach((batchId) => {
+              const b = batches[batchId] || {};
+              const row = document.createElement("div");
+              row.className = "batch-row";
+              row.dataset.batchId = batchId;
+
+              const idSpan = document.createElement("span");
+              idSpan.textContent = batchId;
+              row.appendChild(idSpan);
+
+              const qtyInput = document.createElement("input");
+              qtyInput.type = "number";
+              qtyInput.step = "0.01";
+              qtyInput.value =
+                b.qty != null ? b.qty : b.quantity != null ? b.quantity : "";
+              qtyInput.className = "batch-qty";
+              row.appendChild(qtyInput);
+
+              const expiryInput = document.createElement("input");
+              expiryInput.type = "date";
+              const rawExpiry = b.expiry_date || b.expiry || "";
+              expiryInput.value = rawExpiry
+                ? String(rawExpiry).slice(0, 10)
+                : "";
+              expiryInput.className = "batch-expiry";
+              row.appendChild(expiryInput);
+
+              batchesWrapper.appendChild(row);
+            });
+          }
+          card.appendChild(batchesWrapper);
+
+          const footer = document.createElement("div");
+          footer.className = "card-footer";
+          const stockInfo = document.createElement("div");
+          stockInfo.className = "stock-info";
+          const currentStock =
+            typeof p.current_stock === "number" ? p.current_stock : "?";
+          stockInfo.textContent = `Total stock: ${currentStock} ${
+            p.unit || ""
+          }`;
+          footer.appendChild(stockInfo);
+
+          const saveArea = document.createElement("div");
+          saveArea.style.display = "flex";
+          saveArea.style.flexDirection = "column";
+          saveArea.style.alignItems = "flex-end";
+          const saveBtn = document.createElement("button");
+          saveBtn.textContent = "Save";
+          saveBtn.className = "btn btn-secondary";
+          saveBtn.onclick = () => saveProduct(card, p.product_id);
+          const saveStatus = document.createElement("div");
+          saveStatus.className = "save-status";
+          saveArea.appendChild(saveBtn);
+          saveArea.appendChild(saveStatus);
+
+          footer.appendChild(saveArea);
+          card.appendChild(footer);
+
+          container.appendChild(card);
+        });
+      }
+
+      async function saveProduct(cardEl, productId) {
+        const phone = currentPhone;
+        if (!phone) {
+          setGlobalStatus("Please load products with a phone first.", true);
+          return;
+        }
+        const statusEl = cardEl.querySelector(".save-status");
+        statusEl.textContent = "Saving...";
+        statusEl.classList.remove("error");
+        const barcode = (
+          cardEl.querySelector(".barcode-input").value || ""
+        ).trim();
+
+        const batchRows = cardEl.querySelectorAll(".batch-row");
+        const batches = {};
+        batchRows.forEach((row) => {
+          const id = row.dataset.batchId;
+          if (!id) return;
+          const qtyStr = (row.querySelector(".batch-qty").value || "").trim();
+          const expiryStr = row.querySelector(".batch-expiry").value || "";
+          const b = {};
+          if (qtyStr !== "") {
+            const q = parseFloat(qtyStr);
+            if (!Number.isNaN(q)) b.qty = q;
+          }
+          if (expiryStr) {
+            b.expiry_date = expiryStr;
+          }
+          batches[id] = b;
+        });
+
+        const payload = { barcode, batches };
+        try {
+          const resp = await fetch(
+            `/api/stock/products/${encodeURIComponent(
+              productId
+            )}?phone=${encodeURIComponent(phone)}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            }
+          );
+          const data = await resp.json();
+          if (!resp.ok || !data.success) {
+            throw new Error(data.message || "Failed to save");
+          }
+          statusEl.textContent = "Saved";
+          statusEl.classList.remove("error");
+          setGlobalStatus("Changes saved.", false);
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = err.message || "Error";
+          statusEl.classList.add("error");
+          setGlobalStatus("Error while saving changes.", true);
+        }
+      }
+    </script>
+  </body>
+</html>
