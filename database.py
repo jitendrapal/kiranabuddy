@@ -9,7 +9,7 @@ from google.cloud import firestore
 from google.oauth2 import service_account
 import uuid
 
-from models import Shop, User, Product, Transaction, UserRole, TransactionType
+from models import Shop, User, Product, Transaction, UserRole, TransactionType, UdharEntry
 
 # Dummy Indian products catalog for barcode-based demo.
 # In a real deployment you would load this from your own product master data.
@@ -1254,3 +1254,150 @@ class FirestoreDB:
 
 
 
+
+
+        # ==================== UDHAR (CREDIT) OPERATIONS ====================
+
+        def create_udhar_entry(
+            self,
+            shop_id: str,
+            customer_name: str,
+            amount: float,
+            user_phone: str,
+            note: Optional[str] = None,
+        ) -> Dict[str, Any]:
+            """Create a new udhar entry for a customer.
+
+            Positive amount -> customer owes shopkeeper (credit given).
+            Negative amount -> customer paid back (payment received).
+            """
+            try:
+                if not customer_name:
+                    return {
+                        "success": False,
+                        "message": "❌ Customer name missing for udhar entry.",
+                    }
+
+                try:
+                    amt = float(amount)
+                except Exception:
+                    return {
+                        "success": False,
+                        "message": "❌ Udhar amount samajh nahi aaya. Please send again.",
+                    }
+
+                if amt == 0:
+                    return {
+                        "success": False,
+                        "message": "❌ Udhar amount zero nahi ho sakta.",
+                    }
+
+                customer_key = (customer_name or "").strip().lower()
+
+                entry_id = str(uuid.uuid4())
+                entry = UdharEntry(
+                    entry_id=entry_id,
+                    shop_id=shop_id,
+                    customer_key=customer_key,
+                    customer_name=customer_name,
+                    amount=amt,
+                    timestamp=datetime.utcnow(),
+                    user_phone=user_phone,
+                    note=note,
+                )
+
+                self.db.collection("udhar_entries").document(entry_id).set(entry.to_dict())
+
+                balance = self.get_customer_udhar_balance(shop_id, customer_key)
+
+                return {
+                    "success": True,
+                    "entry_id": entry_id,
+                    "customer_name": customer_name,
+                    "customer_key": customer_key,
+                    "amount": amt,
+                    "balance": balance,
+                }
+            except Exception as e:
+                print(f"Error creating udhar entry: {e}")
+                return {
+                    "success": False,
+                    "message": "❌ Udhar entry save nahi ho paayi.",
+                }
+
+        def get_customer_udhar_balance(self, shop_id: str, customer_key: str) -> float:
+            """Get current udhar balance for a single customer."""
+            try:
+                docs = (
+                    self.db.collection("udhar_entries")
+                    .where("shop_id", "==", shop_id)
+                    .where("customer_key", "==", customer_key)
+                    .stream()
+                )
+                total = 0.0
+                for doc in docs:
+                    data = doc.to_dict() or {}
+                    try:
+                        amt = float(data.get("amount", 0) or 0)
+                    except Exception:
+                        amt = 0.0
+                    total += amt
+                return round(total, 2)
+            except Exception as e:
+                print(f"Error reading udhar balance: {e}")
+                return 0.0
+
+        def get_udhar_summary(self, shop_id: str) -> Dict[str, Any]:
+            """Get summary of all customers with outstanding udhar."""
+            try:
+                docs = self.db.collection("udhar_entries").where("shop_id", "==", shop_id).stream()
+
+                by_customer: Dict[str, Dict[str, Any]] = {}
+
+                for doc in docs:
+                    data = doc.to_dict() or {}
+                    raw_key = data.get("customer_key") or ""
+                    key = str(raw_key).strip().lower()
+                    name = data.get("customer_name") or "Customer"
+                    try:
+                        amt = float(data.get("amount", 0) or 0)
+                    except Exception:
+                        amt = 0.0
+
+                    if not key:
+                        key = name.strip().lower() or "unknown"
+
+                    if key not in by_customer:
+                        by_customer[key] = {"name": name, "balance": 0.0}
+
+                    by_customer[key]["balance"] += amt
+
+                customers: List[Dict[str, Any]] = []
+                total_udhar = 0.0
+
+                for obj in by_customer.values():
+                    balance = round(obj["balance"], 2)
+                    # Ignore customers whose balance is effectively zero.
+                    if abs(balance) < 0.01:
+                        continue
+                    customers.append({"name": obj["name"], "balance": balance})
+                    total_udhar += balance
+
+                # Sort customers by highest balance first so the most important are on top.
+                customers.sort(key=lambda c: c.get("balance", 0.0), reverse=True)
+
+                return {
+                    "success": True,
+                    "customers": customers,
+                    "total_udhar": round(total_udhar, 2),
+                    "total_customers": len(customers),
+                }
+            except Exception as e:
+                print(f"Error building udhar summary: {e}")
+                return {
+                    "success": False,
+                    "customers": [],
+                    "total_udhar": 0.0,
+                    "total_customers": 0,
+                    "message": "❌ Udhar summary nikalte waqt error aaya.",
+                }

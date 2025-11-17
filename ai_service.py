@@ -278,6 +278,82 @@ class AIService:
                 raw_message=message,
             )
 
+
+        # 2b) Udhar (credit) tracking heuristics
+        # We support simple one-line commands like:
+        #   - "udhar Ramesh 200"  (add udhar)
+        #   - "udhar pay Ramesh 200" (record payment)
+        #   - "udhar list" / "kitna udhar hai" (summary)
+        #   - "kitna udhar baki hai" (summary)
+        udhar_words = ["udhar", "udhaar", "khata", "baki", "baaki"]
+        has_udhar_word = any(w in normalized for w in udhar_words)
+
+        # (a) Summary / list style queries
+        if has_udhar_word:
+            if any(kw in normalized for kw in ["udhar list", "udhar ka hisab", "udhar ka hisaab", "udhar summary"]):
+                return ParsedCommand(
+                    action=CommandAction.LIST_UDHAR,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.98,
+                    raw_message=message,
+                )
+
+            if (
+                ("kitna" in normalized or "kitni" in normalized or "total" in normalized)
+                and any(w in normalized for w in ["udhar", "udhaar", "baki", "baaki"])
+                and not any(ch.isdigit() for ch in normalized)
+            ):
+                # "kitna udhar hai", "kitna baki hai" etc.
+                return ParsedCommand(
+                    action=CommandAction.LIST_UDHAR,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.95,
+                    raw_message=message,
+                )
+
+            # (b) One-line add / pay udhar commands starting with "udhar ..."
+            if normalized.startswith("udhar ") or normalized.startswith("udhaar "):
+                # Remove the leading keyword and parse the rest.
+                parts = normalized.split(maxsplit=1)
+                rest = parts[1] if len(parts) > 1 else ""
+
+                # Detect first number in the remaining text as amount
+                m = re.search(r"(\d+(?:\.\d+)?)", rest)
+                amount = float(m.group(1)) if m else None
+
+                if amount and amount > 0:
+                    before_amount = rest[: m.start()].strip() if m else rest.strip()
+                    # Remove generic verbs like "pay" / "payment" etc. from name
+                    for junk in ["pay", "payment", "ne", "se"]:
+                        before_amount = before_amount.replace(junk, " ")
+                    customer_name = before_amount.strip() or None
+
+                    # Decide if this is a payment or new udhar based on keywords
+                    pay_markers = ["pay", "payment", "de diya", "de dia", "de diya hai", "wapis", "wapas", "wapsi"]
+                    is_payment = any(pm in normalized for pm in pay_markers)
+
+                    if customer_name:
+                        return ParsedCommand(
+                            action=CommandAction.PAY_UDHAR if is_payment else CommandAction.ADD_UDHAR,
+                            product_name=customer_name,
+                            quantity=amount,
+                            confidence=0.96,
+                            raw_message=message,
+                        )
+
+            # If message clearly talks about udhar but we couldn't parse amount,
+            # fall back to showing overall summary so shopkeeper still gets value.
+            if has_udhar_word and not any(ch.isdigit() for ch in normalized):
+                return ParsedCommand(
+                    action=CommandAction.LIST_UDHAR,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.8,
+                    raw_message=message,
+                )
+
         # 3) Total-sales queries (today's sales)
         # Common patterns like: "kinta aaj sell huyi hai", "aaj kitna bika", "aaj ka total sale",
         # and also Hinglish phrases like "aaj ki bikri kitni hai" / "aaj ki bikri".
@@ -782,9 +858,9 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", or "unknown"
-2. product_name: the name of the product mentioned (not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, or help)
-3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1).
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", or "unknown"
+2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, help, or list_udhar)
+3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For udhar actions, quantity is the rupee amount (always positive).
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
 
@@ -846,6 +922,13 @@ Examples of HELP (show guidance / examples):
 - "What can I say?" -> action "help" (no product, no quantity).
 - "मैं क्या कह सकता हूँ?" / "मैं क्या कह सकती हूँ?" -> action "help".
 
+	Examples of UDHAR (credit tracking):
+	- "udhar Ramesh 200" -> action "add_udhar" with product_name "Ramesh" and quantity 200
+	- "Ramesh udhar 300 doodh" -> action "add_udhar" with product_name "Ramesh" and quantity 300 (note like "doodh" is optional context)
+	- "udhar list" / "kitna udhar hai" -> action "list_udhar" (no product_name, no quantity)
+	- "udhar pay Ramesh 200" / "Ramesh ne 200 de diya" -> action "pay_udhar" with product_name "Ramesh" and quantity 200
+
+
 Key words to identify actions:
 - ADD: add, laya, aaya, purchase, bought, received, new stock, stock mein daal, mila, got
 - REDUCE: sold, bik gaya, bech diya, nikala, sale, customer ko diya, gaya
@@ -859,9 +942,9 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "unknown",
-    "product_name": "product name" or null (not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, or top_product_today),
-    "quantity": number or null,
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "unknown",
+    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, list_udhar, or top_product_today),
+    "quantity": number or null (for udhar actions this is the amount in rupees, always positive),
     "confidence": 0.0 to 1.0
 }
 
@@ -901,6 +984,9 @@ Do not include any explanation, just the JSON."""
                 "expiry_products": CommandAction.EXPIRY_PRODUCTS,
                 "undo_last": CommandAction.UNDO_LAST,
                 "help": CommandAction.HELP,
+                "add_udhar": CommandAction.ADD_UDHAR,
+                "pay_udhar": CommandAction.PAY_UDHAR,
+                "list_udhar": CommandAction.LIST_UDHAR,
                 "unknown": CommandAction.UNKNOWN,
             }
 
@@ -1372,6 +1458,7 @@ Do not include any explanation, just the JSON."""
             old_stock = result.get('old_stock')
             new_stock = result.get('new_stock')
             unit = result.get('unit', 'pieces')
+
             if is_english:
                 return (
                     f"✅ Last entry for {product_name} has been undone. "
@@ -1381,6 +1468,61 @@ Do not include any explanation, just the JSON."""
                 f"✅ {product_name} ki last entry undo ho gayi. "
                 f"Stock {old_stock} se {new_stock} {unit} ho gaya."
             )
+
+        elif action == 'add_udhar':
+            customer_name = result.get('customer_name') or product_name or "Customer"
+            amount = result.get('amount', 0) or 0
+            balance = result.get('balance', 0) or 0
+            if is_english:
+                return (
+                    f"✅ Udhar added for {customer_name}: ₹{amount:.2f}\r\n"
+                    f"Total balance: ₹{balance:.2f}"
+                )
+            return (
+                f"✅ {customer_name} ka udhar add ho gaya: ₹{amount:.2f}\r\n"
+                f"Total baaki: ₹{balance:.2f}"
+            )
+
+        elif action == 'pay_udhar':
+            customer_name = result.get('customer_name') or product_name or "Customer"
+            amount = abs(result.get('amount', 0) or 0)
+            balance = result.get('balance', 0) or 0
+            if is_english:
+                return (
+                    f"✅ Payment received from {customer_name}: ₹{amount:.2f}\r\n"
+                    f"Remaining balance: ₹{balance:.2f}"
+                )
+            return (
+                f"✅ {customer_name} ne ₹{amount:.2f} de diya\r\n"
+                f"Baaki balance: ₹{balance:.2f}"
+            )
+
+        elif action == 'list_udhar':
+            customers = result.get('customers') or []
+            total_udhar = result.get('total_udhar', 0) or 0
+            total_customers = result.get('total_customers', len(customers))
+            nl = "\r\n"
+
+            if not customers:
+                if is_english:
+                    return "📒 No outstanding udhar."
+                return "📒 Koi udhar baaki nahi hai."
+
+            lines = []
+            if is_english:
+                lines.append(f"📒 Udhar summary ({total_customers} customers):")
+            else:
+                lines.append(f"📒 Udhar ki list ({total_customers} customers):")
+
+            for c in customers:
+                name = c.get('name', 'Customer')
+                balance = c.get('balance', 0) or 0
+                lines.append(f"• {name}: ₹{balance:.2f}")
+
+            lines.append("")
+            lines.append(f"Total udhar: ₹{total_udhar:.2f}")
+            return nl.join(lines)
+
 
         elif action == 'help':
             # Return a small help message with example commands.

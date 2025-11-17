@@ -385,6 +385,29 @@ class CommandProcessor:
                     user_phone=user_phone,
                 )
 
+            elif command.action == CommandAction.ADD_UDHAR:
+                # Udhar: product_name is reused as customer_name, quantity as amount in rupees
+                return self.db.create_udhar_entry(
+                    shop_id=shop_id,
+                    customer_name=command.product_name,
+                    amount=command.quantity,
+                    user_phone=user_phone,
+                    note=command.raw_message,
+                )
+
+            elif command.action == CommandAction.PAY_UDHAR:
+                # Payment reduces outstanding udhar (store as negative amount)
+                return self.db.create_udhar_entry(
+                    shop_id=shop_id,
+                    customer_name=command.product_name,
+                    amount=-abs(command.quantity),
+                    user_phone=user_phone,
+                    note="Payment received",
+                )
+
+            elif command.action == CommandAction.LIST_UDHAR:
+                return self.db.get_udhar_summary(shop_id=shop_id)
+
             elif command.action == CommandAction.HELP:
                 # No DB change; generate_response will format the help message.
                 return {

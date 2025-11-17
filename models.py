@@ -37,6 +37,10 @@ class CommandAction(Enum):
     EXPIRY_PRODUCTS = "expiry_products"
     UNDO_LAST = "undo_last"
     HELP = "help"
+    # Udhar (credit) tracking
+    ADD_UDHAR = "add_udhar"
+    PAY_UDHAR = "pay_udhar"
+    LIST_UDHAR = "list_udhar"
     UNKNOWN = "unknown"
 
 
@@ -49,12 +53,12 @@ class Shop:
     created_at: datetime
     active: bool = True
     address: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
         data['created_at'] = self.created_at.isoformat()
         return data
-    
+
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'Shop':
         data['created_at'] = datetime.fromisoformat(data['created_at'])
@@ -71,13 +75,13 @@ class User:
     role: UserRole
     created_at: datetime
     active: bool = True
-    
+
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
         data['role'] = self.role.value
         data['created_at'] = self.created_at.isoformat()
         return data
-    
+
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'User':
         data['role'] = UserRole(data['role'])
@@ -241,21 +245,64 @@ class Transaction:
         return Transaction(**data)
 
 
+
+
+@dataclass
+class UdharEntry:
+    """Udhar (credit) entry for a customer.
+
+    Positive amount -> customer owes shopkeeper (gave goods on credit).
+    Negative amount -> customer paid back (reduces outstanding balance).
+    """
+    entry_id: str
+    shop_id: str
+    customer_key: str  # canonical lowercase key for matching
+    customer_name: str
+    amount: float
+    timestamp: datetime
+    user_phone: str
+    note: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data["timestamp"] = self.timestamp.isoformat()
+        return data
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "UdharEntry":
+        d = dict(data or {})
+        ts = d.get("timestamp")
+        if isinstance(ts, str):
+            try:
+                d["timestamp"] = datetime.fromisoformat(ts)
+            except Exception:
+                d["timestamp"] = datetime.utcnow()
+        elif not isinstance(ts, datetime):
+            d["timestamp"] = datetime.utcnow()
+        return UdharEntry(**d)
+
 @dataclass
 class ParsedCommand:
     """Parsed command from user message"""
     action: CommandAction
-    product_name: Optional[str] = None
-    quantity: Optional[float] = None
+    product_name: Optional[str] = None  # reused for customer_name in udhar commands
+    quantity: Optional[float] = None  # reused for amount in udhar commands
     confidence: float = 0.0
     raw_message: str = ""
-    
+
     def is_valid(self) -> bool:
         """Check if command is valid for execution"""
         if self.action == CommandAction.CHECK_STOCK:
             return self.product_name is not None
-        elif self.action in [CommandAction.ADD_STOCK, CommandAction.REDUCE_STOCK, CommandAction.ADJUST_STOCK]:
+        elif self.action in [
+            CommandAction.ADD_STOCK,
+            CommandAction.REDUCE_STOCK,
+            CommandAction.ADJUST_STOCK,
+            CommandAction.ADD_UDHAR,
+            CommandAction.PAY_UDHAR,
+        ]:
             # For adjustments, quantity represents the correct quantity for the last entry
+            # For udhar, quantity is the amount in rupees (always positive here).
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
         elif self.action in [
             CommandAction.TOTAL_SALES,
@@ -268,6 +315,7 @@ class ParsedCommand:
             CommandAction.EXPIRY_PRODUCTS,
             CommandAction.UNDO_LAST,
             CommandAction.HELP,
+            CommandAction.LIST_UDHAR,
         ]:
             # These commands don't require product or quantity
             return True
