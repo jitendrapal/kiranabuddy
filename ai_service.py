@@ -157,6 +157,7 @@ class AIService:
             "स्टाक": "stock",
             "बिक्री": "bikri",
             "सेल": "sale",
+            "सामान": "samaan",
 
             # Verbs / helpers
             "ऐड": "add",
@@ -503,7 +504,7 @@ class AIService:
 
             # Avoid obviously non-product words which are handled by other
             # rules above.
-            blocked = {"help", "undo", "sale", "stock", "products", "product"}
+            blocked = {"help", "undo", "sale", "stock", "products", "product", "item", "items", "saman", "samaan", "maal"}
             if base_word not in blocked and not any(ch.isdigit() for ch in base_word):
                 return ParsedCommand(
                     action=CommandAction.LIST_PRODUCTS,
@@ -736,7 +737,7 @@ class AIService:
                     "list",
                     "low",
                     "kam",
-                    "khatam",
+                    "khatam", "product", "products", "item", "items", "saman", "samaan", "maal",
                 ]
                 if not any(kw in normalized for kw in ignore_keywords):
                     product_name = message.strip()
@@ -750,12 +751,13 @@ class AIService:
 
 
         # 7) Generic inventory summary:
-        # - If message mentions "product" or "products" anywhere,
-        #   always show full product list (simple rule for shopkeeper).
+        # - If message mentions generic words like "product", "products", "item",
+        #   "items", "saman/samaan" or "maal" anywhere, show full product list
+        #   (simple rule for shopkeeper).
         # - Additionally, if message is a general "stock" sentence
         #   (no numbers, not clearly a "kitna stock" question),
         #   also show full product list.
-        if any(kw in normalized for kw in ["product", "products"]):
+        if any(kw in normalized for kw in ["product", "products", "item", "items", "saman", "samaan", "maal"]):
             return ParsedCommand(
                 action=CommandAction.LIST_PRODUCTS,
                 product_name=None,
