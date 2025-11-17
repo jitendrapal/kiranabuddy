@@ -79,6 +79,13 @@ def test_interface():
     return render_template('test_interface.html')
 
 
+
+@app.route('/stock')
+def stock_management():
+    """Simple stock management page to view & edit products for a shop."""
+    return render_template('stock_management.html')
+
+
 @app.route('/test/audio-upload', methods=['POST'])
 def test_audio_upload():
     """Upload voice note from test interface and return a temporary URL.
@@ -305,6 +312,101 @@ def get_transactions(shop_id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+@app.route('/api/stock/products', methods=['GET'])
+def get_stock_products():
+    """Get all products for the shop identified by phone (for stock UI)."""
+    try:
+        phone = (request.args.get('phone') or '').strip()
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop or user not found for phone'}), 404
+            shop_id = shop.shop_id
+
+        products = db.get_products_by_shop(shop_id)
+        return jsonify({
+            'success': True,
+            'products': [p.to_dict() for p in products]
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/stock/products/<product_id>', methods=['PATCH'])
+def update_stock_product(product_id):
+    """Update product fields (barcode, batch expiry/qty) for stock UI.
+
+    We require the caller's phone so we can resolve the shop and ensure the
+    product belongs to that shop before applying updates.
+    """
+    try:
+        phone = (request.args.get('phone') or '').strip()
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+
+        # Resolve shop from phone
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop or user not found for phone'}), 404
+            shop_id = shop.shop_id
+
+        # Load product and verify ownership
+        product = db.get_product(product_id)
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'}), 404
+        if product.shop_id != shop_id:
+            return jsonify({'success': False, 'message': 'Product does not belong to this shop'}), 403
+
+        data = request.get_json() or {}
+        updates = {}
+
+        if 'barcode' in data:
+            barcode_val = (data.get('barcode') or '').strip()
+            updates['barcode'] = barcode_val or None
+
+        # Optional simple expiry_date override (rarely used if batches exist)
+        if 'expiry_date' in data:
+            expiry_val = (data.get('expiry_date') or '').strip() or None
+            updates['expiry_date'] = expiry_val
+
+        # Optional batches payload: recompute current_stock from per-batch qty
+        batches_val = data.get('batches')
+        if isinstance(batches_val, dict):
+            total_qty = 0.0
+            for b in batches_val.values():
+                if not isinstance(b, dict):
+                    continue
+                qty_raw = b.get('qty') or b.get('quantity')
+                if qty_raw is None:
+                    continue
+                try:
+                    total_qty += float(qty_raw)
+                except Exception:
+                    continue
+            updates['batches'] = batches_val
+            updates['current_stock'] = total_qty
+
+        if not updates:
+            return jsonify({'success': False, 'message': 'No valid fields to update'}), 400
+
+        db.update_product_fields(product_id, updates)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 
 

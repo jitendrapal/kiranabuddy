@@ -397,6 +397,21 @@ class FirestoreDB:
             'current_stock': new_stock,
             'updated_at': datetime.utcnow().isoformat()
         })
+    def update_product_fields(self, product_id: str, updates: Dict[str, Any]) -> None:
+        """Update arbitrary fields on a product document.
+
+        This is a lightweight helper used by the stock management UI to edit
+        things like barcode, simple expiry dates, or batch details.
+        """
+        if not updates:
+            return
+
+        # Always bump updated_at so changes are visible in Firestore history
+        updates = dict(updates)
+        updates["updated_at"] = datetime.utcnow().isoformat()
+        self.db.collection("products").document(product_id).update(updates)
+
+
 
     def get_product(self, product_id: str) -> Optional[Product]:
         """Get product by ID"""
