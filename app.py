@@ -345,6 +345,7 @@ def get_product_by_barcode():
                 'brand': getattr(product, 'brand', None),
                 'unit': product.unit,
                 'barcode': product.barcode,
+                'selling_price': getattr(product, 'selling_price', None),
             },
         }), 200
 
