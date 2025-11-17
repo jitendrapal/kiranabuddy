@@ -409,6 +409,108 @@ def update_stock_product(product_id):
 
 
 
+@app.route('/api/stock/bill', methods=['POST'])
+def add_stock_bill():
+    """Fast bill entry: add stock for multiple products in one go.
+
+    Expects JSON:
+    {
+        "phone": "+91...",
+        "items": [
+            {"product_id": "...", "name": "Maggi 70g", "quantity": 12, "cost_price": 10.5, "note": "optional"},
+            ...
+        ]
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        phone = (data.get('phone') or '').strip()
+        items = data.get('items') or []
+
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+        if not items:
+            return jsonify({'success': False, 'message': 'items is required'}), 400
+
+        # Resolve shop from phone (same logic as other stock APIs)
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop or user not found for phone'}), 404
+            shop_id = shop.shop_id
+
+        results = []
+        for raw in items:
+            if not isinstance(raw, dict):
+                continue
+
+            # Parse quantity
+            qty_raw = raw.get('quantity')
+            try:
+                qty = float(qty_raw)
+            except Exception:
+                continue
+            if qty <= 0:
+                continue
+
+            # Find product: prefer product_id, fallback to name
+            product_id = (raw.get('product_id') or '').strip()
+            name = (raw.get('name') or '').strip()
+            product_name_for_add = None
+
+            if product_id:
+                product = db.get_product(product_id)
+                if not product or product.shop_id != shop_id:
+                    continue
+                product_name_for_add = product.name
+            elif name:
+                product_name_for_add = name
+            else:
+                continue
+
+            # Use existing add_stock helper to update stock + create transaction
+            res = db.add_stock(shop_id, product_name_for_add, qty, phone)
+
+            # Optional cost_price update on the Product document
+            cost_price_raw = raw.get('cost_price')
+            unit_cost = None
+            if cost_price_raw is not None:
+                try:
+                    unit_cost = float(cost_price_raw)
+                    if unit_cost < 0:
+                        unit_cost = None
+                except Exception:
+                    unit_cost = None
+
+            if unit_cost is not None:
+                try:
+                    prod = db.find_existing_product_by_name(shop_id, res.get('product_name'))
+                    if prod:
+                        db.update_product_fields(prod.product_id, {'cost_price': unit_cost})
+                except Exception:
+                    # Cost update is best-effort; ignore failures here
+                    pass
+
+            results.append({
+                'product_name': res.get('product_name'),
+                'quantity': res.get('quantity'),
+                'previous_stock': res.get('previous_stock'),
+                'new_stock': res.get('new_stock'),
+                'unit': res.get('unit'),
+            })
+
+        if not results:
+            return jsonify({'success': False, 'message': 'No valid items to process'}), 400
+
+        return jsonify({'success': True, 'items': results}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+
 
 
 @app.route('/api/product-by-barcode', methods=['GET'])

@@ -124,6 +124,54 @@
         align-items: center;
         gap: 4px;
       }
+      .bill-section {
+        margin-bottom: 16px;
+        padding: 8px 10px;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        font-size: 12px;
+      }
+      .bill-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .bill-section-header h2 {
+        font-size: 14px;
+        margin: 0;
+      }
+      .bill-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .bill-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 4px;
+      }
+      .bill-table th,
+      .bill-table td {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 4px 2px;
+        font-size: 11px;
+        text-align: left;
+      }
+      .bill-table input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 2px 4px;
+        font-size: 11px;
+        border-radius: 4px;
+        border: 1px solid #d1d5db;
+      }
+      .bill-summary {
+        margin-top: 4px;
+        font-size: 11px;
+        color: #4b5563;
+      }
       .products-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -301,6 +349,53 @@
         </div>
       </section>
 
+      <section class="bill-section">
+        <div class="bill-section-header">
+          <h2>Bill entry (add stock)</h2>
+          <div class="bill-actions">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="addBillRow()"
+            >
+              + Add line
+            </button>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="clearBillRows()"
+            >
+              Clear
+            </button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              onclick="submitBill()"
+            >
+              Save bill
+            </button>
+          </div>
+        </div>
+        <p style="margin: 0 0 4px 0; font-size: 11px; color: #6b7280">
+          Fast way to add today's purchase stock. Choose product, enter quantity
+          (and optional cost per unit).
+        </p>
+        <table class="bill-table">
+          <thead>
+            <tr>
+              <th style="width: 45%">Product (name / brand / barcode)</th>
+              <th style="width: 15%">Qty</th>
+              <th style="width: 20%">Cost / unit (optional)</th>
+              <th style="width: 15%">Notes</th>
+              <th style="width: 5%"></th>
+            </tr>
+          </thead>
+          <tbody id="billBody"></tbody>
+        </table>
+        <datalist id="productOptions"></datalist>
+        <div id="billSummary" class="bill-summary"></div>
+      </section>
+
       <div id="productsGrid" class="products-grid"></div>
     </div>
 
@@ -309,6 +404,191 @@
       let allProducts = [];
       let currentFilter = "all";
       let currentSearch = "";
+
+      function renderProductOptions() {
+        const datalist = document.getElementById("productOptions");
+        if (!datalist) return;
+        datalist.innerHTML = "";
+        if (!Array.isArray(allProducts)) return;
+        allProducts.forEach((p) => {
+          if (!p) return;
+          const opt = document.createElement("option");
+          const name = p.name || "";
+          const brand = p.brand ? ` (${p.brand})` : "";
+          const unit = p.unit ? ` [${p.unit}]` : "";
+          opt.value = `${name}${brand}${unit}`;
+          if (p.barcode) {
+            opt.label = `${opt.value} — ${p.barcode}`;
+          }
+          if (p.product_id) {
+            opt.setAttribute("data-product-id", p.product_id);
+          }
+          datalist.appendChild(opt);
+        });
+      }
+
+      function onBillProductInput(inputEl) {
+        const datalist = document.getElementById("productOptions");
+        if (!datalist || !inputEl) return;
+        const val = inputEl.value || "";
+        let matchedId = "";
+        for (const opt of datalist.options) {
+          if (opt.value === val) {
+            matchedId = opt.getAttribute("data-product-id") || "";
+            break;
+          }
+        }
+        if (matchedId) {
+          inputEl.dataset.productId = matchedId;
+        } else {
+          delete inputEl.dataset.productId;
+        }
+      }
+
+      function addBillRow() {
+        const tbody = document.getElementById("billBody");
+        if (!tbody) return;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>
+            <input
+              type="text"
+              list="productOptions"
+              placeholder="Start typing name or brand"
+              oninput="onBillProductInput(this)"
+            />
+          </td>
+          <td>
+            <input type="number" min="0" step="0.01" placeholder="0" />
+          </td>
+          <td>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Rs/unit"
+            />
+          </td>
+          <td>
+            <input type="text" placeholder="note" />
+          </td>
+          <td>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="this.closest('tr').remove();"
+            >
+              X
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      }
+
+      function clearBillRows() {
+        const tbody = document.getElementById("billBody");
+        if (tbody) tbody.innerHTML = "";
+        const summary = document.getElementById("billSummary");
+        if (summary) summary.textContent = "";
+      }
+
+      async function submitBill() {
+        if (!currentPhone) {
+          setGlobalStatus("First enter shop phone and load products.", true);
+          return;
+        }
+        const tbody = document.getElementById("billBody");
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        if (!rows.length) {
+          setGlobalStatus("Add at least one line in bill.", true);
+          return;
+        }
+        const items = [];
+        rows.forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          if (cells.length < 4) return;
+          const productInput = cells[0].querySelector("input");
+          const qtyInput = cells[1].querySelector("input");
+          const costInput = cells[2].querySelector("input");
+          const noteInput = cells[3].querySelector("input");
+
+          const name = (productInput && productInput.value) || "";
+          const qtyStr = (qtyInput && qtyInput.value) || "";
+          const costStr = (costInput && costInput.value) || "";
+          const note = (noteInput && noteInput.value) || "";
+
+          const quantity = parseFloat(qtyStr);
+          if (!name.trim() || !quantity || isNaN(quantity) || quantity <= 0) {
+            return;
+          }
+
+          const item = {
+            name: name.trim(),
+            quantity,
+          };
+
+          const productId = productInput && productInput.dataset.productId;
+          if (productId) {
+            item.product_id = productId;
+          }
+
+          const cp = parseFloat(costStr);
+          if (!isNaN(cp) && cp >= 0) {
+            item.cost_price = cp;
+          }
+
+          if (note.trim()) {
+            item.note = note.trim();
+          }
+
+          items.push(item);
+        });
+
+        if (!items.length) {
+          setGlobalStatus(
+            "Please fill product and quantity for at least one bill line.",
+            true
+          );
+          return;
+        }
+
+        const summaryEl = document.getElementById("billSummary");
+        if (summaryEl) summaryEl.textContent = "Saving bill...";
+
+        try {
+          const resp = await fetch("/api/stock/bill", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: currentPhone, items }),
+          });
+          const data = await resp.json();
+          if (!resp.ok || !data.success) {
+            throw new Error(data.message || "Failed to save bill");
+          }
+
+          let totalQty = 0;
+          const returnedItems = Array.isArray(data.items) ? data.items : [];
+          returnedItems.forEach((it) => {
+            const q = parseFloat(it.quantity);
+            if (!isNaN(q)) totalQty += q;
+          });
+
+          if (summaryEl) {
+            summaryEl.textContent = `Saved bill: ${returnedItems.length} lines, total quantity ${totalQty}.`;
+          }
+
+          setGlobalStatus("Bill saved and stock updated.", false);
+          // Refresh products so stock cards show latest quantities
+          loadProducts();
+        } catch (err) {
+          console.error(err);
+          if (summaryEl) {
+            summaryEl.textContent = err.message || "Error while saving bill.";
+          }
+          setGlobalStatus("Error while saving bill.", true);
+        }
+      }
       let hideZeroStock = false;
 
       function setGlobalStatus(text, isError) {
@@ -337,6 +617,7 @@
           }
           currentPhone = phone;
           allProducts = data.products || [];
+          renderProductOptions();
           applyFiltersAndRender();
           setGlobalStatus(`Loaded ${allProducts.length} products.`, false);
         } catch (err) {
