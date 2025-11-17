@@ -600,6 +600,45 @@ class AIService:
                 confidence=0.98,
                 raw_message=message,
             )
+        # 6) Simple price update ("Maggi price 12", "Maggi ka rate 12").
+        # We look for a price/rate keyword + a number and treat it as "update_price".
+        price_words = {"price", "rate", "daam", "dam", "kimat", "keemat"}
+        tokens = normalized.split()
+        price_idx = None
+        for i, tok in enumerate(tokens):
+            if tok in price_words:
+                price_idx = i
+                break
+        amount = None
+        amount_idx = None
+        for i, tok in enumerate(tokens):
+            m = re.fullmatch(r"(\d+(?:\.\d+)?)", tok)
+            if m:
+                try:
+                    amount = float(m.group(1))
+                    amount_idx = i
+                    break
+                except Exception:
+                    continue
+        if price_idx is not None and amount is not None and amount > 0:
+            # Prefer tokens between "price/rate" and the number as the product name.
+            if amount_idx - price_idx > 1:
+                name_tokens = tokens[price_idx + 1 : amount_idx]
+            else:
+                name_tokens = tokens[:price_idx]
+            junk_words = {"ka", "ki", "ke", "of", "is", "hai", "set", "change", "update", "naya", "new", "to", "in", "per", "rs", "rs.", "rupaye", "rupay", "rupees", "rs/-"}
+            name_tokens = [t for t in name_tokens if t not in junk_words and not any(ch.isdigit() for ch in t)]
+            product_name = " ".join(name_tokens).strip()
+            if product_name:
+                return ParsedCommand(
+                    action=CommandAction.UPDATE_PRICE,
+                    product_name=product_name,
+                    quantity=amount,
+                    confidence=0.97,
+                    raw_message=message,
+                )
+
+
 
 
 
@@ -924,9 +963,9 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
-2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, help, or list_udhar)
-3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar and customer_udhar, quantity should be null.
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
+2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, help, list_udhar, or report_summary)
+3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For "update_price", quantity is the new selling price per unit (in rupees). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar and customer_udhar, quantity should be null.
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
 
@@ -1002,6 +1041,7 @@ Key words to identify actions:
 - CHECK: kitna, how much, stock, batao, check, remaining, bacha, inventory, count (for specific product)
 - TOTAL_SALES: total sale, aaj ka sale, today's sales, kitna bika, business, sales report, aaj ka total
 - PROFIT: profit, munafa, estimated profit
+- UPDATE_PRICE: price, rate, daam, kimat, keemat, "Maggi price 12", "Maggi ka rate 15 rupaye"
 - REPORT_SUMMARY: hisaab, hisab, hisaab ka, hisab ka, "aaj ka hisaab", "is mahine ka hisaab", "is saal ka hisaab", "report", "report de do", "aaj ka hisaab batao"
 
 Messages may contain Devanagari Hindi words like "मैगी", "ऐड कर दो", "बिक गए". Parse them the same way as the Hinglish examples above.
@@ -1010,9 +1050,9 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
-    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, list_udhar, or top_product_today),
-    "quantity": number or null (for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar and customer_udhar it should be null),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
+    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, list_udhar, top_product_today, or report_summary),
+    "quantity": number or null (for "update_price" this is the new selling price per unit in rupees; for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar and customer_udhar it should be null),
     "confidence": 0.0 to 1.0
 }
 
@@ -1047,6 +1087,7 @@ Do not include any explanation, just the JSON."""
                 "list_products": CommandAction.LIST_PRODUCTS,
                 "low_stock": CommandAction.LOW_STOCK,
                 "adjust_stock": CommandAction.ADJUST_STOCK,
+                "update_price": CommandAction.UPDATE_PRICE,
                 "top_product_today": CommandAction.TOP_PRODUCT_TODAY,
                 "zero_sale_today": CommandAction.ZERO_SALE_TODAY,
                 "expiry_products": CommandAction.EXPIRY_PRODUCTS,
@@ -1056,6 +1097,7 @@ Do not include any explanation, just the JSON."""
                 "pay_udhar": CommandAction.PAY_UDHAR,
                 "list_udhar": CommandAction.LIST_UDHAR,
                 "customer_udhar": CommandAction.CUSTOMER_UDHAR,
+                "report_summary": CommandAction.REPORT_SUMMARY,
                 "unknown": CommandAction.UNKNOWN,
             }
 
@@ -1237,6 +1279,22 @@ Do not include any explanation, just the JSON."""
             if is_english:
                 return f"📦 Stock for {product_name}: {current_stock} {unit}"
             return f"📦 {product_name} ka stock: {current_stock} {unit}"
+
+        elif action == 'update_price':
+            new_price = result.get('selling_price') or result.get('price') or result.get('unit_price')
+            unit = result.get('unit', 'pieces')
+            try:
+                price_val = float(new_price) if new_price is not None else None
+            except Exception:
+                price_val = None
+            if price_val is None:
+                if is_english:
+                    return f"✅ Price updated for {product_name}."
+                return f"✅ {product_name} ka price update ho gaya."
+            if is_english:
+                return f"✅ Price updated! {product_name} is now ₹{price_val:,.2f} per {unit}."
+            return f"✅ {product_name} ka price update ho gaya. Ab ₹{price_val:,.2f} per {unit}."
+
 
         elif action == 'total_sales':
             total_items = result.get('total_items_sold', 0)

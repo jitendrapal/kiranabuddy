@@ -32,6 +32,7 @@ class CommandAction(Enum):
     LIST_PRODUCTS = "list_products"
     LOW_STOCK = "low_stock"
     ADJUST_STOCK = "adjust_stock"
+    UPDATE_PRICE = "update_price"
     TOP_PRODUCT_TODAY = "top_product_today"
     ZERO_SALE_TODAY = "zero_sale_today"
     EXPIRY_PRODUCTS = "expiry_products"
@@ -301,11 +302,13 @@ class ParsedCommand:
             CommandAction.ADD_STOCK,
             CommandAction.REDUCE_STOCK,
             CommandAction.ADJUST_STOCK,
+            CommandAction.UPDATE_PRICE,
             CommandAction.ADD_UDHAR,
             CommandAction.PAY_UDHAR,
         ]:
             # For adjustments, quantity represents the correct quantity for the last entry
             # For udhar, quantity is the amount in rupees (always positive here).
+            # For UPDATE_PRICE, quantity is the new selling price (per unit) in rupees.
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
         elif self.action in [
             CommandAction.CUSTOMER_UDHAR,

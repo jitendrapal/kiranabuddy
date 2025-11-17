@@ -402,6 +402,35 @@ class CommandProcessor:
                     user_phone=user_phone,
                 )
 
+            elif command.action == CommandAction.UPDATE_PRICE:
+                # Simple flow to update the selling price (MRP) for an existing product.
+                product = self.db.find_existing_product_by_name(shop_id, command.product_name)
+                if not product:
+                    return {
+                        "success": False,
+                        "message": f" '{command.product_name}' product list mein nahi mila. Pehle product ko list mein add karo ya sahi naam bolo.",
+                    }
+                try:
+                    new_price = float(command.quantity) if command.quantity is not None else None
+                except Exception:
+                    new_price = None
+                if new_price is None or new_price <= 0:
+                    return {
+                        "success": False,
+                        "message": " Price samajh nahi aaya. Kirpya naya price (rupaye mein) sahi se likho, jaise 'Maggi price 12'.",
+                    }
+
+                # Persist new selling price
+                self.db.update_product_fields(product.product_id, {"selling_price": new_price})
+
+                return {
+                    "success": True,
+                    "product_name": product.name,
+                    "selling_price": new_price,
+                    "unit": product.unit,
+                }
+
+
             elif command.action == CommandAction.UNDO_LAST:
                 return self.db.undo_last_transaction_for_shop(
                     shop_id=shop_id,
