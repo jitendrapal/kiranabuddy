@@ -285,6 +285,7 @@ class AIService:
         #   - "udhar pay Ramesh 200" (record payment)
         #   - "udhar list" / "kitna udhar hai" (summary)
         #   - "kitna udhar baki hai" (summary)
+        #   - "Ramesh udhar" / "udhar Ramesh" (customer-specific history)
         udhar_words = ["udhar", "udhaar", "khata", "baki", "baaki"]
         has_udhar_word = any(w in normalized for w in udhar_words)
 
@@ -343,7 +344,50 @@ class AIService:
                             raw_message=message,
                         )
 
-            # If message clearly talks about udhar but we couldn't parse amount,
+                # No amount → treat "udhar Ramesh" style as customer history (if it looks like a name)
+                clean_rest = rest.strip()
+                if clean_rest and not any(
+                    marker in clean_rest for marker in ["kitna", "kitni", "total", "list", "summary"]
+                ):
+                    for junk in ["pay", "payment", "ne", "se", "ka", "ki", "ke"]:
+                        clean_rest = clean_rest.replace(junk, " ")
+                    customer_name = clean_rest.strip()
+                    if customer_name:
+                        return ParsedCommand(
+                            action=CommandAction.CUSTOMER_UDHAR,
+                            product_name=customer_name,
+                            quantity=None,
+                            confidence=0.9,
+                            raw_message=message,
+                        )
+
+            # (c) Customer-specific history with pattern "<name> udhar"
+            if not any(ch.isdigit() for ch in normalized):
+                # e.g. "ramesh udhar", "ramesh ka udhar"
+                before = None
+                if normalized.endswith(" udhar") or normalized.endswith(" udhaar"):
+                    before = normalized.rsplit(" udhar", 1)[0]
+                elif normalized.endswith(" ka udhar") or normalized.endswith(" ka udhaar"):
+                    before = normalized.rsplit(" ka udhar", 1)[0]
+
+                if before:
+                    # Remove small filler words at the end like "ka"/"ki"/"ke"
+                    for junk in ["ka", "ki", "ke"]:
+                        if before.endswith(" " + junk):
+                            before = before[: -len(junk) - 1]
+                    customer_name = before.strip()
+                    if customer_name and not any(
+                        marker in customer_name for marker in ["kitna", "kitni", "total", "list", "summary"]
+                    ):
+                        return ParsedCommand(
+                            action=CommandAction.CUSTOMER_UDHAR,
+                            product_name=customer_name,
+                            quantity=None,
+                            confidence=0.9,
+                            raw_message=message,
+                        )
+
+            # (d) If message clearly talks about udhar but we couldn't parse amount or name,
             # fall back to showing overall summary so shopkeeper still gets value.
             if has_udhar_word and not any(ch.isdigit() for ch in normalized):
                 return ParsedCommand(
@@ -560,7 +604,29 @@ class AIService:
 
 
 
-        # 4) Generic keyword-based product search.
+        # 4) Flexible hisaab / report queries (day / month / year).
+        # If message clearly talks about "hisaab" / "hisab" / "report", let the
+        # command processor + DB figure out the exact date range. We only map the
+        # intent to REPORT_SUMMARY and pass the raw message through.
+        report_markers = [
+            "hisaab",
+            "hisab",
+            "hisaab ka",
+            "hisab ka",
+            "report",
+            "hisaab batao",
+            "hisab batao",
+        ]
+        if any(m in normalized for m in report_markers):
+            return ParsedCommand(
+                action=CommandAction.REPORT_SUMMARY,
+                product_name=None,
+                quantity=None,
+                confidence=0.97,
+                raw_message=message,
+            )
+
+        # 5) Generic keyword-based product search.
         # If user sends a short single word like "dal", "atta", "rice" etc.,
         # treat it as a request to list all matching products/brands with
         # stock and price.
@@ -858,9 +924,9 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", or "unknown"
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
 2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, help, or list_udhar)
-3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For udhar actions, quantity is the rupee amount (always positive).
+3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar and customer_udhar, quantity should be null.
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
 
@@ -925,6 +991,7 @@ Examples of HELP (show guidance / examples):
 	Examples of UDHAR (credit tracking):
 	- "udhar Ramesh 200" -> action "add_udhar" with product_name "Ramesh" and quantity 200
 	- "Ramesh udhar 300 doodh" -> action "add_udhar" with product_name "Ramesh" and quantity 300 (note like "doodh" is optional context)
+	- "Ramesh udhar" -> action "customer_udhar" with product_name "Ramesh" (no quantity)
 	- "udhar list" / "kitna udhar hai" -> action "list_udhar" (no product_name, no quantity)
 	- "udhar pay Ramesh 200" / "Ramesh ne 200 de diya" -> action "pay_udhar" with product_name "Ramesh" and quantity 200
 
@@ -935,6 +1002,7 @@ Key words to identify actions:
 - CHECK: kitna, how much, stock, batao, check, remaining, bacha, inventory, count (for specific product)
 - TOTAL_SALES: total sale, aaj ka sale, today's sales, kitna bika, business, sales report, aaj ka total
 - PROFIT: profit, munafa, estimated profit
+- REPORT_SUMMARY: hisaab, hisab, hisaab ka, hisab ka, "aaj ka hisaab", "is mahine ka hisaab", "is saal ka hisaab", "report", "report de do", "aaj ka hisaab batao"
 
 Messages may contain Devanagari Hindi words like "मैगी", "ऐड कर दो", "बिक गए". Parse them the same way as the Hinglish examples above.
 
@@ -942,9 +1010,9 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "unknown",
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "list_products" | "low_stock" | "adjust_stock" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
     "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, list_udhar, or top_product_today),
-    "quantity": number or null (for udhar actions this is the amount in rupees, always positive),
+    "quantity": number or null (for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar and customer_udhar it should be null),
     "confidence": 0.0 to 1.0
 }
 
@@ -987,6 +1055,7 @@ Do not include any explanation, just the JSON."""
                 "add_udhar": CommandAction.ADD_UDHAR,
                 "pay_udhar": CommandAction.PAY_UDHAR,
                 "list_udhar": CommandAction.LIST_UDHAR,
+                "customer_udhar": CommandAction.CUSTOMER_UDHAR,
                 "unknown": CommandAction.UNKNOWN,
             }
 
@@ -1334,31 +1403,118 @@ Do not include any explanation, just the JSON."""
             # If still None, treat profit as revenue (best-effort)
             if total_profit_val is None:
                 total_profit_val = total_revenue_val
+        elif action == 'report_summary':
+            # Generic report ("hisaab") for an arbitrary period: day / month / year.
+            total_items = result.get('total_items_sold', 0)
+            total_revenue = result.get('total_revenue')
+            total_cost = result.get('total_cost')
+            total_profit = result.get('total_profit')
+            products_sold = result.get('products_sold', {}) or {}
+            revenue_by_product = result.get('revenue_by_product', {}) or {}
 
+            period_type = result.get('period_type') or 'day'
+            period_label = result.get('period_label')
+            start_date = result.get('start_date')
+            end_date = result.get('end_date')
+
+            nl = "\r\n"
+
+            # Build header
+            if period_type == 'day':
+                label = period_label or start_date or ''
+                if is_english:
+                    header = f"📊 Report for {label}:"
+                else:
+                    header = f"📊 {label} ka hisaab:" if label else "📊 Aaj ka hisaab:"
+            elif period_type == 'month':
+                label = period_label or ''
+                if is_english:
+                    header = f"📊 Monthly report: {label}" if label else "📊 Monthly report:"
+                else:
+                    header = f"📊 Is mahine ka hisaab: {label}" if label else "📊 Is mahine ka hisaab:"
+            elif period_type == 'year':
+                label = period_label or ''
+                if is_english:
+                    header = f"📊 Yearly report: {label}" if label else "📊 Yearly report:"
+                else:
+                    header = f"📊 Is saal ka hisaab: {label}" if label else "📊 Is saal ka hisaab:"
+            else:
+                # Generic date range
+                label = None
+                if start_date and end_date and start_date != end_date:
+                    if is_english:
+                        header = f"📊 Report: {start_date} to {end_date}"
+                    else:
+                        header = f"📊 Hisaab: {start_date} se {end_date} tak"
+                else:
+                    if is_english:
+                        header = "📊 Report:"
+                    else:
+                        header = "📊 Hisaab:"
+
+            # Handle no revenue case
+            if total_revenue is None:
+                if is_english:
+                    return header + nl + "ℹ️ No sales found in this period."
+                return header + nl + "ℹ️ Is period mein koi sale record nahi hui."
+
+            # Safe floats
+            try:
+                total_revenue_val = float(total_revenue)
+            except Exception:
+                total_revenue_val = 0.0
+
+            total_cost_val = None
+            if total_cost is not None:
+                try:
+                    total_cost_val = float(total_cost)
+                except Exception:
+                    total_cost_val = None
+
+            total_profit_val = None
+            if total_profit is not None:
+                try:
+                    total_profit_val = float(total_profit)
+                except Exception:
+                    total_profit_val = None
+
+            if total_profit_val is None and total_cost_val is not None:
+                total_profit_val = total_revenue_val - (total_cost_val or 0.0)
+            if total_profit_val is None:
+                total_profit_val = total_revenue_val
+
+            lines = [header]
+            lines.append(f"✅ Total items sold: {total_items}")
             if is_english:
-                header = "💰 This month's profit:"
-                if month_label:
-                    header += f" (month: {month_label})"
-                lines = [
-                    header,
-                    f"✅ Total items sold: {total_items}",
-                    f"📦 Total sales (revenue): ₹{total_revenue_val:,.2f}",
-                ]
+                lines.append(f"💰 Total revenue: ₹{total_revenue_val:,.2f}")
                 if total_cost_val is not None:
                     lines.append(f"🧾 Purchase cost (approx): ₹{total_cost_val:,.2f}")
-                lines.append(f"💵 Profit: ₹{total_profit_val:,.2f}")
+                lines.append(f"💵 Profit (approx): ₹{total_profit_val:,.2f}")
             else:
-                header = "💰 Is mahine ka munafa:"
-                if month_label:
-                    header += f" (month: {month_label})"
-                lines = [
-                    header,
-                    f"✅ Total items sold: {total_items}",
-                    f"📦 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}",
-                ]
+                lines.append(f"💰 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}")
                 if total_cost_val is not None:
                     lines.append(f"🧾 Khareed ka kharcha (approx): ₹{total_cost_val:,.2f}")
-                lines.append(f"💵 Munafa: ₹{total_profit_val:,.2f}")
+                lines.append(f"💵 Munafa (approx): ₹{total_profit_val:,.2f}")
+
+            # Product-wise breakdown
+            if products_sold:
+                if is_english:
+                    lines.append("")
+                    lines.append("📦 Product-wise breakdown:")
+                else:
+                    lines.append("")
+                    lines.append("📦 Product-wise breakdown:")
+
+                for product, qty in products_sold.items():
+                    revenue = revenue_by_product.get(product)
+                    if revenue is not None:
+                        try:
+                            rev_val = float(revenue)
+                            lines.append(f"• {product}: {qty} (₹{rev_val:,.2f})")
+                        except Exception:
+                            lines.append(f"• {product}: {qty}")
+                    else:
+                        lines.append(f"• {product}: {qty}")
 
             return nl.join(lines)
 
@@ -1522,6 +1678,75 @@ Do not include any explanation, just the JSON."""
             lines.append("")
             lines.append(f"Total udhar: ₹{total_udhar:.2f}")
             return nl.join(lines)
+
+        elif action == 'customer_udhar':
+            customer_name = result.get('customer_name') or product_name or "Customer"
+            balance = result.get('balance', 0) or 0
+            entries = result.get('entries') or []
+            nl = "\r\n"
+
+            if not entries:
+                if is_english:
+                    return f"📒 No udhar entries found for {customer_name}."
+                return f"📒 {customer_name} ke naam koi udhar entry nahi mili."
+
+            lines = []
+            if is_english:
+                lines.append(f"📒 Udhar history for {customer_name}:")
+            else:
+                lines.append(f"📒 {customer_name} ka udhar history:")
+
+            for e in entries:
+                raw_amt = e.get('amount', 0) or 0
+                try:
+                    amt = float(raw_amt)
+                except Exception:
+                    amt = 0.0
+                entry_type = (e.get('type') or "").lower()
+                ts = e.get('timestamp') or ""
+                note = e.get('note') or ""
+
+                # Decide label text based on amount sign / type
+                if amt > 0:
+                    label_en = "credit"
+                    label_hi = "udhar"
+                elif amt < 0:
+                    label_en = "payment"
+                    label_hi = "payment"
+                else:
+                    label_en = ""
+                    label_hi = ""
+
+                amt_str = f"₹{abs(amt):.2f}"
+                label = label_en if is_english else label_hi
+
+                if ts:
+                    prefix = f"{ts} – "
+                else:
+                    prefix = ""
+
+                if label:
+                    if note:
+                        line = f"• {prefix}{amt_str} ({label}) – {note}"
+                    else:
+                        line = f"• {prefix}{amt_str} ({label})"
+                else:
+                    if note:
+                        line = f"• {prefix}{amt_str} – {note}"
+                    else:
+                        line = f"• {prefix}{amt_str}"
+
+                lines.append(line)
+
+            # Summary line with remaining balance
+            lines.append("")
+            if is_english:
+                lines.append(f"Remaining balance: ₹{balance:.2f}")
+            else:
+                lines.append(f"Baaki balance: ₹{balance:.2f}")
+
+            return nl.join(lines)
+
 
 
         elif action == 'help':

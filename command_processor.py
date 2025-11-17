@@ -2,6 +2,9 @@
 Command processing logic for Kirana Shop Management
 """
 from typing import Dict, Any, Optional, List
+from datetime import datetime, timedelta
+import re
+
 from models import CommandAction, ParsedCommand
 from database import FirestoreDB
 from ai_service import AIService
@@ -345,6 +348,25 @@ class CommandProcessor:
             elif command.action == CommandAction.MONTHLY_PROFIT:
                 return self.db.get_total_sales_current_month(shop_id=shop_id)
 
+            elif command.action == CommandAction.REPORT_SUMMARY:
+                # Flexible "hisaab" / report queries for arbitrary day/month/year ranges.
+                period = self._resolve_report_period(command.raw_message)
+                if not period.get("success"):
+                    return period
+
+                start_dt = period["start"]
+                end_dt = period["end"]
+                db_result = self.db.get_total_sales_for_period(
+                    shop_id=shop_id,
+                    start_datetime=start_dt,
+                    end_datetime=end_dt,
+                )
+                if db_result.get("success"):
+                    db_result["period_type"] = period.get("period_type")
+                    db_result["period_label"] = period.get("period_label")
+                    db_result["start_date"] = period.get("start_date")
+                    db_result["end_date"] = period.get("end_date")
+                return db_result
 
             elif command.action == CommandAction.ZERO_SALE_TODAY:
                 return self.db.get_zero_sale_products_today(shop_id=shop_id)
@@ -359,6 +381,7 @@ class CommandProcessor:
                     shop_id=shop_id,
                     keyword=command.product_name,
                 )
+
 
             elif command.action == CommandAction.LOW_STOCK:
                 return self.db.get_low_stock_products(shop_id=shop_id)
@@ -408,6 +431,13 @@ class CommandProcessor:
             elif command.action == CommandAction.LIST_UDHAR:
                 return self.db.get_udhar_summary(shop_id=shop_id)
 
+            elif command.action == CommandAction.CUSTOMER_UDHAR:
+                # Detailed udhar history for a single customer
+                return self.db.get_udhar_history(
+                    shop_id=shop_id,
+                    customer_name=command.product_name,
+                )
+
             elif command.action == CommandAction.HELP:
                 # No DB change; generate_response will format the help message.
                 return {
@@ -427,4 +457,176 @@ class CommandProcessor:
                 'success': False,
                 'message': f'Error: {str(e)}'
             }
+
+    def _resolve_report_period(self, message: str) -> Dict[str, Any]:
+        """Parse a natural-language report request into a concrete date range.
+
+        Supports phrases like:
+        - "aaj ka hisaab", "aaj ka report" -> today
+        - "kal ka hisaab" -> yesterday
+        - "is mahine ka hisaab", "this month report" -> current month
+        - "pichle mahine ka hisaab", "last month report" -> previous month
+        - "is saal ka hisaab", "this year report" -> current year
+        - "pichle saal ka hisaab", "last year report" -> previous year
+        - Month names like "march 2024 ka hisaab" -> that full month
+        - Year numbers like "2023 ka hisaab" -> that full year
+        """
+        text = (message or "").strip()
+        normalized = text.lower()
+
+        now = datetime.now()
+
+        def day_range(offset_days: int = 0):
+            d = now.date() + timedelta(days=offset_days)
+            start = datetime(d.year, d.month, d.day, 0, 0, 0)
+            end = datetime(d.year, d.month, d.day, 23, 59, 59, 999999)
+            return start, end
+
+        # 1) Explicit year (e.g. "2023") and/or month name
+        year_match = re.search(r"(20\d{2})", normalized)
+        year = int(year_match.group(1)) if year_match else None
+
+        month_keywords = {
+            "january": 1,
+            "jan ": 1,
+            " february": 2,
+            "feb ": 2,
+            "march": 3,
+            "mar ": 3,
+            "april": 4,
+            "apr ": 4,
+            "may": 5,
+            "june": 6,
+            "jun ": 6,
+            "july": 7,
+            "jul ": 7,
+            "august": 8,
+            "aug ": 8,
+            "september": 9,
+            "sept": 9,
+            "sep ": 9,
+            "october": 10,
+            "oct ": 10,
+            "november": 11,
+            "nov ": 11,
+            "december": 12,
+            "dec ": 12,
+        }
+
+        found_month = None
+        for key, mon in month_keywords.items():
+            if key.strip() and key.strip() in normalized:
+                found_month = mon
+                break
+
+        start = end = None
+        period_type = None
+        period_label = None
+
+        if found_month is not None:
+            # Full month, default year to current if not specified
+            y = year or now.year
+            start = datetime(y, found_month, 1, 0, 0, 0)
+            if found_month == 12:
+                next_month = datetime(y + 1, 1, 1, 0, 0, 0)
+            else:
+                next_month = datetime(y, found_month + 1, 1, 0, 0, 0)
+            end = next_month - timedelta(microseconds=1)
+            period_type = "month"
+            period_label = start.strftime("%B %Y")
+
+        elif year is not None and ("saal" in normalized or "year" in normalized or "yearly" in normalized):
+            # Explicit full year
+            start = datetime(year, 1, 1, 0, 0, 0)
+            end = datetime(year, 12, 31, 23, 59, 59, 999999)
+            period_type = "year"
+            period_label = str(year)
+
+        # 2) Relative phrases (today / yesterday / this month / last month / this year / last year)
+        if start is None and end is None:
+            if any(w in normalized for w in ["aaj", "aj ", "today"]):
+                start, end = day_range(0)
+                period_type = "day"
+                period_label = start.strftime("%Y-%m-%d")
+            elif any(w in normalized for w in ["kal", "yesterday"]):
+                start, end = day_range(-1)
+                period_type = "day"
+                period_label = start.strftime("%Y-%m-%d")
+            elif any(w in normalized for w in ["is mahine", "is mahina", "this month", "current month", "mahine ka", "mahina ka"]):
+                # Current month
+                y = now.year
+                m = now.month
+                start = datetime(y, m, 1, 0, 0, 0)
+                if m == 12:
+                    next_month = datetime(y + 1, 1, 1, 0, 0, 0)
+                else:
+                    next_month = datetime(y, m + 1, 1, 0, 0, 0)
+                end = next_month - timedelta(microseconds=1)
+                period_type = "month"
+                period_label = start.strftime("%B %Y")
+            elif any(w in normalized for w in ["pichle mahine", "pichla mahina", "last month", "previous month"]):
+                # Previous month
+                y = now.year
+                m = now.month - 1
+                if m == 0:
+                    y -= 1
+                    m = 12
+                start = datetime(y, m, 1, 0, 0, 0)
+                if m == 12:
+                    next_month = datetime(y + 1, 1, 1, 0, 0, 0)
+                else:
+                    next_month = datetime(y, m + 1, 1, 0, 0, 0)
+                end = next_month - timedelta(microseconds=1)
+                period_type = "month"
+                period_label = start.strftime("%B %Y")
+            elif any(w in normalized for w in ["is saal", "is saal ka", "this year", "current year", "yearly report", "year report"]):
+                y = now.year
+                start = datetime(y, 1, 1, 0, 0, 0)
+                end = datetime(y, 12, 31, 23, 59, 59, 999999)
+                period_type = "year"
+                period_label = str(y)
+            elif any(w in normalized for w in ["pichle saal", "pichla saal", "last year", "previous year"]):
+                y = now.year - 1
+                start = datetime(y, 1, 1, 0, 0, 0)
+                end = datetime(y, 12, 31, 23, 59, 59, 999999)
+                period_type = "year"
+                period_label = str(y)
+
+        # 3) Fallbacks
+        if start is None or end is None:
+            # If message mentions month/mahina but we couldn't parse, treat as current month
+            if any(w in normalized for w in ["mahine", "mahina", "month"]):
+                y = now.year
+                m = now.month
+                start = datetime(y, m, 1, 0, 0, 0)
+                if m == 12:
+                    next_month = datetime(y + 1, 1, 1, 0, 0, 0)
+                else:
+                    next_month = datetime(y, m + 1, 1, 0, 0, 0)
+                end = next_month - timedelta(microseconds=1)
+                period_type = period_type or "month"
+                period_label = period_label or start.strftime("%B %Y")
+            # If message mentions saal/year but we couldn't parse, treat as current year
+            elif any(w in normalized for w in ["saal", "year"]):
+                y = now.year
+                start = datetime(y, 1, 1, 0, 0, 0)
+                end = datetime(y, 12, 31, 23, 59, 59, 999999)
+                period_type = period_type or "year"
+                period_label = period_label or str(y)
+            else:
+                # Default: today's report
+                start, end = day_range(0)
+                period_type = period_type or "day"
+                period_label = period_label or start.strftime("%Y-%m-%d")
+
+        return {
+            "success": True,
+            "start": start,
+            "end": end,
+            "period_type": period_type,
+            "period_label": period_label,
+            "start_date": start.strftime("%Y-%m-%d"),
+            "end_date": end.strftime("%Y-%m-%d"),
+        }
+
 

@@ -1042,6 +1042,111 @@ class FirestoreDB:
                         cost_amount = 0.0
                     if cost_amount:
                         total_cost += cost_amount
+
+    def get_total_sales_for_period(self, shop_id: str, start_datetime, end_datetime) -> Dict[str, Any]:
+        """Get total sales for an arbitrary period (items + revenue + cost + profit).
+
+        The period is inclusive of both start_datetime and end_datetime.
+        This is used for flexible "hisaab" / report queries like
+        "aaj ka hisaab", monthly reports, yearly reports, etc.
+        """
+        from datetime import datetime
+
+        if not start_datetime or not end_datetime:
+            return {
+                "success": False,
+                "message": "❌ Report period samajh nahi aaya.",
+            }
+
+        # Normalise ordering just in case
+        if start_datetime > end_datetime:
+            start_datetime, end_datetime = end_datetime, start_datetime
+
+        # Build a cost map from products (so we can compute profit per sale)
+        products = self.get_products_by_shop(shop_id)
+        cost_by_id: Dict[str, float] = {}
+        cost_by_name: Dict[str, float] = {}
+        for p in products:
+            try:
+                cp = getattr(p, "cost_price", None)
+                if cp is None:
+                    continue
+                cp_val = float(cp)
+            except Exception:
+                continue
+            if getattr(p, "product_id", None):
+                cost_by_id[p.product_id] = cp_val
+            if getattr(p, "name", None):
+                cost_by_name[p.name] = cp_val
+
+        transactions_ref = self.db.collection("transactions").where("shop_id", "==", shop_id)
+        all_transactions = transactions_ref.stream()
+
+        total_items_sold = 0.0
+        total_revenue = 0.0
+        total_cost = 0.0
+        products_sold: Dict[str, float] = {}
+        revenue_by_product: Dict[str, float] = {}
+        cost_by_product: Dict[str, float] = {}
+
+        for trans_doc in all_transactions:
+            trans = trans_doc.to_dict()
+            trans_time = trans.get("timestamp")
+            if not trans_time:
+                continue
+
+            # Convert string timestamps back to datetime for comparison
+            if isinstance(trans_time, str):
+                try:
+                    trans_time = datetime.fromisoformat(trans_time)
+                except Exception:
+                    # Skip records with bad timestamp format
+                    continue
+
+            if not (start_datetime <= trans_time <= end_datetime):
+                continue
+
+            if trans.get("transaction_type") in ("reduce_stock", "sale"):
+                quantity = float(trans.get("quantity", 0) or 0)
+                product_name = trans.get("product_name", "Unknown") or "Unknown"
+                product_id = trans.get("product_id")
+
+                total_items_sold += quantity
+                products_sold[product_name] = products_sold.get(product_name, 0.0) + quantity
+
+                unit_price = trans.get("unit_price")
+                total_amount = trans.get("total_amount")
+
+                sale_amount = 0.0
+                try:
+                    if total_amount is not None:
+                        sale_amount = float(total_amount)
+                    elif unit_price is not None:
+                        sale_amount = float(unit_price) * quantity
+                except Exception:
+                    sale_amount = 0.0
+
+                if sale_amount:
+                    total_revenue += sale_amount
+                    revenue_by_product[product_name] = revenue_by_product.get(product_name, 0.0) + sale_amount
+
+                # Approximate purchase cost using cost_price from Product
+                cost_unit = None
+                try:
+                    if product_id and product_id in cost_by_id:
+                        cost_unit = cost_by_id[product_id]
+                    elif product_name in cost_by_name:
+                        cost_unit = cost_by_name[product_name]
+                except Exception:
+                    cost_unit = None
+
+                if cost_unit is not None:
+                    try:
+                        cost_amount = float(cost_unit) * quantity
+                    except Exception:
+                        cost_amount = 0.0
+                    if cost_amount:
+                        total_cost += cost_amount
                         cost_by_product[product_name] = cost_by_product.get(product_name, 0.0) + cost_amount
 
         total_profit = total_revenue - total_cost
@@ -1055,8 +1160,9 @@ class FirestoreDB:
             "products_sold": products_sold,
             "revenue_by_product": {k: round(v, 2) for k, v in revenue_by_product.items()},
             "cost_by_product": {k: round(v, 2) for k, v in cost_by_product.items()},
-            "month": now.strftime("%Y-%m"),
         }
+
+
 
     def get_zero_sale_products_today(self, shop_id: str) -> Dict[str, Any]:
         """Get **top 3** products that had zero sales today (but are in stock).
@@ -1251,6 +1357,244 @@ class FirestoreDB:
             "days_ahead": window_days,
             "today": today.isoformat(),
         }
+
+    # ==================== UDHAR (CREDIT) OPERATIONS ====================
+
+    def create_udhar_entry(
+        self,
+        shop_id: str,
+        customer_name: str,
+        amount: float,
+        user_phone: str,
+        note: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a new udhar entry for a customer.
+
+        Positive amount -> customer owes shopkeeper (credit given).
+        Negative amount -> customer paid back (payment received).
+        """
+        try:
+            if not customer_name:
+                return {
+                    "success": False,
+                    "message": "❌ Customer name missing for udhar entry.",
+                }
+
+            try:
+                amt = float(amount)
+            except Exception:
+                return {
+                    "success": False,
+                    "message": "❌ Udhar amount samajh nahi aaya. Please send again.",
+                }
+
+            if amt == 0:
+                return {
+                    "success": False,
+                    "message": "❌ Udhar amount zero nahi ho sakta.",
+                }
+
+            customer_key = (customer_name or "").strip().lower()
+
+            entry_id = str(uuid.uuid4())
+            entry = UdharEntry(
+                entry_id=entry_id,
+                shop_id=shop_id,
+                customer_key=customer_key,
+                customer_name=customer_name,
+                amount=amt,
+                timestamp=datetime.utcnow(),
+                user_phone=user_phone,
+                note=note,
+            )
+
+            self.db.collection("udhar_entries").document(entry_id).set(entry.to_dict())
+
+            balance = self.get_customer_udhar_balance(shop_id, customer_key)
+
+            return {
+                "success": True,
+                "entry_id": entry_id,
+                "customer_name": customer_name,
+                "customer_key": customer_key,
+                "amount": amt,
+                "balance": balance,
+            }
+        except Exception as e:
+            print(f"Error creating udhar entry: {e}")
+            return {
+                "success": False,
+                "message": "❌ Udhar entry save nahi ho paayi.",
+            }
+
+    def get_customer_udhar_balance(self, shop_id: str, customer_key: str) -> float:
+        """Get current udhar balance for a single customer."""
+        try:
+            docs = (
+                self.db.collection("udhar_entries")
+                .where("shop_id", "==", shop_id)
+                .where("customer_key", "==", customer_key)
+                .stream()
+            )
+            total = 0.0
+            for doc in docs:
+                data = doc.to_dict() or {}
+                try:
+                    amt = float(data.get("amount", 0) or 0)
+                except Exception:
+                    amt = 0.0
+                total += amt
+            return round(total, 2)
+        except Exception as e:
+            print(f"Error reading udhar balance: {e}")
+            return 0.0
+
+    def get_udhar_summary(self, shop_id: str) -> Dict[str, Any]:
+        """Get summary of all customers with outstanding udhar."""
+        try:
+            docs = self.db.collection("udhar_entries").where("shop_id", "==", shop_id).stream()
+
+            by_customer: Dict[str, Dict[str, Any]] = {}
+
+            for doc in docs:
+                data = doc.to_dict() or {}
+                raw_key = data.get("customer_key") or ""
+                key = str(raw_key).strip().lower()
+                name = data.get("customer_name") or "Customer"
+                try:
+                    amt = float(data.get("amount", 0) or 0)
+                except Exception:
+                    amt = 0.0
+
+                if not key:
+                    key = name.strip().lower() or "unknown"
+
+                if key not in by_customer:
+                    by_customer[key] = {"name": name, "balance": 0.0}
+
+                by_customer[key]["balance"] += amt
+
+            customers: List[Dict[str, Any]] = []
+            total_udhar = 0.0
+
+            for obj in by_customer.values():
+                balance = round(obj["balance"], 2)
+                # Ignore customers whose balance is effectively zero.
+                if abs(balance) < 0.01:
+                    continue
+                customers.append({"name": obj["name"], "balance": balance})
+                total_udhar += balance
+
+            # Sort customers by highest balance first so the most important are on top.
+            customers.sort(key=lambda c: c.get("balance", 0.0), reverse=True)
+
+            return {
+                "success": True,
+                "customers": customers,
+                "total_udhar": round(total_udhar, 2),
+                "total_customers": len(customers),
+            }
+        except Exception as e:
+            print(f"Error building udhar summary: {e}")
+            return {
+                "success": False,
+                "customers": [],
+                "total_udhar": 0.0,
+                "total_customers": 0,
+                "message": "❌ Udhar summary nikalte waqt error aaya.",
+            }
+
+    def get_udhar_history(self, shop_id: str, customer_name: str) -> Dict[str, Any]:
+        """Get detailed udhar history for a single customer.
+
+        Returns all entries (credit given + payments) and the current
+        outstanding balance.
+        """
+        try:
+            customer_key = (customer_name or "").strip().lower()
+            if not customer_key:
+                return {
+                    "success": False,
+                    "customer_name": customer_name,
+                    "customer_key": customer_key,
+                    "entries": [],
+                    "balance": 0.0,
+                    "message": "❌ Customer name missing for udhar history.",
+                }
+
+            docs = (
+                self.db.collection("udhar_entries")
+                .where("shop_id", "==", shop_id)
+                .where("customer_key", "==", customer_key)
+                .stream()
+            )
+
+            entries: List[Dict[str, Any]] = []
+            balance = 0.0
+            resolved_name = customer_name
+
+            for doc in docs:
+                data = doc.to_dict() or {}
+                if data.get("customer_name"):
+                    resolved_name = data.get("customer_name")
+
+                try:
+                    amt = float(data.get("amount", 0) or 0)
+                except Exception:
+                    amt = 0.0
+
+                balance += amt
+
+                raw_ts = data.get("timestamp")
+                ts_sort = ""
+                ts_display = ""
+                if isinstance(raw_ts, datetime):
+                    ts_sort = raw_ts.isoformat()
+                    ts_display = raw_ts.strftime("%Y-%m-%d %H:%M")
+                elif isinstance(raw_ts, str):
+                    try:
+                        parsed = datetime.fromisoformat(raw_ts)
+                        ts_sort = parsed.isoformat()
+                        ts_display = parsed.strftime("%Y-%m-%d %H:%M")
+                    except Exception:
+                        ts_sort = raw_ts
+                        ts_display = raw_ts
+
+                entry_type = "credit" if amt > 0 else "payment" if amt < 0 else "neutral"
+
+                entries.append(
+                    {
+                        "amount": round(amt, 2),
+                        "type": entry_type,
+                        "timestamp": ts_display,
+                        "_sort_key": ts_sort,
+                        "note": data.get("note"),
+                    }
+                )
+
+            # Sort entries by timestamp so history reads in time order.
+            entries.sort(key=lambda e: e.get("_sort_key", ""))
+            for e in entries:
+                e.pop("_sort_key", None)
+
+            return {
+                "success": True,
+                "customer_name": resolved_name or customer_name,
+                "customer_key": customer_key,
+                "entries": entries,
+                "balance": round(balance, 2),
+            }
+        except Exception as e:
+            print(f"Error building udhar history: {e}")
+            return {
+                "success": False,
+                "customer_name": customer_name,
+                "customer_key": (customer_name or "").strip().lower(),
+                "entries": [],
+                "balance": 0.0,
+                "message": "❌ Udhar history nikalte waqt error aaya.",
+            }
+
 
 
 

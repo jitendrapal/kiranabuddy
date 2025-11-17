@@ -41,6 +41,9 @@ class CommandAction(Enum):
     ADD_UDHAR = "add_udhar"
     PAY_UDHAR = "pay_udhar"
     LIST_UDHAR = "list_udhar"
+    CUSTOMER_UDHAR = "customer_udhar"
+    # Flexible sales/profit reports ("aaj ka hisaab", monthly/yearly reports)
+    REPORT_SUMMARY = "report_summary"
     UNKNOWN = "unknown"
 
 
@@ -305,6 +308,11 @@ class ParsedCommand:
             # For udhar, quantity is the amount in rupees (always positive here).
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
         elif self.action in [
+            CommandAction.CUSTOMER_UDHAR,
+        ]:
+            # Customer-specific udhar history: only needs a customer name.
+            return self.product_name is not None
+        elif self.action in [
             CommandAction.TOTAL_SALES,
             CommandAction.TODAY_PROFIT,
             CommandAction.MONTHLY_PROFIT,
@@ -316,6 +324,7 @@ class ParsedCommand:
             CommandAction.UNDO_LAST,
             CommandAction.HELP,
             CommandAction.LIST_UDHAR,
+            CommandAction.REPORT_SUMMARY,
         ]:
             # These commands don't require product or quantity
             return True
