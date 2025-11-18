@@ -588,11 +588,13 @@ class AIService:
         # Examples:
         # - "Today's estimated profit"
         # - "Aaj ka profit"
+        # - "Weekly profit" / "hafte ka profit"
         # - "Monthly estimated profit" / "mahine ka profit"
         # - "Yearly profit" / "saal ka profit"
         if ("profit" in normalized) or ("munafa" in normalized):
             yearly_markers = ["year", "saal", "sal", "yearly", "saal ka", "sal ka"]
             monthly_markers = ["month", "mahina", "mahine", "mahine ka", "monthly"]
+            weekly_markers = ["week", "hafte", "hafta", "weekly", "hafte ka", "hafta ka"]
             today_markers = ["aaj", "aj ", "today"]
 
             if any(y in normalized for y in yearly_markers):
@@ -607,6 +609,15 @@ class AIService:
             if any(m in normalized for m in monthly_markers):
                 return ParsedCommand(
                     action=CommandAction.MONTHLY_PROFIT,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.99,
+                    raw_message=message,
+                )
+
+            if any(w in normalized for w in weekly_markers):
+                return ParsedCommand(
+                    action=CommandAction.WEEKLY_PROFIT,
                     product_name=None,
                     quantity=None,
                     confidence=0.99,
@@ -1142,8 +1153,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
-    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, list_udhar, top_product_today, or report_summary),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
+    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, list_udhar, top_product_today, or report_summary),
     "quantity": number or null (for "update_price" this is the new selling price per unit in rupees; for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar and customer_udhar it should be null),
     "confidence": 0.0 to 1.0
 }
@@ -1175,6 +1186,7 @@ Do not include any explanation, just the JSON."""
                 "check_stock": CommandAction.CHECK_STOCK,
                 "total_sales": CommandAction.TOTAL_SALES,
                 "today_profit": CommandAction.TODAY_PROFIT,
+                "weekly_profit": CommandAction.WEEKLY_PROFIT,
                 "monthly_profit": CommandAction.MONTHLY_PROFIT,
                 "yearly_profit": CommandAction.YEARLY_PROFIT,
                 "list_products": CommandAction.LIST_PRODUCTS,
@@ -1369,9 +1381,60 @@ Do not include any explanation, just the JSON."""
         elif action == 'check_stock':
             current_stock = result.get('current_stock', 0)
             unit = result.get('unit', 'pieces')
+            selling_price = result.get('selling_price')
+            cost_price = result.get('cost_price')
+            expiry_date = result.get('expiry_date')
+            brand = result.get('brand')
+
+            nl = "\r\n"
+
+            # Build product display name with brand if available
+            display_name = f"{brand} {product_name}" if brand else product_name
+
             if is_english:
-                return f"📦 Stock for {product_name}: {current_stock} {unit}"
-            return f"📦 {product_name} ka stock: {current_stock} {unit}"
+                lines = [f"📦 {display_name}:"]
+                lines.append(f"📊 Stock: {current_stock} {unit}")
+
+                if selling_price is not None:
+                    try:
+                        price_val = float(selling_price)
+                        lines.append(f"💰 Price: ₹{price_val:,.2f} per {unit}")
+                    except Exception:
+                        pass
+
+                if cost_price is not None:
+                    try:
+                        cost_val = float(cost_price)
+                        lines.append(f"🧾 Cost: ₹{cost_val:,.2f} per {unit}")
+                    except Exception:
+                        pass
+
+                if expiry_date:
+                    lines.append(f"📅 Expiry: {expiry_date}")
+
+                return nl.join(lines)
+            else:
+                lines = [f"📦 {display_name}:"]
+                lines.append(f"📊 Stock: {current_stock} {unit}")
+
+                if selling_price is not None:
+                    try:
+                        price_val = float(selling_price)
+                        lines.append(f"💰 Price: ₹{price_val:,.2f} per {unit}")
+                    except Exception:
+                        pass
+
+                if cost_price is not None:
+                    try:
+                        cost_val = float(cost_price)
+                        lines.append(f"🧾 Khareed ka price: ₹{cost_val:,.2f} per {unit}")
+                    except Exception:
+                        pass
+
+                if expiry_date:
+                    lines.append(f"📅 Expiry date: {expiry_date}")
+
+                return nl.join(lines)
 
         elif action == 'update_price':
             new_price = result.get('selling_price') or result.get('price') or result.get('unit_price')
@@ -1560,6 +1623,74 @@ Do not include any explanation, just the JSON."""
                 header = f"💰 This month's profit ({month_label}):" if month_label else "💰 This month's profit:"
             else:
                 header = f"💰 Is mahine ka munafa ({month_label}):" if month_label else "💰 Is mahine ka munafa:"
+
+            lines = [header]
+            lines.append(f"✅ Total items sold: {total_items}")
+            if is_english:
+                lines.append(f"💰 Total revenue: ₹{total_revenue_val:,.2f}")
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Purchase cost (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Profit (approx): ₹{total_profit_val:,.2f}")
+            else:
+                lines.append(f"💰 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}")
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Khareed ka kharcha (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Munafa (approx): ₹{total_profit_val:,.2f}")
+
+            return nl.join(lines)
+
+        elif action == 'weekly_profit':
+            total_items = result.get('total_items_sold', 0)
+            total_revenue = result.get('total_revenue')
+            total_cost = result.get('total_cost')
+            total_profit = result.get('total_profit')
+            week_label = result.get('week')
+
+            nl = "\r\n"
+
+            if total_revenue is None:
+                if is_english:
+                    header = "💰 This week's profit: ₹0.00"
+                    note = "ℹ️ No sales recorded this week, so profit is zero."
+                else:
+                    header = "💰 Is hafte ka munafa: ₹0.00"
+                    note = "ℹ️ Is hafte koi sale record nahi hui, isliye munafa zero hai."
+                if week_label:
+                    header = f"{header} ({week_label})"
+                return header + nl + note
+
+            try:
+                total_revenue_val = float(total_revenue)
+            except Exception:
+                total_revenue_val = 0.0
+
+            total_cost_val = None
+            if total_cost is not None:
+                try:
+                    total_cost_val = float(total_cost)
+                except Exception:
+                    total_cost_val = None
+
+            total_profit_val = None
+            if total_profit is not None:
+                try:
+                    total_profit_val = float(total_profit)
+                except Exception:
+                    total_profit_val = None
+
+            # Fallback: if profit not provided but we have revenue and cost, compute it
+            if total_profit_val is None and total_cost_val is not None:
+                total_profit_val = total_revenue_val - total_cost_val
+
+            # If still None, treat profit as revenue (best-effort)
+            if total_profit_val is None:
+                total_profit_val = total_revenue_val
+
+            # Build header
+            if is_english:
+                header = f"💰 This week's profit ({week_label}):" if week_label else "💰 This week's profit:"
+            else:
+                header = f"💰 Is hafte ka munafa ({week_label}):" if week_label else "💰 Is hafte ka munafa:"
 
             lines = [header]
             lines.append(f"✅ Total items sold: {total_items}")

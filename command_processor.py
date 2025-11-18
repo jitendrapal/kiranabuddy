@@ -315,12 +315,16 @@ class CommandProcessor:
                         'message': f"❌ '{command.product_name}' product list mein nahi mila. Pehle product ko list mein add karo ya sahi naam bolo.",
                     }
                 # Build the same shape as db.check_stock would return, but without
-                # creating any new product.
+                # creating any new product. Include price and expiry information.
                 return {
                     'success': True,
                     'product_name': product.name,
                     'current_stock': product.current_stock,
                     'unit': product.unit,
+                    'selling_price': product.selling_price,
+                    'cost_price': product.cost_price,
+                    'expiry_date': product.expiry_date,
+                    'brand': product.brand,
                 }
 
             elif command.action == CommandAction.TOTAL_SALES:
@@ -344,6 +348,9 @@ class CommandProcessor:
                 # For now, profit is estimated as the same as total revenue
                 # because purchase cost is not yet tracked separately.
                 return self.db.get_total_sales_today(shop_id=shop_id)
+
+            elif command.action == CommandAction.WEEKLY_PROFIT:
+                return self.db.get_total_sales_current_week(shop_id=shop_id)
 
             elif command.action == CommandAction.MONTHLY_PROFIT:
                 return self.db.get_total_sales_current_month(shop_id=shop_id)

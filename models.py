@@ -28,6 +28,7 @@ class CommandAction(Enum):
     CHECK_STOCK = "check_stock"
     TOTAL_SALES = "total_sales"
     TODAY_PROFIT = "today_profit"
+    WEEKLY_PROFIT = "weekly_profit"
     MONTHLY_PROFIT = "monthly_profit"
     YEARLY_PROFIT = "yearly_profit"
     LIST_PRODUCTS = "list_products"
@@ -37,6 +38,7 @@ class CommandAction(Enum):
     TOP_PRODUCT_TODAY = "top_product_today"
     ZERO_SALE_TODAY = "zero_sale_today"
     EXPIRY_PRODUCTS = "expiry_products"
+    PURCHASE_SUGGESTION = "purchase_suggestion"
     UNDO_LAST = "undo_last"
     HELP = "help"
     # Udhar (credit) tracking
@@ -319,6 +321,7 @@ class ParsedCommand:
         elif self.action in [
             CommandAction.TOTAL_SALES,
             CommandAction.TODAY_PROFIT,
+            CommandAction.WEEKLY_PROFIT,
             CommandAction.MONTHLY_PROFIT,
             CommandAction.YEARLY_PROFIT,
             CommandAction.LIST_PRODUCTS,
