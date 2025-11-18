@@ -56,6 +56,7 @@ class CommandProcessor:
                 shop_id = user.shop_id
 
             # Step 2: Get message text (transcribe if voice)
+            transcribed_text = None
             if message_type == "voice":
                 if not media_url:
                     return {
@@ -76,6 +77,7 @@ class CommandProcessor:
 
                 # Transcribe audio
                 text = self.ai_service.transcribe_audio(media_url, media_format or "ogg")
+                transcribed_text = text  # Store for returning to frontend
 
                 if not text:
                     print("⚠️ Voice transcription returned no text.")
@@ -153,6 +155,7 @@ class CommandProcessor:
                 'success': result['success'],
                 'message': response_message,
                 'send_reply': True,
+                'transcribed_text': transcribed_text,
                 'result': result,
             }
 

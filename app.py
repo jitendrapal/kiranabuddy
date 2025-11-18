@@ -199,6 +199,7 @@ def webhook():
                 'success': result.get('success', False),
                 'message': result.get('message', ''),
                 'reply_sent': reply_sent,
+                'transcribed_text': result.get('transcribed_text', ''),
                 'data': result.get('result', {})
             }), 200
 

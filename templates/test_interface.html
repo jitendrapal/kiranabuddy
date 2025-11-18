@@ -1721,9 +1721,6 @@
                   return;
                 }
 
-                // Show placeholder user message for voice
-                appendMessage("🎤 (voice message)", "user");
-
                 const webhookResp = await fetch("/webhook", {
                   method: "POST",
                   headers: {
@@ -1749,6 +1746,14 @@
                 }
 
                 if (webhookResp.ok) {
+                  // Show transcribed text if available
+                  if (data.transcribed_text) {
+                    appendMessage(data.transcribed_text, "user");
+                  } else {
+                    appendMessage("🎤 (voice message)", "user");
+                  }
+
+                  // Show bot response
                   if (data.message) {
                     appendMessage(data.message, "bot");
                   } else if (data.data && data.data.message) {
