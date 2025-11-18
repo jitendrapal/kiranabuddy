@@ -289,9 +289,90 @@ class AIService:
         udhar_words = ["udhar", "udhaar", "khata", "baki", "baaki"]
         has_udhar_word = any(w in normalized for w in udhar_words)
 
-        # (a) Summary / list style queries
+        # (a) Summary / list style queries and person-specific udhar queries
         if has_udhar_word:
-            if any(kw in normalized for kw in ["udhar list", "udhar ka hisab", "udhar ka hisaab", "udhar summary"]):
+            # (a0) Person-level udhar question like "Ramesh ka udhar kitna hai?"
+            # If there is a name + "udhar" + "kitna/kitni/kitne" but no digits,
+            # treat it as a customer-specific udhar history instead of global summary.
+            if (
+                ("kitna" in normalized or "kitni" in normalized or "kitne" in normalized or "amount" in normalized or "money" in normalized)
+                and not any(ch.isdigit() for ch in normalized)
+            ):
+                customer_name = None
+                text = normalized
+
+                # Pattern: "<name> ka/ke/ki udhar ..."
+                for pattern in [
+                    " ka udhar",
+                    " ke udhar",
+                    " ki udhar",
+                    " ka udhaar",
+                    " ke udhaar",
+                    " ki udhaar",
+                ]:
+                    if pattern in text:
+                        before = text.split(pattern, 1)[0].strip()
+                        if before:
+                            customer_name = before
+                            break
+
+                # Pattern: "udhar/udhaar <name> ..." (e.g. "udhar kitna hai ramesh ka")
+                if not customer_name:
+                    for marker in ["udhar", "udhaar"]:
+                        marker_token = marker + " "
+                        idx = text.find(marker_token)
+                        if idx != -1:
+                            after = text[idx + len(marker_token) :].strip()
+
+                            # Remove leading fillers like "kitna hai", "kitne hai", etc.
+                            leading_fillers = [
+                                "kitna hai",
+                                "kitni hai",
+                                "kitne hai",
+                                "kitna h",
+                                "kitni h",
+                                "kitne h",
+                                "kitna",
+                                "kitni",
+                                "kitne",
+                                "total",
+                                "pura",
+                            ]
+                            for lf in leading_fillers:
+                                lf_with_space = lf + " "
+                                if after.startswith(lf_with_space):
+                                    after = after[len(lf_with_space) :].strip()
+
+                            # Trim trailing "ka/ke/ki"
+                            for suffix in [" ka", " ke", " ki"]:
+                                if after.endswith(suffix):
+                                    after = after[: -len(suffix)].strip()
+
+                            if after:
+                                customer_name = after
+                                break
+
+                if customer_name:
+                    # Clean out leftover filler tokens from the name
+                    for junk in ["mera", "meri", "mere", "sab", "all", "aaj", "kal"]:
+                        customer_name = customer_name.replace(" " + junk + " ", " ")
+                    customer_name = customer_name.strip()
+
+                    bad_tokens = {"hai", "h", "kya", "kitna", "kitni", "kitne", "total", "list", "summary"}
+                    if customer_name and len(customer_name) >= 3 and customer_name not in bad_tokens:
+                        return ParsedCommand(
+                            action=CommandAction.CUSTOMER_UDHAR,
+                            product_name=customer_name,
+                            quantity=None,
+                            confidence=0.93,
+                            raw_message=message,
+                        )
+
+            # (a1) Overall udhar summary / list queries
+            if any(
+                kw in normalized
+                for kw in ["udhar list", "udhar ka hisab", "udhar ka hisaab", "udhar summary"]
+            ):
                 return ParsedCommand(
                     action=CommandAction.LIST_UDHAR,
                     product_name=None,
