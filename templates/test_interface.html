@@ -13,8 +13,15 @@
       }
 
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: radial-gradient(
+          circle at top,
+          #1e293b 0,
+          #020617 55%,
+          #000 100%
+        );
+        color: #e5e7eb;
         min-height: 100vh;
         display: flex;
         justify-content: center;
@@ -27,37 +34,45 @@
         max-width: 1100px;
         height: 100vh;
         margin: 0 auto;
-        background: #f0f2f5;
-        border-radius: 0;
-        box-shadow: none;
+        background: rgba(15, 23, 42, 0.96);
+        border-radius: 24px;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.9);
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        backdrop-filter: blur(18px);
       }
 
       .header {
-        background: #075e54;
-        color: white;
-        padding: 10px 14px;
+        background: radial-gradient(
+          circle at top left,
+          #22c55e 0,
+          #16a34a 40%,
+          #064e3b 100%
+        );
+        color: #ecfdf5;
+        padding: 14px 20px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.7);
       }
 
       .header h1 {
-        font-size: 2em;
-        margin-bottom: 10px;
+        font-size: 1.7em;
+        margin-bottom: 4px;
       }
 
       .header p {
-        opacity: 0.9;
+        opacity: 0.85;
       }
 
       .content {
         flex: 1;
         display: flex;
         flex-direction: column;
-        background: #ece5dd;
+        background: radial-gradient(circle at top, #020617 0, #020617 55%);
         overflow: hidden;
       }
 
@@ -85,17 +100,22 @@
       input,
       textarea {
         width: 100%;
-        padding: 12px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 16px;
-        transition: border-color 0.3s;
+        padding: 12px 14px;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        border-radius: 12px;
+        font-size: 15px;
+        background: rgba(15, 23, 42, 0.9);
+        color: #e5e7eb;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease,
+          background 0.2s ease;
       }
 
       input:focus,
       textarea:focus {
         outline: none;
-        border-color: #667eea;
+        border-color: #22c55e;
+        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.6);
+        background: rgba(15, 23, 42, 1);
       }
 
       textarea {
@@ -104,22 +124,26 @@
       }
 
       button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: #ecfdf5;
         border: none;
-        padding: 12px 30px;
-        border-radius: 8px;
-        font-size: 16px;
+        padding: 10px 22px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
-        transition: transform 0.2s;
+        transition: transform 0.15s ease, box-shadow 0.15s ease,
+          background 0.2s ease;
       }
 
       button:hover {
-        transform: translateY(-2px);
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(22, 163, 74, 0.45);
       }
 
       button:active {
         transform: translateY(0);
+        box-shadow: none;
       }
 
       .result {
@@ -184,14 +208,14 @@
 
       .chat-window {
         flex: 1;
-        padding: 16px;
+        padding: 20px 20px 16px;
         overflow-y: auto;
-        background: #ece5dd;
+        background: radial-gradient(circle at top left, #111827 0, #020617 55%);
       }
 
       .chat-message {
         display: flex;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
 
       .chat-message.user {
@@ -203,60 +227,73 @@
       }
 
       .message-bubble {
-        max-width: 75%;
-        padding: 8px 12px;
-        border-radius: 8px;
+        max-width: 70%;
+        padding: 10px 14px;
+        border-radius: 16px;
         font-size: 14px;
-        line-height: 1.4;
-        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+        line-height: 1.5;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(15, 23, 42, 0.9);
         /* Preserve newlines (\n / \r\n) from backend so each line shows on chat */
         white-space: pre-line;
       }
 
       .chat-message.user .message-bubble {
-        background: #d1ffc6;
-        border-bottom-right-radius: 0;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: #ecfdf5;
+        border-bottom-right-radius: 4px;
+        border-color: transparent;
       }
 
       .chat-message.bot .message-bubble {
-        background: #ffffff;
-        border-bottom-left-radius: 0;
+        background: rgba(17, 24, 39, 0.96);
+        color: #e5e7eb;
+        border-bottom-left-radius: 4px;
+        border-color: rgba(55, 65, 81, 0.9);
       }
 
       .chat-input-row {
         display: flex;
         align-items: center;
-        padding: 10px;
-        background: #f0f0f0;
-        border-top: 1px solid #d0d0d0;
-        gap: 8px;
+        padding: 12px 14px;
+        background: rgba(15, 23, 42, 0.98);
+        border-top: 1px solid rgba(15, 23, 42, 0.9);
+        gap: 10px;
       }
 
       .phone-badge {
         font-size: 11px;
-        color: #555;
-        background: #e0e0e0;
-        padding: 4px 8px;
+        color: #cbd5f5;
+        background: rgba(15, 23, 42, 0.9);
+        padding: 4px 10px;
         border-radius: 999px;
         white-space: nowrap;
+        border: 1px solid rgba(148, 163, 184, 0.7);
       }
 
       .message-input {
         flex: 1;
-        border-radius: 20px;
-        border: 1px solid #ccc;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
         padding: 12px 16px;
         font-size: 15px;
+        background: rgba(15, 23, 42, 0.98);
+        color: #e5e7eb;
+      }
+
+      .message-input::placeholder {
+        color: rgba(148, 163, 184, 0.9);
       }
 
       .send-button {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
         padding: 0;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 10px 24px rgba(22, 163, 74, 0.5);
       }
 
       .scan-button {
@@ -505,28 +542,30 @@
 
       .quick-reports {
         display: flex;
-        gap: 6px;
-        padding: 8px 12px;
-        background: #f0f2f5;
-        border-bottom: 1px solid #ddd;
+        gap: 8px;
+        padding: 10px 16px;
+        background: rgba(15, 23, 42, 0.98);
+        border-bottom: 1px solid rgba(15, 23, 42, 0.9);
         overflow-x: auto;
+        backdrop-filter: blur(14px);
       }
 
       .report-btn {
         font-size: 12px;
-        padding: 6px 12px;
-        border-radius: 16px;
-        border: 1px solid #128c7e;
-        background: #ffffff;
-        color: #128c7e;
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        background: rgba(15, 23, 42, 0.9);
+        color: #e5e7eb;
         cursor: pointer;
         white-space: nowrap;
         flex-shrink: 0;
       }
 
       .report-btn:hover {
-        background: #128c7e;
-        color: #ffffff;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: #ecfdf5;
+        border-color: transparent;
       }
 
       .hidden {
@@ -706,6 +745,118 @@
         background: rgba(255, 255, 255, 0.08);
       }
 
+      .theme-toggle {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        background: rgba(15, 23, 42, 0.4);
+        color: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .theme-toggle:hover {
+        background: rgba(15, 23, 42, 0.7);
+      }
+
+      body.theme-light .theme-toggle {
+        background: #e5f3ff;
+        color: #0f172a;
+        border-color: #93c5fd;
+      }
+
+      /* Light theme overrides (default) */
+      body.theme-light {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #111827;
+      }
+
+      body.theme-light .container {
+        background: #f0f2f5;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+      }
+
+      body.theme-light .header {
+        background: #075e54;
+        color: #ffffff;
+        padding: 10px 14px;
+        border-bottom: none;
+      }
+
+      body.theme-light .content {
+        background: #ece5dd;
+      }
+
+      body.theme-light .chat-window {
+        padding: 16px;
+        background: #ece5dd;
+      }
+
+      body.theme-light .chat-message.user .message-bubble {
+        background: #d1ffc6;
+        color: #000000;
+        border-bottom-right-radius: 0;
+        border-color: transparent;
+      }
+
+      body.theme-light .chat-message.bot .message-bubble {
+        background: #ffffff;
+        color: #111827;
+        border-bottom-left-radius: 0;
+        border-color: rgba(0, 0, 0, 0.1);
+      }
+
+      body.theme-light .chat-input-row {
+        background: #f0f0f0;
+        border-top: 1px solid #d0d0d0;
+      }
+
+      body.theme-light .phone-badge {
+        color: #555555;
+        background: #e0e0e0;
+        border-color: transparent;
+      }
+
+      body.theme-light .message-input {
+        background: #ffffff;
+        color: #111827;
+        border-color: #cccccc;
+      }
+
+      body.theme-light .message-input::placeholder {
+        color: #888888;
+      }
+
+      body.theme-light input,
+      body.theme-light textarea {
+        background: #ffffff;
+        color: #111827;
+        border-radius: 8px;
+        border: 2px solid #e0e0e0;
+      }
+
+      body.theme-light .quick-reports {
+        background: #f0f2f5;
+        border-bottom: 1px solid #dddddd;
+      }
+
+      body.theme-light .report-btn {
+        background: #ffffff;
+        color: #128c7e;
+        border-color: #128c7e;
+      }
+
+      body.theme-light .report-btn:hover {
+        background: #128c7e;
+        color: #ffffff;
+      }
+
       /* Mobile full-screen layout */
       @media (max-width: 600px) {
         html,
@@ -738,11 +889,12 @@
       }
     </style>
   </head>
-  <body>
+  <body class="theme-light">
     <div class="container">
       <div class="header">
         <div class="header-title">
           <div class="header-avatar">KB</div>
+
           <div>
             <div class="header-main">KiranaBuddy</div>
             <div class="header-sub">Products Chat</div>
@@ -757,6 +909,14 @@
               title="Expiry items"
             >
               🔔
+            </button>
+            <button
+              id="themeToggleButton"
+              class="theme-toggle"
+              onclick="toggleTheme()"
+              title="Toggle light/dark theme"
+            >
+              🌙
             </button>
             <div class="header-menu-container">
               <button
@@ -894,6 +1054,52 @@
     </div>
 
     <script>
+      const THEME_STORAGE_KEY = "kbTheme";
+
+      function updateThemeToggleIcon(theme) {
+        const btn = document.getElementById("themeToggleButton");
+        if (!btn) return;
+        btn.textContent = theme === "theme-dark" ? "☀️" : "🌙";
+      }
+
+      function applyStoredTheme() {
+        try {
+          const saved = localStorage.getItem(THEME_STORAGE_KEY);
+          const body = document.body;
+          if (!body) return;
+          const theme = saved === "theme-dark" ? "theme-dark" : "theme-light";
+          body.classList.remove("theme-light", "theme-dark");
+          body.classList.add(theme);
+          updateThemeToggleIcon(theme);
+        } catch (e) {
+          // localStorage might be disabled; ignore and keep default theme
+        }
+      }
+
+      function setTheme(theme) {
+        const body = document.body;
+        if (!body) return;
+        const finalTheme =
+          theme === "theme-dark" ? "theme-dark" : "theme-light";
+        body.classList.remove("theme-light", "theme-dark");
+        body.classList.add(finalTheme);
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, finalTheme);
+        } catch (e) {}
+        updateThemeToggleIcon(finalTheme);
+      }
+
+      function toggleTheme() {
+        const body = document.body;
+        if (!body) return;
+        const isDark = body.classList.contains("theme-dark");
+        setTheme(isDark ? "theme-light" : "theme-dark");
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        applyStoredTheme();
+      });
+
       // --- Simple barcode scanner for test page ---
       let scannerStream = null;
       let scanInterval = null;
