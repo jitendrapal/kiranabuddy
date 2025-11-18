@@ -29,6 +29,7 @@ class CommandAction(Enum):
     TOTAL_SALES = "total_sales"
     TODAY_PROFIT = "today_profit"
     MONTHLY_PROFIT = "monthly_profit"
+    YEARLY_PROFIT = "yearly_profit"
     LIST_PRODUCTS = "list_products"
     LOW_STOCK = "low_stock"
     ADJUST_STOCK = "adjust_stock"
@@ -319,6 +320,7 @@ class ParsedCommand:
             CommandAction.TOTAL_SALES,
             CommandAction.TODAY_PROFIT,
             CommandAction.MONTHLY_PROFIT,
+            CommandAction.YEARLY_PROFIT,
             CommandAction.LIST_PRODUCTS,
             CommandAction.LOW_STOCK,
             CommandAction.TOP_PRODUCT_TODAY,

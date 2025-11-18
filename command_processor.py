@@ -348,6 +348,9 @@ class CommandProcessor:
             elif command.action == CommandAction.MONTHLY_PROFIT:
                 return self.db.get_total_sales_current_month(shop_id=shop_id)
 
+            elif command.action == CommandAction.YEARLY_PROFIT:
+                return self.db.get_total_sales_current_year(shop_id=shop_id)
+
             elif command.action == CommandAction.REPORT_SUMMARY:
                 # Flexible "hisaab" / report queries for arbitrary day/month/year ranges.
                 period = self._resolve_report_period(command.raw_message)
