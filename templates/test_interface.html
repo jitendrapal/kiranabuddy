@@ -326,69 +326,6 @@
         background: #d32f2f;
       }
 
-      .voice-mode-switch {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 10px;
-        color: rgba(148, 163, 184, 0.9);
-      }
-
-      .voice-mode-switch input {
-        display: none;
-      }
-
-      .voice-mode-pill {
-        width: 28px;
-        height: 16px;
-        border-radius: 999px;
-        background: rgba(15, 23, 42, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.7);
-        display: flex;
-        align-items: center;
-        padding: 1px;
-        box-sizing: border-box;
-      }
-
-      .voice-mode-pill-knob {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #e5e7eb;
-        transform: translateX(0);
-        transition: transform 0.15s ease;
-      }
-
-      .voice-mode-switch
-        input:checked
-        + .voice-mode-pill
-        .voice-mode-pill-knob {
-        transform: translateX(10px);
-      }
-
-      .voice-mode-switch input:checked + .voice-mode-pill {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-        border-color: transparent;
-      }
-
-      .voice-mode-text {
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-
-      body.theme-light .voice-mode-pill {
-        background: #e5e7eb;
-        border-color: #cbd5e1;
-      }
-
-      body.theme-light .voice-mode-switch input:checked + .voice-mode-pill {
-        background: #22c55e;
-      }
-
-      body.theme-light .voice-mode-text {
-        color: #4b5563;
-      }
-
       .scan-cart {
         background: #fff3cd;
         border-top: 1px solid #ffeeba;
@@ -1055,14 +992,6 @@
             🎤
           </button>
 
-          <label class="voice-mode-switch" title="Use OpenAI Whisper when ON">
-            <input type="checkbox" id="voiceModeToggle" />
-            <span class="voice-mode-pill">
-              <span class="voice-mode-pill-knob"></span>
-            </span>
-            <span class="voice-mode-text">AI</span>
-          </label>
-
           <input type="hidden" id="phone" value="+919876543210" />
           <input
             type="text"
@@ -1628,200 +1557,6 @@
       let voiceRecognizer = null;
       let isVoiceListening = false;
 
-      // Voice mode: "browser" (local) or "whisper" (OpenAI Whisper via backend)
-      let voiceMode = "browser";
-      let whisperMediaRecorder = null;
-      let whisperStream = null;
-      let whisperChunks = [];
-      let isWhisperRecording = false;
-
-      function setVoiceMode(mode) {
-        voiceMode = mode === "whisper" ? "whisper" : "browser";
-        const btn = document.getElementById("voiceButton");
-        if (btn) {
-          btn.title =
-            voiceMode === "whisper"
-              ? "Record via OpenAI Whisper (same as WhatsApp voice)"
-              : "Record using browser mic (no OpenAI)";
-        }
-
-        const toggle = document.getElementById("voiceModeToggle");
-        if (toggle) {
-          toggle.checked = voiceMode === "whisper";
-        }
-      }
-
-      async function toggleWhisperRecording() {
-        const btn = document.getElementById("voiceButton");
-        if (!btn) return;
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          appendMessage(
-            "⚠️ This browser does not support audio recording. Please type.",
-            "bot"
-          );
-          return;
-        }
-
-        if (!isWhisperRecording) {
-          try {
-            whisperStream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
-            });
-            whisperChunks = [];
-            const options = { mimeType: "audio/webm" };
-            whisperMediaRecorder = new MediaRecorder(whisperStream, options);
-
-            whisperMediaRecorder.ondataavailable = (event) => {
-              if (event.data && event.data.size > 0) {
-                whisperChunks.push(event.data);
-              }
-            };
-
-            whisperMediaRecorder.onstop = async () => {
-              try {
-                const blob = new Blob(whisperChunks, { type: "audio/webm" });
-                whisperChunks = [];
-
-                if (!blob || blob.size === 0) {
-                  appendMessage(
-                    "❌ No audio captured. Please try again.",
-                    "bot"
-                  );
-                  return;
-                }
-
-                const formData = new FormData();
-                formData.append("file", blob, "voice.webm");
-
-                const uploadResp = await fetch("/test/audio-upload", {
-                  method: "POST",
-                  body: formData,
-                });
-
-                let uploadData = {};
-                try {
-                  uploadData = await uploadResp.json();
-                } catch (e) {
-                  uploadData = {};
-                }
-
-                if (!uploadResp.ok || !uploadData.success || !uploadData.url) {
-                  appendMessage(
-                    "❌ Audio upload failed. Please try again.",
-                    "bot"
-                  );
-                  return;
-                }
-
-                const phoneInput = document.getElementById("phone");
-                const phone = phoneInput ? phoneInput.value : "";
-                if (!phone) {
-                  appendMessage("⚠️ Test phone number missing.", "bot");
-                  return;
-                }
-
-                const webhookResp = await fetch("/webhook", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  // Shape payload like a minimal WATI-style audio webhook so that
-                  // parse_wati_webhook() can understand it.
-                  body: JSON.stringify({
-                    waId: phone,
-                    type: "audio",
-                    audio: {
-                      link: uploadData.url,
-                      mimeType: `audio/${uploadData.format || "webm"}`,
-                    },
-                  }),
-                });
-
-                let data = {};
-                try {
-                  data = await webhookResp.json();
-                } catch (e) {
-                  data = {};
-                }
-
-                if (webhookResp.ok) {
-                  // Show transcribed text if available
-                  if (data.transcribed_text) {
-                    appendMessage(data.transcribed_text, "user");
-                  } else {
-                    appendMessage("🎤 (voice message)", "user");
-                  }
-
-                  // Show bot response
-                  if (data.message) {
-                    appendMessage(data.message, "bot");
-                  } else if (data.data && data.data.message) {
-                    appendMessage(data.data.message, "bot");
-                  } else {
-                    appendMessage("✅ Voice message processed.", "bot");
-                  }
-                } else {
-                  appendMessage(
-                    "❌ Error: " + (data.message || JSON.stringify(data)),
-                    "bot"
-                  );
-                }
-              } catch (error) {
-                console.error("Whisper voice error", error);
-                appendMessage(
-                  "❌ Error processing voice message: " + error.message,
-                  "bot"
-                );
-              } finally {
-                if (whisperStream) {
-                  whisperStream.getTracks().forEach((t) => t.stop());
-                  whisperStream = null;
-                }
-                isWhisperRecording = false;
-                btn.classList.remove("recording");
-                btn.textContent = "🎤";
-              }
-            };
-
-            whisperMediaRecorder.start();
-            isWhisperRecording = true;
-            btn.classList.add("recording");
-            btn.textContent = "■";
-          } catch (error) {
-            console.error("Microphone access error", error);
-            appendMessage(
-              "❌ Could not access microphone: " + error.message,
-              "bot"
-            );
-            if (whisperStream) {
-              whisperStream.getTracks().forEach((t) => t.stop());
-              whisperStream = null;
-            }
-            isWhisperRecording = false;
-            btn.classList.remove("recording");
-            btn.textContent = "🎤";
-          }
-        } else {
-          if (
-            whisperMediaRecorder &&
-            whisperMediaRecorder.state !== "inactive"
-          ) {
-            whisperMediaRecorder.stop();
-          }
-        }
-      }
-
-      document.addEventListener("DOMContentLoaded", function () {
-        setVoiceMode("whisper");
-        const toggle = document.getElementById("voiceModeToggle");
-        if (toggle) {
-          toggle.addEventListener("change", function () {
-            setVoiceMode(this.checked ? "whisper" : "browser");
-          });
-        }
-      });
-
       function toggleHeaderMenu(force) {
         const menu = document.getElementById("headerMenu");
         if (!menu) return;
@@ -1846,13 +1581,10 @@
       });
 
       function toggleVoiceRecording() {
+        console.log("toggleVoiceRecording called");
         const btn = document.getElementById("voiceButton");
-        if (!btn) return;
-
-        // If Whisper mode is enabled, use backend + OpenAI Whisper instead of
-        // browser SpeechRecognition.
-        if (voiceMode === "whisper") {
-          toggleWhisperRecording();
+        if (!btn) {
+          console.error("Voice button not found!");
           return;
         }
 
@@ -1860,52 +1592,87 @@
           window.SpeechRecognition || window.webkitSpeechRecognition;
 
         if (!SpeechRecognition) {
-          alert("Voice-to-text is not supported in this browser. Please type.");
+          console.error("SpeechRecognition not supported");
+          alert(
+            "Voice-to-text is not supported in this browser. Please use Chrome or Edge."
+          );
           return;
         }
 
+        console.log("isVoiceListening:", isVoiceListening);
+
         if (!isVoiceListening) {
-          voiceRecognizer = new SpeechRecognition();
-          // Always capture voice in English letters so 'dal' is recognized, not 'दाल'
-          voiceRecognizer.lang = "en-IN"; // English (India)
-          voiceRecognizer.interimResults = false;
-          voiceRecognizer.maxAlternatives = 1;
+          try {
+            console.log("Creating new SpeechRecognition instance");
+            voiceRecognizer = new SpeechRecognition();
+            voiceRecognizer.lang = "en-IN"; // English (India)
+            voiceRecognizer.interimResults = false;
+            voiceRecognizer.maxAlternatives = 1;
+            voiceRecognizer.continuous = false; // Auto-stop when user stops speaking
 
-          voiceRecognizer.onresult = (event) => {
-            const result = event.results[0][0];
-            const transcript = result.transcript || "";
-            const input = document.getElementById("message");
+            voiceRecognizer.onstart = () => {
+              console.log("✅ Voice recognition started successfully");
+              isVoiceListening = true;
+              btn.classList.add("recording");
+              btn.style.background = "#d32f2f"; // Red background
+            };
 
-            if (input && transcript.trim()) {
-              input.value = transcript.trim();
-              simulateMessage();
-            } else if (!transcript.trim()) {
+            voiceRecognizer.onresult = (event) => {
+              console.log("✅ Voice recognition result received");
+              console.log("Event:", event);
+              const result = event.results[0][0];
+              const transcript = result.transcript || "";
+              console.log("📝 Transcript:", transcript);
+              const input = document.getElementById("message");
+
+              if (input && transcript.trim()) {
+                console.log("Setting input value and calling simulateMessage");
+                input.value = transcript.trim();
+                simulateMessage();
+              } else if (!transcript.trim()) {
+                console.log("Empty transcript received");
+                appendMessage(
+                  "❌ Did not catch anything from voice. Please try again.",
+                  "bot"
+                );
+              }
+            };
+
+            voiceRecognizer.onerror = (event) => {
+              console.error("❌ Speech recognition error:", event.error);
               appendMessage(
-                "❌ Did not catch anything from voice. Please try again.",
+                "Error in voice recognition: " + event.error,
                 "bot"
               );
-            }
-          };
+              isVoiceListening = false;
+              btn.classList.remove("recording");
+              btn.style.background = "#25d366"; // Green background
+            };
 
-          voiceRecognizer.onerror = (event) => {
-            console.error("Speech recognition error", event.error);
-            appendMessage("Error in voice recognition: " + event.error, "bot");
-          };
+            voiceRecognizer.onend = () => {
+              console.log("Voice recognition ended");
+              isVoiceListening = false;
+              btn.classList.remove("recording");
+              btn.style.background = "#25d366"; // Green background
+            };
 
-          voiceRecognizer.onend = () => {
+            console.log("🎤 Starting voice recognition...");
+            voiceRecognizer.start();
+          } catch (error) {
+            console.error("❌ Error starting voice recognition:", error);
+            appendMessage("Error starting voice: " + error.message, "bot");
             isVoiceListening = false;
             btn.classList.remove("recording");
-            btn.textContent = "🎤";
-          };
-
-          isVoiceListening = true;
-          btn.classList.add("recording");
-          btn.textContent = "■"; // stop icon
-          voiceRecognizer.start();
+            btn.style.background = "#25d366"; // Green background
+          }
         } else {
+          console.log("Stopping voice recognition");
           if (voiceRecognizer) {
             voiceRecognizer.stop();
           }
+          isVoiceListening = false;
+          btn.classList.remove("recording");
+          btn.style.background = "#25d366"; // Green background
         }
       }
 
