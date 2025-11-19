@@ -893,11 +893,18 @@
     <div class="container">
       <div class="header">
         <div class="header-title">
-          <div class="header-avatar">KB</div>
+          <div class="header-avatar">
+            {% if user %}{{ user.name[0].upper() }}{% else %}KB{% endif %}
+          </div>
 
           <div>
-            <div class="header-main">KiranaBuddy</div>
-            <div class="header-sub">Products Chat</div>
+            <div class="header-main">
+              {% if user %}{{ user.shop_name }}{% else %}KiranaBuddy{% endif %}
+            </div>
+            <div class="header-sub">
+              {% if user %}{{ user.name }}'s Shop{% else %}Products Chat{% endif
+              %}
+            </div>
           </div>
         </div>
         <div class="header-right">

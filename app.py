@@ -269,10 +269,23 @@ def index():
 @login_required
 def test_interface():
     """Test interface - No WhatsApp required!"""
+    shop_id = session.get('shop_id')
+
+    # Get shop name from database
+    shop_name = "My Shop"
+    if shop_id:
+        try:
+            shop_doc = db.db.collection('shops').document(shop_id).get()
+            if shop_doc.exists:
+                shop_name = shop_doc.to_dict().get('name', 'My Shop')
+        except Exception as e:
+            print(f"Error fetching shop name: {e}")
+
     user_data = {
         'phone': session.get('user_phone'),
         'name': session.get('user_name'),
-        'shop_id': session.get('shop_id'),
+        'shop_id': shop_id,
+        'shop_name': shop_name,
         'role': session.get('user_role')
     }
     return render_template('test_interface.html', user=user_data)

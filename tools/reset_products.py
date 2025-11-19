@@ -945,9 +945,419 @@ PRODUCTS = [
         "added_on": "2025-11-16T10:46:00.000000"
       }
     }
+  },
+  {
+    "selling_price": 35,
+    "barcode": "8901000000011",
+    "brand": "Cipla",
+    "name": "Paracetamol 500mg Tablet Strip",
+    "normalized_name": "paracetamol 500mg tablet strip",
+    "product_id": "prod-001",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "strip",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-05-01",
+        "qty": 120,
+        "cost_price": 25,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 190,
+    "barcode": "8901207000022",
+    "brand": "Dabur",
+    "name": "Dabur Chyawanprash 500g",
+    "normalized_name": "dabur chyawanprash 500g",
+    "product_id": "prod-002",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "g",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2026-12-01",
+        "qty": 40,
+        "cost_price": 150,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 110,
+    "barcode": "8902000000033",
+    "brand": "Vicks",
+    "name": "Vicks Vaporub 50ml",
+    "normalized_name": "vicks vaporub 50ml",
+    "product_id": "prod-003",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "ml",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2028-03-01",
+        "qty": 35,
+        "cost_price": 85,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 90,
+    "barcode": "8901300000044",
+    "brand": "Zandu",
+    "name": "Zandu Balm 25ml",
+    "normalized_name": "zandu balm 25ml",
+    "product_id": "prod-004",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "ml",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-11-01",
+        "qty": 50,
+        "cost_price": 70,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 120,
+    "barcode": "8902200000055",
+    "brand": "Himalaya",
+    "name": "Himalaya Liv52 60 Tablets",
+    "normalized_name": "himalaya liv52 60 tablets",
+    "product_id": "prod-005",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "bottle",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2029-01-01",
+        "qty": 30,
+        "cost_price": 95,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 75,
+    "barcode": "8901300000066",
+    "brand": "Dabur",
+    "name": "Dabur Honitus Cough Syrup 100ml",
+    "normalized_name": "dabur honitus cough syrup 100ml",
+    "product_id": "prod-006",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "ml",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2026-09-01",
+        "qty": 60,
+        "cost_price": 55,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 68,
+    "barcode": "8901122330077",
+    "brand": "GSK",
+    "name": "Crocin Advance 15 Tablets",
+    "normalized_name": "crocin advance 15 tablets",
+    "product_id": "prod-007",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "strip",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-04-01",
+        "qty": 80,
+        "cost_price": 50,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 125,
+    "barcode": "8901999000088",
+    "brand": "Himalaya",
+    "name": "Himalaya Ashwagandha 60 Tablets",
+    "normalized_name": "himalaya ashwagandha 60 tablets",
+    "product_id": "prod-008",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "bottle",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2028-02-01",
+        "qty": 25,
+        "cost_price": 95,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 85,
+    "barcode": "8901400000099",
+    "brand": "Digene",
+    "name": "Digene Acidity Tablets Mint 15s",
+    "normalized_name": "digene acidity tablets mint 15s",
+    "product_id": "prod-009",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "strip",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-07-01",
+        "qty": 75,
+        "cost_price": 60,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+  {
+    "selling_price": 140,
+    "barcode": "8901223300100",
+    "brand": "Glucon-D",
+    "name": "Glucon-D Regular 1kg",
+    "normalized_name": "glucon d regular 1kg",
+    "product_id": "prod-010",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "kg",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2026-10-01",
+        "qty": 20,
+        "cost_price": 110,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 160,
+    "barcode": "8901003300111",
+    "brand": "Dabur",
+    "name": "Dabur Amla Hair Oil 450ml",
+    "normalized_name": "dabur amla hair oil 450ml",
+    "product_id": "prod-011",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "ml",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2028-12-01",
+        "qty": 22,
+        "cost_price": 120,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 45,
+    "barcode": "8905666600122",
+    "brand": "Patanjali",
+    "name": "Patanjali Giloy Ghanvati 40 Tablets",
+    "normalized_name": "patanjali giloy ghanvati 40 tablets",
+    "product_id": "prod-012",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "bottle",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2029-05-01",
+        "qty": 55,
+        "cost_price": 30,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 70,
+    "barcode": "8902333300133",
+    "brand": "Himalaya",
+    "name": "Himalaya Neem Face Wash 100ml",
+    "normalized_name": "himalaya neem face wash 100ml",
+    "product_id": "prod-013",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "ml",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-02-01",
+        "qty": 40,
+        "cost_price": 50,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 60,
+    "barcode": "8905444400144",
+    "brand": "Moov",
+    "name": "Moov Pain Relief Cream 50g",
+    "normalized_name": "moov pain relief cream 50g",
+    "product_id": "prod-014",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "g",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-06-01",
+        "qty": 38,
+        "cost_price": 45,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 99,
+    "barcode": "8904333300155",
+    "brand": "ENO",
+    "name": "ENO Lemon 100g",
+    "normalized_name": "eno lemon 100g",
+    "product_id": "prod-015",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "g",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2026-04-01",
+        "qty": 70,
+        "cost_price": 75,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 130,
+    "barcode": "8901222210166",
+    "brand": "Volini",
+    "name": "Volini Pain Relief Spray 60g",
+    "normalized_name": "volini pain relief spray 60g",
+    "product_id": "prod-016",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "g",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2028-08-01",
+        "qty": 32,
+        "cost_price": 100,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 160,
+    "barcode": "8909888800177",
+    "brand": "Dolo",
+    "name": "Dolo 650mg 15 Tablets",
+    "normalized_name": "dolo 650mg 15 tablets",
+    "product_id": "prod-017",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "strip",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-09-01",
+        "qty": 90,
+        "cost_price": 120,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 55,
+    "barcode": "8901777700188",
+    "brand": "Vicks",
+    "name": "Vicks Cough Drops Honey 20 Pack",
+    "normalized_name": "vicks cough drops honey 20 pack",
+    "product_id": "prod-018",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "pack",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2027-01-01",
+        "qty": 100,
+        "cost_price": 40,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 50,
+    "barcode": "8905666600199",
+    "brand": "Patanjali",
+    "name": "Patanjali Aloe Vera Gel 150ml",
+    "normalized_name": "patanjali aloe vera gel 150ml",
+    "product_id": "prod-019",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "ml",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2028-05-01",
+        "qty": 45,
+        "cost_price": 35,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
+  },
+
+  {
+    "selling_price": 180,
+    "barcode": "8902344400200",
+    "brand": "Revital",
+    "name": "Revital H Capsules 30s",
+    "normalized_name": "revital h capsules 30s",
+    "product_id": "prod-020",
+    "shop_id": "83ea5fc4-0adf-447c-ad55-dda8c3eb930d",
+    "unit": "bottle",
+    "created_at": "2025-11-16T10:46:00.000000",
+    "updated_at": "2025-11-16T10:51:00.000001",
+    "batches": {
+      "batch_001": {
+        "expiry_date": "2028-10-01",
+        "qty": 28,
+        "cost_price": 140,
+        "added_on": "2025-11-16T10:46:00.000000"
+      }
+    }
   }
-,
 ]
+
 
 
 def get_firestore_client():
@@ -984,4 +1394,3 @@ def reset_products():
 
 if __name__ == "__main__":
     reset_products()
-

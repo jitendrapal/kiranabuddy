@@ -185,7 +185,7 @@
       <div class="logo">
         <div class="logo-icon">🛒</div>
         <h1>Kirana Shop Manager</h1>
-        <p class="subtitle">Login with OTP</p>
+        <p class="subtitle">Multi-Shopkeeper Login</p>
       </div>
 
       <div id="message" class="message"></div>
@@ -197,7 +197,7 @@
           <input
             type="tel"
             id="phone"
-            value="9876543210"
+            value=""
             placeholder="Enter 10-digit mobile number"
             maxlength="10"
             pattern="[0-9]{10}"
@@ -206,17 +206,28 @@
         <button class="btn" id="send-otp-btn" onclick="sendOTP()">
           Send OTP
         </button>
+        <p
+          style="
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #666;
+          "
+        >
+          📱 Each shopkeeper uses their own phone number<br />
+          🔐 For testing, use OTP: <strong>12345</strong>
+        </p>
       </div>
 
       <!-- OTP Verification Step -->
       <div id="otp-step" class="hidden">
         <div class="form-group">
-          <label for="otp">Enter OTP (Use: 12345)</label>
+          <label for="otp">Enter OTP</label>
           <input
             type="text"
             id="otp"
-            value="12345"
-            placeholder="Enter OTP: 12345"
+            value=""
+            placeholder="Enter 5-digit OTP"
             maxlength="5"
             pattern="[0-9]{5}"
           />
