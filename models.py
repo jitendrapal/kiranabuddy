@@ -39,6 +39,7 @@ class CommandAction(Enum):
     ZERO_SALE_TODAY = "zero_sale_today"
     EXPIRY_PRODUCTS = "expiry_products"
     PURCHASE_SUGGESTION = "purchase_suggestion"
+    SET_LOW_STOCK_THRESHOLD = "set_low_stock_threshold"
     UNDO_LAST = "undo_last"
     HELP = "help"
     # Udhar (credit) tracking
@@ -117,6 +118,7 @@ class Product:
     #     "batch_002": {"expiry": "2025-03-15", "qty": 10},
     # }
     batches: Optional[Dict[str, Any]] = None
+    low_stock_threshold: Optional[float] = None  # Alert when stock drops below this level
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

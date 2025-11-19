@@ -730,6 +730,45 @@ class AIService:
                 confidence=0.98,
                 raw_message=message,
             )
+
+        # 5c) Set low stock threshold
+        # Examples:
+        # - "Maggi low stock alert 10"
+        # - "Maggi ka minimum stock 5 rakho"
+        # - "Set Maggi threshold 15"
+        threshold_keywords = ["threshold", "minimum stock", "low stock alert", "alert level", "minimum level"]
+        if any(kw in normalized for kw in threshold_keywords):
+            # Try to extract product name and threshold value
+            tokens = normalized.split()
+            threshold_val = None
+
+            # Find the number (threshold value)
+            for tok in tokens:
+                m = re.fullmatch(r"(\d+(?:\.\d+)?)", tok)
+                if m:
+                    try:
+                        threshold_val = float(m.group(1))
+                        break
+                    except Exception:
+                        continue
+
+            if threshold_val is not None:
+                # Extract product name (words before threshold keywords)
+                product_tokens = []
+                for tok in tokens:
+                    if tok in threshold_keywords or tok.replace('.', '').isdigit():
+                        break
+                    product_tokens.append(tok)
+
+                if product_tokens:
+                    product_name_extracted = " ".join(product_tokens)
+                    return ParsedCommand(
+                        action=CommandAction.SET_LOW_STOCK_THRESHOLD,
+                        product_name=product_name_extracted,
+                        quantity=threshold_val,
+                        confidence=0.95,
+                        raw_message=message,
+                    )
         # 6) Simple price update ("Maggi price 12", "Maggi ka rate 12").
         # We look for a price/rate keyword + a number and treat it as "update_price".
         price_words = {"price", "rate", "daam", "dam", "kimat", "keemat"}
@@ -1093,7 +1132,7 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "purchase_suggestion", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "purchase_suggestion", "set_low_stock_threshold", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
 2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, purchase_suggestion, undo_last, help, list_udhar, or report_summary)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For "update_price", quantity is the new selling price per unit (in rupees). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar and customer_udhar, quantity should be null.
 
@@ -1180,8 +1219,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "purchase_suggestion" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
-    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, purchase_suggestion, undo_last, help, list_udhar, top_product_today, or report_summary),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "purchase_suggestion" | "set_low_stock_threshold" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
+    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, purchase_suggestion, undo_last, help, list_udhar, top_product_today, or report_summary; for set_low_stock_threshold this is the product name),
     "quantity": number or null (for "update_price" this is the new selling price per unit in rupees; for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar and customer_udhar it should be null),
     "confidence": 0.0 to 1.0
 }
@@ -1224,6 +1263,7 @@ Do not include any explanation, just the JSON."""
                 "zero_sale_today": CommandAction.ZERO_SALE_TODAY,
                 "expiry_products": CommandAction.EXPIRY_PRODUCTS,
                 "purchase_suggestion": CommandAction.PURCHASE_SUGGESTION,
+                "set_low_stock_threshold": CommandAction.SET_LOW_STOCK_THRESHOLD,
                 "undo_last": CommandAction.UNDO_LAST,
                 "help": CommandAction.HELP,
                 "add_udhar": CommandAction.ADD_UDHAR,
@@ -1284,9 +1324,44 @@ Do not include any explanation, just the JSON."""
             quantity = result.get('quantity', 0)
             new_stock = result.get('new_stock', 0)
             unit = result.get('unit', 'pieces')
+            low_stock_alert = result.get('low_stock_alert')
+
+            nl = "\r\n"
+
+            # Base success message
             if is_english:
-                return f"✅ {quantity} {product_name} sold! Remaining stock: {new_stock} {unit}"
-            return f"✅ {quantity} {product_name} sold! Remaining stock: {new_stock} {unit}"
+                response = f"✅ {quantity} {product_name} sold! Remaining stock: {new_stock} {unit}"
+            else:
+                response = f"✅ {quantity} {product_name} bik gaya! Baaki stock: {new_stock} {unit}"
+
+            # Add low stock alert if triggered
+            if low_stock_alert and low_stock_alert.get('triggered'):
+                alert_product = low_stock_alert.get('product_name', product_name)
+                alert_brand = low_stock_alert.get('brand')
+                alert_stock = low_stock_alert.get('current_stock', new_stock)
+                alert_threshold = low_stock_alert.get('threshold', 10)
+                alert_unit = low_stock_alert.get('unit', unit)
+
+                # Build display name
+                if alert_brand:
+                    display_name = f"{alert_brand} {alert_product}"
+                else:
+                    display_name = alert_product
+
+                if is_english:
+                    response += f"{nl}{nl}⚠️ LOW STOCK ALERT!{nl}"
+                    response += f"🔴 {display_name} is running low!{nl}"
+                    response += f"📊 Current stock: {alert_stock} {alert_unit}{nl}"
+                    response += f"⚡ Threshold: {alert_threshold} {alert_unit}{nl}"
+                    response += f"🛒 Please reorder soon!"
+                else:
+                    response += f"{nl}{nl}⚠️ LOW STOCK ALERT!{nl}"
+                    response += f"🔴 {display_name} kam ho gaya hai!{nl}"
+                    response += f"📊 Abhi stock: {alert_stock} {alert_unit}{nl}"
+                    response += f"⚡ Minimum level: {alert_threshold} {alert_unit}{nl}"
+                    response += f"🛒 Jaldi order kar lijiye!"
+
+            return response
 
         elif action == 'adjust_stock':
             old_qty = result.get('old_quantity')
@@ -2211,6 +2286,20 @@ Do not include any explanation, just the JSON."""
                 lines.append("🟡 = Thoda urgent (stock last month ki bikri ka 20% se kam)")
 
             return nl.join(lines)
+
+        elif action == 'set_low_stock_threshold':
+            threshold = result.get('threshold', 0)
+            unit = result.get('unit', 'pieces')
+
+            if is_english:
+                return (
+                    f"✅ Low stock alert set for {product_name}!\r\n"
+                    f"⚡ Alert will trigger when stock drops to or below {threshold} {unit}"
+                )
+            return (
+                f"✅ {product_name} ke liye low stock alert set ho gaya!\r\n"
+                f"⚡ Jab stock {threshold} {unit} ya usse kam hoga, alert milega"
+            )
 
         elif action == 'help':
             # Return a small help message with example commands.

@@ -387,6 +387,15 @@ class CommandProcessor:
             elif command.action == CommandAction.PURCHASE_SUGGESTION:
                 return self.db.get_purchase_suggestions(shop_id=shop_id)
 
+            elif command.action == CommandAction.SET_LOW_STOCK_THRESHOLD:
+                if not command.product_name or command.quantity is None:
+                    return {'success': False, 'message': '❌ Please specify product name and threshold value.'}
+                return self.db.set_low_stock_threshold(
+                    shop_id=shop_id,
+                    product_name=command.product_name,
+                    threshold=command.quantity
+                )
+
             elif command.action == CommandAction.LIST_PRODUCTS:
                 # If product_name is provided (e.g. "dal"), treat it as a
                 # keyword filter to show only matching products/brands.

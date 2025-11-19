@@ -411,6 +411,28 @@ class FirestoreDB:
         updates["updated_at"] = datetime.utcnow().isoformat()
         self.db.collection("products").document(product_id).update(updates)
 
+    def set_low_stock_threshold(self, shop_id: str, product_name: str, threshold: float) -> Dict[str, Any]:
+        """Set the low stock threshold for a product.
+
+        When stock drops to or below this threshold during sales, an alert will be triggered.
+        """
+        product = self.find_existing_product_by_name(shop_id, product_name)
+        if not product:
+            return {
+                'success': False,
+                'message': f"❌ Product '{product_name}' not found."
+            }
+
+        # Update the threshold
+        self.update_product_fields(product.product_id, {'low_stock_threshold': threshold})
+
+        return {
+            'success': True,
+            'product_name': product.name,
+            'threshold': threshold,
+            'unit': product.unit,
+        }
+
 
 
     def get_product(self, product_id: str) -> Optional[Product]:
@@ -702,6 +724,25 @@ class FirestoreDB:
             notes=f"Reduced {quantity} {product.unit}",
         )
 
+        # Check for low stock alert
+        low_stock_alert = None
+        threshold = getattr(product, 'low_stock_threshold', None)
+
+        # If no custom threshold, use default of 10
+        if threshold is None:
+            threshold = 10
+
+        # Trigger alert if new stock drops below threshold
+        if new_stock <= threshold and new_stock < previous_stock:
+            low_stock_alert = {
+                'triggered': True,
+                'product_name': product.name,
+                'brand': getattr(product, 'brand', None),
+                'current_stock': new_stock,
+                'threshold': threshold,
+                'unit': product.unit,
+            }
+
         return {
             "success": True,
             "product_name": product.name,
@@ -711,6 +752,7 @@ class FirestoreDB:
             "unit": product.unit,
             "unit_price": unit_price,
             "total_amount": total_amount,
+            "low_stock_alert": low_stock_alert,
         }
     def adjust_last_transaction(self, shop_id: str, product_name: str, correct_quantity: float,
                                 user_phone: str) -> Dict[str, Any]:
