@@ -379,9 +379,11 @@ class FirestoreDB:
             score = len(common)
             coverage = score / max(1, len(product_tokens))
 
-            # Require at least half the product tokens to match to avoid
-            # obviously wrong matches.
-            if coverage < 0.5:
+            # For single-word searches (like "maggi"), be more lenient
+            # For multi-word searches, require at least half the product tokens to match
+            min_coverage = 0.3 if len(target_tokens) == 1 else 0.5
+
+            if coverage < min_coverage:
                 continue
 
             if score > best_score:

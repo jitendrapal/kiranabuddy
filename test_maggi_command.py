@@ -33,8 +33,14 @@ print(f"   Quantity: {parsed.quantity}")
 print(f"   Confidence: {parsed.confidence}")
 
 # Step 3: Check if product exists
-shop_id = "shop_9876543210_0"  # Your shop ID
-print(f"\n4️⃣ Looking for product in shop: {shop_id}")
+# Get the actual shop for this phone
+shop = db.get_shop_by_phone("9876543210")
+if not shop:
+    print("❌ No shop found for phone 9876543210")
+    exit(1)
+
+shop_id = shop.shop_id
+print(f"\n4️⃣ Looking for product in shop: {shop.name} ({shop_id})")
 
 if parsed.product_name:
     product = db.find_existing_product_by_name(shop_id, parsed.product_name)
