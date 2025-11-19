@@ -50,6 +50,15 @@ def transcribe_audio(self, audio_url: str, audio_format: str = "ogg"):
 
 ## 🧹 What Gets Cleaned
 
+### **0. Hindi Numbers (30+ patterns) - NEW!:**
+
+```
+✅ do, doh → 2 (smart: only before action words)
+✅ ek → 1, teen → 3, char → 4, panch → 5
+✅ chhe → 6, saat → 7, aath → 8, nau → 9, das → 10
+✅ bees → 20, tees → 30, pachas → 50, sau → 100
+```
+
 ### **1. Filler Words (15+ patterns):**
 
 ```

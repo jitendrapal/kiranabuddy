@@ -1202,7 +1202,38 @@ class AIService:
                         qty_val = qty_val / 1000.0  # millilitres -> litres
                     # For kg/ltr/pieces we keep the quantity as-is.
 
+                # IMPROVED: Better pattern matching for "Product Number add/bik" commands
+                # Handles: "Maggi 2 add kar do", "Parle G 5 bik gaya", etc.
                 if qty_val and qty_val > 0:
+                    # Pattern: <product_name> <number> <action_word>
+                    # Examples: "Maggi 2 add", "Parle G 5 bik gaya", "Colgate 10 add karo"
+                    add_pattern = r'^(.+?)\s+' + re.escape(str(int(qty_val) if qty_val.is_integer() else qty_val)) + r'\s+(add|aad|dal|daal|डाल)'
+                    reduce_pattern = r'^(.+?)\s+' + re.escape(str(int(qty_val) if qty_val.is_integer() else qty_val)) + r'\s+(bik|sold|sell|bech|बेच|nikal|निकाल)'
+
+                    add_match = re.search(add_pattern, normalized, re.IGNORECASE)
+                    reduce_match = re.search(reduce_pattern, normalized, re.IGNORECASE)
+
+                    if add_match:
+                        product_name = add_match.group(1).strip()
+                        return ParsedCommand(
+                            action=CommandAction.ADD_STOCK,
+                            product_name=product_name,
+                            quantity=qty_val,
+                            confidence=0.98,
+                            raw_message=message,
+                        )
+
+                    if reduce_match:
+                        product_name = reduce_match.group(1).strip()
+                        return ParsedCommand(
+                            action=CommandAction.REDUCE_STOCK,
+                            product_name=product_name,
+                            quantity=qty_val,
+                            confidence=0.98,
+                            raw_message=message,
+                        )
+
+                    # Fallback to old logic if pattern doesn't match
                     add_keywords = ["add", "a dd", "aad", "ऐड", "एड", "dal do", "daal do", "डाल", "डाल दो"]
                     reduce_keywords = ["sold", "sell", "bech", "बेच", "bik", "बिक", "nikal", "निकाल", "निकाला"]
 
@@ -1213,8 +1244,7 @@ class AIService:
                         action = CommandAction.REDUCE_STOCK
 
                     if action is not None:
-                        # Try to infer product name as the words between the number
-                        # and the first verb-like keyword.
+                        # Try to infer product name as the words BEFORE the number
                         orig_words = message.split()
                         norm_words = normalized.split()
                         if len(orig_words) == len(norm_words):
@@ -1222,18 +1252,11 @@ class AIService:
                                 (i for i, w in enumerate(norm_words) if any(ch.isdigit() for ch in w)),
                                 None,
                             )
-                            verb_indices = [
-                                i
-                                for i, w in enumerate(norm_words)
-                                if any(kw in w for kw in add_keywords + reduce_keywords)
-                            ]
-                            verb_idx = verb_indices[0] if verb_indices else None
 
                             product_tokens = []
-                            if num_idx is not None and verb_idx is not None and verb_idx > num_idx:
-                                product_tokens = orig_words[num_idx + 1 : verb_idx]
-                            elif verb_idx is not None and verb_idx > 0:
-                                product_tokens = [orig_words[verb_idx - 1]]
+                            if num_idx is not None and num_idx > 0:
+                                # Product name is BEFORE the number
+                                product_tokens = orig_words[:num_idx]
 
                             product_name = " ".join(t.strip() for t in product_tokens).strip() or message.strip()
                         else:
@@ -1246,7 +1269,6 @@ class AIService:
                             confidence=0.95,
                             raw_message=message,
                         )
-
 
 
         # Simple heuristic: numeric-only message with 8-16 digits (likely barcode)
