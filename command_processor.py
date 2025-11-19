@@ -396,6 +396,9 @@ class CommandProcessor:
                     threshold=command.quantity
                 )
 
+            elif command.action == CommandAction.PREDICTIVE_ALERT:
+                return self.db.get_predictive_alerts(shop_id=shop_id)
+
             elif command.action == CommandAction.LIST_PRODUCTS:
                 # If product_name is provided (e.g. "dal"), treat it as a
                 # keyword filter to show only matching products/brands.

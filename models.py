@@ -40,6 +40,7 @@ class CommandAction(Enum):
     EXPIRY_PRODUCTS = "expiry_products"
     PURCHASE_SUGGESTION = "purchase_suggestion"
     SET_LOW_STOCK_THRESHOLD = "set_low_stock_threshold"
+    PREDICTIVE_ALERT = "predictive_alert"
     UNDO_LAST = "undo_last"
     HELP = "help"
     # Udhar (credit) tracking

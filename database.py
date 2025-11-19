@@ -1501,6 +1501,93 @@ class FirestoreDB:
             "date": sales_data.get("date"),
         }
 
+    def get_predictive_alerts(self, shop_id: str) -> Dict[str, Any]:
+        """Get predictive alerts for products that will run out soon.
+
+        Analyzes current month's sales velocity to predict when products will run out.
+        Formula: days_until_stockout = current_stock / daily_sales_rate
+
+        Returns products that will run out in the next 7 days.
+        """
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        # Get current month's start date
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Calculate days elapsed in current month
+        days_elapsed = (now - month_start).days + 1  # +1 to include today
+
+        # Get all products for this shop
+        products = self.get_products_by_shop(shop_id)
+
+        # Get current month's sales data
+        current_month_sales = self.get_total_sales_current_month(shop_id=shop_id)
+        products_sold_this_month = current_month_sales.get('products_sold', {}) or {}
+
+        alerts = []
+
+        for product in products:
+            product_name = product.name
+            current_stock = product.current_stock or 0
+            unit = product.unit or 'pieces'
+            brand = product.brand
+
+            # Get this month's sales for this product
+            month_sales_qty = products_sold_this_month.get(product_name, 0)
+
+            # Skip products with no sales this month or no stock
+            if month_sales_qty <= 0 or current_stock <= 0:
+                continue
+
+            # Calculate daily sales rate (average per day)
+            daily_sales_rate = month_sales_qty / days_elapsed
+
+            # Skip if daily sales rate is too low (less than 0.1 per day)
+            if daily_sales_rate < 0.1:
+                continue
+
+            # Predict days until stockout
+            days_until_stockout = current_stock / daily_sales_rate
+
+            # Alert if product will run out in next 7 days
+            if days_until_stockout <= 7:
+                # Calculate the predicted date
+                stockout_date = now + timedelta(days=int(days_until_stockout))
+
+                # Determine urgency level
+                if days_until_stockout <= 2:
+                    urgency = 'critical'  # 🔴 Red - 2 days or less
+                elif days_until_stockout <= 4:
+                    urgency = 'high'      # 🟠 Orange - 3-4 days
+                else:
+                    urgency = 'medium'    # 🟡 Yellow - 5-7 days
+
+                alerts.append({
+                    'name': product_name,
+                    'brand': brand,
+                    'current_stock': current_stock,
+                    'unit': unit,
+                    'daily_sales_rate': round(daily_sales_rate, 2),
+                    'days_until_stockout': round(days_until_stockout, 1),
+                    'stockout_date': stockout_date.strftime('%Y-%m-%d'),
+                    'month_sales': month_sales_qty,
+                    'days_elapsed': days_elapsed,
+                    'urgency': urgency
+                })
+
+        # Sort by days_until_stockout (most urgent first)
+        alerts.sort(key=lambda x: x['days_until_stockout'])
+
+        return {
+            'success': True,
+            'alerts': alerts,
+            'total_alerts': len(alerts),
+            'analysis_period': f"{month_start.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}",
+            'days_analyzed': days_elapsed,
+        }
+
+
     def get_purchase_suggestions(self, shop_id: str) -> Dict[str, Any]:
         """Get purchase suggestions based on sales patterns.
 
