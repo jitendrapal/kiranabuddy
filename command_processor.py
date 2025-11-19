@@ -122,7 +122,9 @@ class CommandProcessor:
             )
 
             # Step 4: Validate command
-            if not parsed_command.is_valid():
+            is_valid = parsed_command.is_valid()
+            print(f"🔍 Command validation: action={parsed_command.action}, is_valid={is_valid}")
+            if not is_valid:
                 return {
                     'success': False,
                     'message': f"❌ Sorry, I couldn't understand: '{text}'\n\n"
@@ -138,6 +140,10 @@ class CommandProcessor:
 
             # Step 5: Execute command
             result = self._execute_command(shop_id, from_phone, parsed_command)
+
+            # Debug output for seasonal suggestion
+            if parsed_command.action == CommandAction.SEASONAL_SUGGESTION:
+                print(f"🔍 Seasonal suggestion result: {result}")
 
             # Step 6: Generate response
             if result['success']:
@@ -276,6 +282,7 @@ class CommandProcessor:
             Result dictionary
         """
         try:
+            print(f"🔧 _execute_command: action={command.action}, product={command.product_name}")
             if command.action == CommandAction.ADD_STOCK:
                 # For voice/text commands, only update existing products from the
                 # shop's catalog. Do NOT auto-create new products if the name
@@ -398,6 +405,14 @@ class CommandProcessor:
 
             elif command.action == CommandAction.PREDICTIVE_ALERT:
                 return self.db.get_predictive_alerts(shop_id=shop_id)
+
+            elif command.action == CommandAction.SEASONAL_SUGGESTION:
+                # Extract festival/season from product_name or notes
+                season_or_festival = command.product_name or command.notes
+                return self.db.get_seasonal_analysis(
+                    shop_id=shop_id,
+                    season_or_festival=season_or_festival
+                )
 
             elif command.action == CommandAction.LIST_PRODUCTS:
                 # If product_name is provided (e.g. "dal"), treat it as a

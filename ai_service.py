@@ -795,6 +795,36 @@ class AIService:
                 confidence=0.98,
                 raw_message=message,
             )
+
+        # 5d) Seasonal suggestions
+        # Examples:
+        # - "diwali products"
+        # - "holi ke liye kya stock karu"
+        # - "seasonal analysis"
+        # - "christmas suggestions"
+        seasonal_keywords = [
+            "seasonal", "season", "festival", "tyohar", "tyohaar",
+            "diwali", "deepavali", "holi", "eid", "christmas", "new year",
+            "raksha bandhan", "rakhi", "navratri", "durga puja",
+            "summer", "winter", "monsoon", "barish", "garmi", "sardi"
+        ]
+
+        # Extract festival/season name if mentioned
+        festival_name = None
+        for keyword in seasonal_keywords:
+            if keyword in normalized:
+                festival_name = keyword
+                break
+
+        if any(kw in normalized for kw in seasonal_keywords):
+            return ParsedCommand(
+                action=CommandAction.SEASONAL_SUGGESTION,
+                product_name=festival_name,  # Store festival/season name
+                quantity=None,
+                confidence=0.98,
+                raw_message=message,
+            )
+
         # 6) Simple price update ("Maggi price 12", "Maggi ka rate 12").
         # We look for a price/rate keyword + a number and treat it as "update_price".
         price_words = {"price", "rate", "daam", "dam", "kimat", "keemat"}
@@ -1158,9 +1188,9 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "purchase_suggestion", "set_low_stock_threshold", "predictive_alert", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
-2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, purchase_suggestion, predictive_alert, undo_last, help, list_udhar, or report_summary)
-3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For "update_price", quantity is the new selling price per unit (in rupees). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar and customer_udhar, quantity should be null.
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "purchase_suggestion", "set_low_stock_threshold", "predictive_alert", "seasonal_suggestion", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
+2. product_name: the name of the product mentioned (for udhar actions this is the customer name; for seasonal_suggestion this is the festival/season name like "diwali", "holi", "summer"; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, purchase_suggestion, predictive_alert, undo_last, help, list_udhar, or report_summary)
+3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For "update_price", quantity is the new selling price per unit (in rupees). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar, customer_udhar, and seasonal_suggestion, quantity should be null.
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
 
@@ -1222,6 +1252,14 @@ Examples of HELP (show guidance / examples):
 - "What can I say?" -> action "help" (no product, no quantity).
 - "मैं क्या कह सकता हूँ?" / "मैं क्या कह सकती हूँ?" -> action "help".
 
+Examples of SEASONAL_SUGGESTION (festival/season product recommendations):
+- "diwali products" -> action "seasonal_suggestion" with product_name "diwali"
+- "holi ke liye kya stock karu" -> action "seasonal_suggestion" with product_name "holi"
+- "seasonal analysis" -> action "seasonal_suggestion" with product_name null
+- "summer products" -> action "seasonal_suggestion" with product_name "summer"
+- "christmas suggestions" -> action "seasonal_suggestion" with product_name "christmas"
+- "tyohar ke liye kya chahiye" -> action "seasonal_suggestion" with product_name null
+
 	Examples of UDHAR (credit tracking):
 	- "udhar Ramesh 200" -> action "add_udhar" with product_name "Ramesh" and quantity 200
 	- "Ramesh udhar 300 doodh" -> action "add_udhar" with product_name "Ramesh" and quantity 300 (note like "doodh" is optional context)
@@ -1245,9 +1283,9 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "purchase_suggestion" | "set_low_stock_threshold" | "predictive_alert" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
-    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, purchase_suggestion, predictive_alert, undo_last, help, list_udhar, top_product_today, or report_summary; for set_low_stock_threshold this is the product name),
-    "quantity": number or null (for "update_price" this is the new selling price per unit in rupees; for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar and customer_udhar it should be null),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "purchase_suggestion" | "set_low_stock_threshold" | "predictive_alert" | "seasonal_suggestion" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
+    "product_name": "product name" or null (for udhar actions this is the customer name; for seasonal_suggestion this is the festival/season name like "diwali", "holi", "summer"; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, purchase_suggestion, predictive_alert, undo_last, help, list_udhar, top_product_today, or report_summary; for set_low_stock_threshold this is the product name),
+    "quantity": number or null (for "update_price" this is the new selling price per unit in rupees; for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar, customer_udhar, and seasonal_suggestion it should be null),
     "confidence": 0.0 to 1.0
 }
 
@@ -1291,6 +1329,7 @@ Do not include any explanation, just the JSON."""
                 "purchase_suggestion": CommandAction.PURCHASE_SUGGESTION,
                 "set_low_stock_threshold": CommandAction.SET_LOW_STOCK_THRESHOLD,
                 "predictive_alert": CommandAction.PREDICTIVE_ALERT,
+                "seasonal_suggestion": CommandAction.SEASONAL_SUGGESTION,
                 "undo_last": CommandAction.UNDO_LAST,
                 "help": CommandAction.HELP,
                 "add_udhar": CommandAction.ADD_UDHAR,
@@ -2405,6 +2444,122 @@ Do not include any explanation, just the JSON."""
                 lines.append("🔴 = Bahut urgent (≤2 din)")
                 lines.append("🟠 = Urgent (3-4 din)")
                 lines.append("🟡 = Dhyan dijiye (5-7 din)")
+
+            return nl.join(lines)
+
+        elif action == 'seasonal_suggestion':
+            festival_or_season = result.get('festival_or_season', 'general')
+            top_products = result.get('top_products', []) or []
+            total_products = result.get('total_products_analyzed', 0)
+            festival_keywords = result.get('festival_keywords', []) or []
+            current_month = result.get('current_month', 0)
+            analysis_months = result.get('analysis_months', [])
+
+            nl = "\r\n"
+
+            if not top_products:
+                if is_english:
+                    return f"📊 No historical sales data available for {festival_or_season}. Start selling to build seasonal insights!"
+                return f"📊 {festival_or_season} ke liye abhi tak koi sales data nahi hai. Bechna shuru kijiye!"
+
+            # Build header with AI-powered insights
+            month_names = {
+                1: 'January', 2: 'February', 3: 'March', 4: 'April',
+                5: 'May', 6: 'June', 7: 'July', 8: 'August',
+                9: 'September', 10: 'October', 11: 'November', 12: 'December'
+            }
+
+            if is_english:
+                header = f"🎉 Seasonal Analysis: {festival_or_season.upper()}"
+                subheader = f"📊 AI-Powered Product Recommendations"
+            else:
+                header = f"🎉 {festival_or_season.upper()} ke liye Analysis"
+                subheader = f"📊 AI se Product Suggestions"
+
+            lines = [header, subheader, ""]
+
+            # Add festival context
+            if festival_keywords:
+                if is_english:
+                    lines.append(f"🔑 Popular categories: {', '.join(festival_keywords[:5])}")
+                else:
+                    lines.append(f"🔑 Popular categories: {', '.join(festival_keywords[:5])}")
+                lines.append("")
+
+            # Add top products with intelligent insights
+            if is_english:
+                lines.append("🏆 Top Products (Based on Historical Sales):")
+            else:
+                lines.append("🏆 Top Products (Pichle saal ki bikri ke hisaab se):")
+            lines.append("")
+
+            for idx, product in enumerate(top_products[:8], 1):  # Top 8 products
+                name = product.get('product_name', 'Product')
+                historical_sales = product.get('historical_sales', 0)
+                avg_monthly = product.get('avg_monthly_sales', 0)
+                current_stock = product.get('current_stock', 0)
+                stock_status = product.get('stock_status', 'unknown')
+                suggested_order = product.get('suggested_order', 0)
+
+                # Status emoji
+                if stock_status == 'sufficient':
+                    status_emoji = "✅"
+                    status_text_en = "Stock OK"
+                    status_text_hi = "Stock theek hai"
+                else:
+                    status_emoji = "⚠️"
+                    status_text_en = "Low Stock"
+                    status_text_hi = "Stock kam hai"
+
+                if is_english:
+                    lines.append(f"{idx}. {status_emoji} {name}")
+                    lines.append(f"   📈 Historical sales: {historical_sales:.0f} units")
+                    lines.append(f"   📊 Current stock: {current_stock:.0f} units [{status_text_en}]")
+                    if suggested_order > 0:
+                        lines.append(f"   🛒 Suggested order: {suggested_order:.0f} units")
+                    lines.append("")
+                else:
+                    lines.append(f"{idx}. {status_emoji} {name}")
+                    lines.append(f"   📈 Pehle bika: {historical_sales:.0f} units")
+                    lines.append(f"   📊 Abhi stock: {current_stock:.0f} units [{status_text_hi}]")
+                    if suggested_order > 0:
+                        lines.append(f"   🛒 Order karna chahiye: {suggested_order:.0f} units")
+                    lines.append("")
+
+            # Add AI insights
+            if is_english:
+                lines.append("💡 AI Insights:")
+                lines.append(f"• Analyzed {total_products} products from past seasons")
+                lines.append(f"• Recommendations based on {len(analysis_months)} month(s) of data")
+                lines.append(f"• Stock up 50% more than average to avoid stockouts")
+                lines.append("")
+                lines.append("🎯 Action Items:")
+
+                # Count products needing reorder
+                low_stock_count = sum(1 for p in top_products if p.get('stock_status') == 'low')
+                if low_stock_count > 0:
+                    lines.append(f"• {low_stock_count} products need immediate reordering")
+                else:
+                    lines.append(f"• All top products have sufficient stock")
+
+                lines.append(f"• Focus on {', '.join(festival_keywords[:3])} categories")
+                lines.append(f"• Prepare inventory 2-3 weeks before {festival_or_season}")
+            else:
+                lines.append("💡 AI Insights:")
+                lines.append(f"• {total_products} products ka analysis kiya gaya")
+                lines.append(f"• {len(analysis_months)} mahine ke data se suggestions")
+                lines.append(f"• Average se 50% zyada stock rakhiye")
+                lines.append("")
+                lines.append("🎯 Kya karna chahiye:")
+
+                low_stock_count = sum(1 for p in top_products if p.get('stock_status') == 'low')
+                if low_stock_count > 0:
+                    lines.append(f"• {low_stock_count} products abhi order kar lijiye")
+                else:
+                    lines.append(f"• Sabhi top products ka stock theek hai")
+
+                lines.append(f"• {', '.join(festival_keywords[:3])} categories pe dhyan dijiye")
+                lines.append(f"• {festival_or_season} se 2-3 hafte pehle stock taiyar rakhiye")
 
             return nl.join(lines)
 

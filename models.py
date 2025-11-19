@@ -41,6 +41,7 @@ class CommandAction(Enum):
     PURCHASE_SUGGESTION = "purchase_suggestion"
     SET_LOW_STOCK_THRESHOLD = "set_low_stock_threshold"
     PREDICTIVE_ALERT = "predictive_alert"
+    SEASONAL_SUGGESTION = "seasonal_suggestion"
     UNDO_LAST = "undo_last"
     HELP = "help"
     # Udhar (credit) tracking
@@ -84,18 +85,60 @@ class User:
     role: UserRole
     created_at: datetime
     active: bool = True
+    last_login: Optional[datetime] = None
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
         data['role'] = self.role.value
         data['created_at'] = self.created_at.isoformat()
+        if self.last_login:
+            data['last_login'] = self.last_login.isoformat()
         return data
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'User':
         data['role'] = UserRole(data['role'])
         data['created_at'] = datetime.fromisoformat(data['created_at'])
+        if 'last_login' in data and data['last_login']:
+            data['last_login'] = datetime.fromisoformat(data['last_login'])
         return User(**data)
+
+
+@dataclass
+class OTP:
+    """OTP model for authentication"""
+    otp_id: str
+    phone: str
+    otp_code: str
+    created_at: datetime
+    expires_at: datetime
+    verified: bool = False
+    attempts: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data['created_at'] = self.created_at.isoformat()
+        data['expires_at'] = self.expires_at.isoformat()
+        return data
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'OTP':
+        data['created_at'] = datetime.fromisoformat(data['created_at'])
+        data['expires_at'] = datetime.fromisoformat(data['expires_at'])
+        return OTP(**data)
+
+    def is_expired(self) -> bool:
+        """Check if OTP has expired"""
+        return datetime.now() > self.expires_at
+
+    def is_valid(self, code: str) -> bool:
+        """Check if OTP code is valid"""
+        return (
+            not self.verified and
+            not self.is_expired() and
+            self.otp_code == code and
+            self.attempts < 3
+        )
 
 
 @dataclass
@@ -311,10 +354,12 @@ class ParsedCommand:
             CommandAction.UPDATE_PRICE,
             CommandAction.ADD_UDHAR,
             CommandAction.PAY_UDHAR,
+            CommandAction.SET_LOW_STOCK_THRESHOLD,
         ]:
             # For adjustments, quantity represents the correct quantity for the last entry
             # For udhar, quantity is the amount in rupees (always positive here).
             # For UPDATE_PRICE, quantity is the new selling price (per unit) in rupees.
+            # For SET_LOW_STOCK_THRESHOLD, quantity is the threshold value.
             return self.product_name is not None and self.quantity is not None and self.quantity > 0
         elif self.action in [
             CommandAction.CUSTOMER_UDHAR,
@@ -333,12 +378,15 @@ class ParsedCommand:
             CommandAction.ZERO_SALE_TODAY,
             CommandAction.EXPIRY_PRODUCTS,
             CommandAction.PURCHASE_SUGGESTION,
+            CommandAction.PREDICTIVE_ALERT,
+            CommandAction.SEASONAL_SUGGESTION,
             CommandAction.UNDO_LAST,
             CommandAction.HELP,
             CommandAction.LIST_UDHAR,
             CommandAction.REPORT_SUMMARY,
         ]:
             # These commands don't require product or quantity
+            # SEASONAL_SUGGESTION can optionally have product_name (festival/season name)
             return True
         return False
 

@@ -1,19 +1,23 @@
 """
 Flask application for Kirana Shop Management
 """
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
+from functools import wraps
 import os
 import uuid
+from datetime import datetime
 from config import Config
 from database import FirestoreDB
 from ai_service import AIService
 from whatsapp_service import WhatsAppService
 from command_processor import CommandProcessor
 from models import UserRole
+from otp_service import OTPService
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production-' + str(uuid.uuid4()))
 
 # Validate configuration
 try:
@@ -34,6 +38,9 @@ db = FirestoreDB(
 )
 
 print(f"✅ Database initialized")
+
+# Initialize OTP service
+otp_service = OTPService(db.db)
 
 ai_service = AIService(
     api_key=Config.OPENAI_API_KEY,
@@ -63,6 +70,191 @@ command_processor = CommandProcessor(
 )
 
 
+# ==================== AUTHENTICATION DECORATOR ====================
+
+def login_required(f):
+    """Decorator to require login for routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_phone' not in session:
+            return redirect(url_for('login_page'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# ==================== OTP AUTHENTICATION ROUTES ====================
+
+@app.route('/login')
+def login_page():
+    """OTP login page"""
+    return render_template('login.html')
+
+
+@app.route('/api/auth/send-otp', methods=['POST'])
+def send_otp():
+    """Send OTP to phone number"""
+    try:
+        data = request.get_json()
+        phone = data.get('phone', '').strip()
+
+        if not phone:
+            return jsonify({
+                'success': False,
+                'message': 'Phone number is required'
+            }), 400
+
+        # Validate phone number (basic validation)
+        phone = phone.replace('+91', '').replace('+', '').replace('-', '').replace(' ', '')
+        if not phone.isdigit() or len(phone) != 10:
+            return jsonify({
+                'success': False,
+                'message': 'Please enter a valid 10-digit phone number'
+            }), 400
+
+        # Create OTP
+        otp = otp_service.create_otp(phone)
+
+        # Send OTP
+        send_result = otp_service.send_otp(phone, otp.otp_code)
+
+        if send_result['success']:
+            return jsonify({
+                'success': True,
+                'message': f'OTP sent to {phone}',
+                'otp_id': otp.otp_id,
+                'expires_in_minutes': otp_service.otp_validity_minutes,
+                'dev_otp': otp.otp_code if otp_service.sms_provider == 'console' else None
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': send_result['message']
+            }), 500
+
+    except Exception as e:
+        print(f"Error sending OTP: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error sending OTP: {str(e)}'
+        }), 500
+
+
+@app.route('/api/auth/verify-otp', methods=['POST'])
+def verify_otp():
+    """Verify OTP and login user"""
+    try:
+        data = request.get_json()
+        phone = data.get('phone', '').strip()
+        otp_code = data.get('otp', '').strip()
+        name = data.get('name', '').strip()
+
+        if not phone or not otp_code:
+            return jsonify({
+                'success': False,
+                'message': 'Phone number and OTP are required'
+            }), 400
+
+        # Clean phone number
+        phone = phone.replace('+91', '').replace('+', '').replace('-', '').replace(' ', '')
+
+        # Verify OTP
+        verify_result = otp_service.verify_otp(phone, otp_code)
+
+        if not verify_result['success']:
+            return jsonify(verify_result), 400
+
+        # OTP verified successfully - check if user exists
+        user = db.get_user_by_phone(phone)
+
+        if not user:
+            # New user - create account
+            if not name:
+                return jsonify({
+                    'success': False,
+                    'message': 'Name is required for new users',
+                    'requires_name': True
+                }), 400
+
+            # Create shop for new user
+            shop_id = str(uuid.uuid4())
+            shop_name = f"{name}'s Shop"
+
+            db.db.collection('shops').document(shop_id).set({
+                'shop_id': shop_id,
+                'name': shop_name,
+                'owner_phone': phone,
+                'created_at': datetime.now().isoformat(),
+                'active': True
+            })
+
+            # Create user
+            user = db.create_user(
+                phone=phone,
+                name=name,
+                shop_id=shop_id,
+                role=UserRole.OWNER
+            )
+
+        # Update last login
+        db.db.collection('users').document(user.user_id).update({
+            'last_login': datetime.now().isoformat()
+        })
+
+        # Create session
+        session['user_phone'] = user.phone
+        session['user_id'] = user.user_id
+        session['shop_id'] = user.shop_id
+        session['user_name'] = user.name
+        session['user_role'] = user.role.value
+
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'user': {
+                'phone': user.phone,
+                'name': user.name,
+                'shop_id': user.shop_id,
+                'role': user.role.value
+            },
+            'redirect_url': '/test'
+        })
+
+    except Exception as e:
+        print(f"Error verifying OTP: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error verifying OTP: {str(e)}'
+        }), 500
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """Logout user"""
+    session.clear()
+    return jsonify({
+        'success': True,
+        'message': 'Logged out successfully'
+    })
+
+
+@app.route('/api/auth/check', methods=['GET'])
+def check_auth():
+    """Check if user is authenticated"""
+    if 'user_phone' in session:
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'phone': session.get('user_phone'),
+                'name': session.get('user_name'),
+                'shop_id': session.get('shop_id'),
+                'role': session.get('user_role')
+            }
+        })
+    return jsonify({'authenticated': False})
+
+
+# ==================== MAIN ROUTES ====================
+
 @app.route('/')
 def index():
     """Health check endpoint"""
@@ -74,9 +266,16 @@ def index():
 
 
 @app.route('/test')
+@login_required
 def test_interface():
     """Test interface - No WhatsApp required!"""
-    return render_template('test_interface.html')
+    user_data = {
+        'phone': session.get('user_phone'),
+        'name': session.get('user_name'),
+        'shop_id': session.get('shop_id'),
+        'role': session.get('user_role')
+    }
+    return render_template('test_interface.html', user=user_data)
 
 
 

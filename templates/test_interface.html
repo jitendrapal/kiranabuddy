@@ -901,7 +901,10 @@
           </div>
         </div>
         <div class="header-right">
-          <div class="header-phone">Test phone: +919876543210</div>
+          <div class="header-phone">
+            {% if user %} 👤 {{ user.name }} ({{ user.phone }}) {% else %} Test
+            phone: +919876543210 {% endif %}
+          </div>
           <div class="header-actions">
             <button
               class="notification-bell"
@@ -944,6 +947,18 @@
                   onclick="sendQuickReport('Show all stock'); toggleHeaderMenu(false);"
                 >
                   Show stock
+                </button>
+                <button
+                  class="menu-item"
+                  onclick="logout()"
+                  style="
+                    color: #ef4444;
+                    border-top: 1px solid rgba(148, 163, 184, 0.2);
+                    margin-top: 5px;
+                    padding-top: 10px;
+                  "
+                >
+                  🚪 Logout
                 </button>
               </div>
             </div>
@@ -992,7 +1007,11 @@
             🎤
           </button>
 
-          <input type="hidden" id="phone" value="+919876543210" />
+          <input
+            type="hidden"
+            id="phone"
+            value="{% if user %}{{ user.phone }}{% else %}+919876543210{% endif %}"
+          />
           <input
             type="text"
             id="message"
@@ -1769,6 +1788,28 @@
           }
         } catch (error) {
           appendMessage("Error: " + error.message, "bot");
+        }
+      }
+
+      // Logout function
+      async function logout() {
+        try {
+          const response = await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            // Redirect to login page
+            window.location.href = "/login";
+          } else {
+            alert("Failed to logout. Please try again.");
+          }
+        } catch (error) {
+          console.error("Logout error:", error);
+          alert("Error logging out. Please try again.");
         }
       }
     </script>

@@ -1664,6 +1664,197 @@ class FirestoreDB:
             'last_month_end': last_month_end.strftime('%Y-%m-%d'),
         }
 
+    def get_seasonal_analysis(self, shop_id: str, season_or_festival: Optional[str] = None) -> Dict[str, Any]:
+        """Get seasonal sales analysis and product suggestions.
+
+        Analyzes historical sales data to identify:
+        1. Top-selling products during specific festivals/seasons
+        2. Sales trends for different time periods
+        3. Product recommendations for upcoming festivals
+
+        Args:
+            shop_id: Shop ID
+            season_or_festival: Optional specific festival/season (e.g., 'diwali', 'holi', 'summer')
+
+        Returns:
+            Dictionary with seasonal analysis and product suggestions
+        """
+        try:
+            print(f"🎉 get_seasonal_analysis called: shop_id={shop_id}, season_or_festival={season_or_festival}")
+            from datetime import datetime, timedelta
+            from collections import defaultdict
+
+            now = datetime.now()
+            current_year = now.year
+            current_month = now.month
+
+            # Define festival/season periods (approximate dates)
+            festivals = {
+                'diwali': {
+                    'months': [10, 11],  # October-November
+                    'keywords': ['sweets', 'mithai', 'dry fruits', 'oil', 'ghee', 'crackers', 'diyas', 'decorations']
+                },
+                'holi': {
+                    'months': [3],  # March
+                    'keywords': ['colors', 'sweets', 'gujiya', 'thandai', 'snacks', 'namkeen']
+                },
+                'raksha bandhan': {
+                    'months': [8],  # August
+                    'keywords': ['sweets', 'mithai', 'dry fruits', 'chocolates', 'gifts']
+                },
+                'eid': {
+                    'months': [4, 5],  # April-May (varies)
+                    'keywords': ['dates', 'dry fruits', 'sweets', 'seviyan', 'biryani', 'meat']
+                },
+                'christmas': {
+                    'months': [12],  # December
+                    'keywords': ['cake', 'chocolates', 'dry fruits', 'wine', 'decorations']
+                },
+                'new year': {
+                    'months': [1, 12],  # December-January
+                    'keywords': ['snacks', 'drinks', 'party', 'decorations']
+                },
+                'summer': {
+                    'months': [4, 5, 6],  # April-June
+                    'keywords': ['cold drinks', 'ice cream', 'juice', 'water', 'coolers', 'aam panna']
+                },
+                'winter': {
+                    'months': [11, 12, 1, 2],  # November-February
+                    'keywords': ['tea', 'coffee', 'hot chocolate', 'dry fruits', 'gur', 'til']
+                },
+                'monsoon': {
+                    'months': [7, 8, 9],  # July-September
+                    'keywords': ['tea', 'pakora', 'snacks', 'umbrella', 'raincoat']
+                }
+            }
+
+            # Get all transactions for the shop (last 2 years for better analysis)
+            two_years_ago = now - timedelta(days=730)
+
+            # Get all products
+            products = self.get_products_by_shop(shop_id)
+            product_map = {p.product_id: p for p in products}
+
+            # Get transactions from last 2 years
+            # Note: We only filter by shop_id to avoid needing a composite index
+            # We'll filter by timestamp in Python
+            transactions_ref = (self.db.collection('transactions')
+                               .where('shop_id', '==', shop_id)
+                               .stream())
+
+            # Analyze sales by month and product
+            monthly_sales = defaultdict(lambda: defaultdict(float))  # {month: {product_name: quantity}}
+            product_sales_history = defaultdict(list)  # {product_name: [(month, quantity)]}
+
+            for txn_doc in transactions_ref:
+                txn_data = txn_doc.to_dict()
+                txn_type = txn_data.get('type')
+
+                # Only analyze sales transactions
+                if txn_type != 'sale':
+                    continue
+
+                timestamp = txn_data.get('timestamp')
+                if isinstance(timestamp, str):
+                    timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+
+                # Filter by timestamp in Python (to avoid needing Firestore index)
+                if timestamp < two_years_ago:
+                    continue
+
+                month = timestamp.month
+                product_id = txn_data.get('product_id')
+                quantity = abs(txn_data.get('quantity', 0))
+
+                if product_id in product_map:
+                    product_name = product_map[product_id].name
+                    monthly_sales[month][product_name] += quantity
+                    product_sales_history[product_name].append((month, quantity))
+
+            # Determine which festival/season to analyze
+            target_festival = None
+            target_months = []
+
+            if season_or_festival:
+                # User specified a festival/season
+                season_lower = season_or_festival.lower()
+                for fest_name, fest_data in festivals.items():
+                    if fest_name in season_lower or season_lower in fest_name:
+                        target_festival = fest_name
+                        target_months = fest_data['months']
+                        break
+
+            if not target_festival:
+                # Auto-detect upcoming festival based on current month
+                for fest_name, fest_data in festivals.items():
+                    if current_month in fest_data['months']:
+                        target_festival = fest_name
+                        target_months = fest_data['months']
+                        break
+
+                # If no current festival, find next upcoming one
+                if not target_festival:
+                    next_month = (current_month % 12) + 1
+                    for fest_name, fest_data in festivals.items():
+                        if next_month in fest_data['months']:
+                            target_festival = fest_name
+                            target_months = fest_data['months']
+                            break
+
+            # Calculate top products for target months
+            seasonal_products = defaultdict(float)
+            for month in target_months:
+                for product_name, quantity in monthly_sales[month].items():
+                    seasonal_products[product_name] += quantity
+
+            # Sort products by sales volume
+            top_seasonal_products = sorted(
+                seasonal_products.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:10]  # Top 10 products
+
+            # Build suggestions
+            suggestions = []
+            for product_name, total_qty in top_seasonal_products:
+                # Find the product in current inventory
+                current_product = None
+                for p in products:
+                    if p.name == product_name:
+                        current_product = p
+                        break
+
+                current_stock = current_product.current_stock if current_product else 0
+                avg_seasonal_sales = total_qty / len(target_months) if target_months else total_qty
+
+                suggestions.append({
+                    'product_name': product_name,
+                    'historical_sales': total_qty,
+                    'avg_monthly_sales': round(avg_seasonal_sales, 2),
+                    'current_stock': current_stock,
+                    'stock_status': 'sufficient' if current_stock >= avg_seasonal_sales else 'low',
+                    'suggested_order': max(0, round(avg_seasonal_sales * 1.5 - current_stock, 2))
+                })
+
+            print(f"✅ Seasonal analysis complete: {len(suggestions)} products found")
+            return {
+                'success': True,
+                'festival_or_season': target_festival or 'general',
+                'analysis_months': target_months,
+                'current_month': current_month,
+                'top_products': suggestions,
+                'total_products_analyzed': len(suggestions),
+                'festival_keywords': festivals.get(target_festival, {}).get('keywords', []) if target_festival else [],
+                'message': f"Seasonal analysis for {target_festival or 'current period'}"
+            }
+        except Exception as e:
+            print(f"❌ Error in get_seasonal_analysis: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'message': f'Error analyzing seasonal data: {str(e)}'
+            }
 
     def get_expiry_products(self, shop_id: str, days: int = 30) -> Dict[str, Any]:
         """Get products that are expired or expiring within the next `days` days.
