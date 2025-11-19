@@ -297,8 +297,8 @@
       }
 
       .scan-button {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         border: none;
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -306,14 +306,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 22px;
+        font-size: 18px;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        box-shadow: 0 3px 8px rgba(37, 99, 235, 0.4);
       }
       .scan-button:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.6);
       }
       .scan-button:active {
         transform: scale(0.95);
@@ -338,37 +338,37 @@
 
       .scan-cart {
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-top: 3px solid #2563eb;
-        padding: 16px;
-        font-size: 14px;
+        border-top: 2px solid #2563eb;
+        padding: 10px;
+        font-size: 13px;
         display: flex;
         flex-direction: column;
         flex: 1;
         min-height: 0;
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
       }
 
       .scan-cart-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #cbd5e1;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #cbd5e1;
       }
       .scan-cart-header span:first-child {
-        font-size: 16px;
+        font-size: 13px;
         font-weight: 700;
         color: #1e293b;
       }
       .scan-cart-header span:last-child {
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: white;
-        padding: 4px 12px;
+        padding: 2px 8px;
         border-radius: 999px;
         font-weight: 700;
-        font-size: 14px;
-        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        font-size: 11px;
+        box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
       }
 
       .scan-cart-items {
@@ -396,35 +396,35 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
-        gap: 12px;
-        padding: 12px;
+        margin-bottom: 8px;
+        gap: 6px;
+        padding: 8px;
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       }
 
       .scan-cart-mode-label {
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 700;
         color: #1e293b;
       }
 
       .scan-cart-mode-buttons {
         display: flex;
-        gap: 8px;
+        gap: 4px;
       }
 
       .scan-cart-mode-buttons .mode-btn {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 600;
-        padding: 8px 20px;
+        padding: 4px 12px;
         border-radius: 999px;
         border: 2px solid transparent;
         cursor: pointer;
         transition: all 0.2s ease;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
       }
 
       .scan-cart-mode-buttons .mode-btn.sale-btn {
@@ -456,19 +456,19 @@
       }
 
       .scan-cart-summary {
-        margin-top: 12px;
-        padding: 12px 16px;
-        font-size: 16px;
+        margin-top: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
         font-weight: 700;
         text-align: right;
         background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        border-radius: 8px;
+        border-radius: 6px;
         color: #1e40af;
-        border-left: 4px solid #2563eb;
+        border-left: 3px solid #2563eb;
       }
 
       .scan-cart-item-price {
-        font-size: 13px;
+        font-size: 11px;
         color: #059669;
         font-weight: 600;
       }
@@ -476,24 +476,24 @@
       .scan-cart-item {
         display: flex;
         justify-content: space-between;
-        font-size: 14px;
-        margin-bottom: 8px;
-        gap: 12px;
-        padding: 12px;
+        font-size: 12px;
+        margin-bottom: 6px;
+        gap: 8px;
+        padding: 8px;
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         transition: all 0.2s ease;
         animation: slideInItem 0.3s ease;
       }
       .scan-cart-item:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
       }
       @keyframes slideInItem {
         from {
           opacity: 0;
-          transform: translateX(-20px);
+          transform: translateX(-10px);
         }
         to {
           opacity: 1;
@@ -503,18 +503,18 @@
 
       .scan-cart-item-name {
         font-weight: 700;
-        font-size: 14px;
+        font-size: 12px;
         color: #1e293b;
       }
 
       .scan-cart-item-code {
         font-family: "Courier New", monospace;
-        font-size: 12px;
+        font-size: 10px;
         color: #64748b;
         background: #f1f5f9;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-top: 4px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        margin-top: 2px;
         display: inline-block;
       }
 
@@ -522,26 +522,26 @@
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        gap: 8px;
+        gap: 4px;
       }
 
       .scan-cart-qty-controls {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
         background: #f8fafc;
-        padding: 4px 8px;
+        padding: 2px 6px;
         border-radius: 999px;
-        border: 2px solid #e2e8f0;
+        border: 1px solid #e2e8f0;
       }
 
       .scan-cart-qty-controls button {
-        width: 28px;
-        height: 28px;
-        font-size: 16px;
+        width: 22px;
+        height: 22px;
+        font-size: 14px;
         font-weight: 700;
         border-radius: 50%;
-        border: 2px solid transparent;
+        border: 1px solid transparent;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -557,7 +557,7 @@
       .scan-cart-qty-controls .qty-minus:hover {
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         color: white;
-        transform: scale(1.1);
+        transform: scale(1.05);
       }
 
       .scan-cart-qty-controls .qty-plus {
@@ -568,13 +568,13 @@
       .scan-cart-qty-controls .qty-plus:hover {
         background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
         color: white;
-        transform: scale(1.1);
+        transform: scale(1.05);
       }
 
       .scan-cart-qty {
-        min-width: 36px;
+        min-width: 24px;
         text-align: center;
-        font-size: 16px;
+        font-size: 13px;
         font-weight: 700;
         color: #1e293b;
       }
@@ -622,45 +622,45 @@
 
       .scan-cart-actions {
         display: flex;
-        gap: 12px;
-        margin-top: 12px;
+        gap: 6px;
+        margin-top: 8px;
       }
 
       .scan-cart-actions button {
-        font-size: 15px;
+        font-size: 12px;
         font-weight: 700;
-        padding: 12px 24px;
-        border-radius: 8px;
+        padding: 8px 14px;
+        border-radius: 6px;
         border: none;
         cursor: pointer;
         transition: all 0.2s ease;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
       }
 
       .scan-cart-actions .clear-btn {
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         color: #ffffff;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
       }
 
       .scan-cart-actions .clear-btn:hover {
         background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
       }
 
       .scan-cart-actions button.primary {
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: #ffffff;
         flex: 1;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
       }
 
       .scan-cart-actions button.primary:hover {
         background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
       }
 
       .quick-reports {
