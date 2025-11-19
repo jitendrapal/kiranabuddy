@@ -76,6 +76,7 @@ class AIService:
         """Clean and normalize voice-to-text output.
 
         Uses regex-based cleaning for speed and reliability:
+        - Converts Hindi number words to digits (do → 2, teen → 3)
         - Removes filler words (um, uh, hmm, like, you know, etc.)
         - Removes repeated consecutive words
         - Removes extra whitespace
@@ -93,6 +94,58 @@ class AIService:
         import re
 
         cleaned = text.strip()
+
+        # Step 0: Convert Hindi number words to digits FIRST (before cleaning)
+        # This prevents confusion with "do" (2) vs "do" (command suffix in "kar do")
+
+        # Special handling for "do" - only convert if followed by action words
+        # "Maggi do add" → "Maggi 2 add" (convert)
+        # "add kar do" → "add kar do" (don't convert)
+        cleaned = re.sub(r'\bdo\b(?=\s+(add|bik|sold|stock|check|kitna|hai))', '2', cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r'\bdoh\b(?=\s+(add|bik|sold|stock|check|kitna|hai))', '2', cleaned, flags=re.IGNORECASE)
+
+        # Other Hindi numbers (no ambiguity, convert all)
+        hindi_numbers = {
+            r'\bek\b': '1',
+            r'\bteen\b': '3',
+            r'\btiin\b': '3',
+            r'\bchar\b': '4',
+            r'\bchaar\b': '4',
+            r'\bpanch\b': '5',
+            r'\bpaanch\b': '5',
+            r'\bchhe\b': '6',
+            r'\bchhah\b': '6',
+            r'\bsaat\b': '7',
+            r'\baath\b': '8',
+            r'\baat\b': '8',
+            r'\bnau\b': '9',
+            r'\bdas\b': '10',
+            r'\bdus\b': '10',
+            r'\bgyarah\b': '11',
+            r'\bbarah\b': '12',
+            r'\bterah\b': '13',
+            r'\bchaudah\b': '14',
+            r'\bpandrah\b': '15',
+            r'\bsolah\b': '16',
+            r'\bsatrah\b': '17',
+            r'\batharah\b': '18',
+            r'\bunnis\b': '19',
+            r'\bbees\b': '20',
+            r'\bikkis\b': '21',
+            r'\bbaees\b': '22',
+            r'\btees\b': '30',
+            r'\bchalis\b': '40',
+            r'\bpachas\b': '50',
+            r'\bsaath\b': '60',
+            r'\bsattar\b': '70',
+            r'\bassi\b': '80',
+            r'\bnabbe\b': '90',
+            r'\bsau\b': '100',
+        }
+
+        # Convert Hindi numbers to digits (case-insensitive)
+        for hindi_word, digit in hindi_numbers.items():
+            cleaned = re.sub(hindi_word, digit, cleaned, flags=re.IGNORECASE)
 
         # Step 1: Remove common filler words (case-insensitive)
         filler_words = [
