@@ -1459,6 +1459,83 @@ class FirestoreDB:
             "date": sales_data.get("date"),
         }
 
+    def get_purchase_suggestions(self, shop_id: str) -> Dict[str, Any]:
+        """Get purchase suggestions based on sales patterns.
+
+        Analyzes last month's sales and current stock to suggest products
+        that need to be reordered.
+
+        Logic:
+        - Compare current stock with last month's sales
+        - If current stock < 20% of last month's sales, suggest reorder
+        - Show products sorted by urgency (lowest stock ratio first)
+        """
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        # Get last month's date range
+        last_month_end = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
+        last_month_start = last_month_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Get all products for this shop
+        products = self.get_products_by_shop(shop_id)
+
+        # Get last month's sales data
+        last_month_sales = self.get_total_sales_for_period(
+            shop_id=shop_id,
+            start_datetime=last_month_start,
+            end_datetime=last_month_end
+        )
+
+        products_sold_last_month = last_month_sales.get('products_sold', {}) or {}
+
+        suggestions = []
+
+        for product in products:
+            product_name = product.name
+            current_stock = product.current_stock or 0
+            unit = product.unit or 'pieces'
+            brand = product.brand
+
+            # Get last month's sales for this product
+            last_month_qty = products_sold_last_month.get(product_name, 0)
+
+            # Skip products with no sales last month
+            if last_month_qty <= 0:
+                continue
+
+            # Calculate stock ratio (current stock / last month sales)
+            stock_ratio = current_stock / last_month_qty if last_month_qty > 0 else 1.0
+
+            # Suggest reorder if current stock is less than 20% of last month's sales
+            # This means if you sold 100 last month and have only 20 left, suggest reorder
+            if stock_ratio < 0.2:
+                # Calculate suggested order quantity (to match last month's sales)
+                suggested_qty = max(0, last_month_qty - current_stock)
+
+                suggestions.append({
+                    'name': product_name,
+                    'brand': brand,
+                    'current_stock': current_stock,
+                    'unit': unit,
+                    'last_month_sales': last_month_qty,
+                    'suggested_order_qty': suggested_qty,
+                    'stock_ratio': stock_ratio,
+                    'urgency': 'high' if stock_ratio < 0.1 else 'medium'
+                })
+
+        # Sort by stock ratio (most urgent first)
+        suggestions.sort(key=lambda x: x['stock_ratio'])
+
+        return {
+            'success': True,
+            'suggestions': suggestions,
+            'total_suggestions': len(suggestions),
+            'last_month_start': last_month_start.strftime('%Y-%m-%d'),
+            'last_month_end': last_month_end.strftime('%Y-%m-%d'),
+        }
+
+
     def get_expiry_products(self, shop_id: str, days: int = 30) -> Dict[str, Any]:
         """Get products that are expired or expiring within the next `days` days.
 

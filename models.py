@@ -329,6 +329,7 @@ class ParsedCommand:
             CommandAction.TOP_PRODUCT_TODAY,
             CommandAction.ZERO_SALE_TODAY,
             CommandAction.EXPIRY_PRODUCTS,
+            CommandAction.PURCHASE_SUGGESTION,
             CommandAction.UNDO_LAST,
             CommandAction.HELP,
             CommandAction.LIST_UDHAR,

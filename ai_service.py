@@ -703,6 +703,33 @@ class AIService:
                 confidence=0.98,
                 raw_message=message,
             )
+
+        # 5b) Purchase suggestions based on sales patterns
+        # Examples:
+        # - "purchase suggestion"
+        # - "kya order karna chahiye"
+        # - "kya mangwana chahiye"
+        # - "reorder suggestion"
+        # - "what to buy"
+        purchase_keywords = [
+            "purchase suggestion",
+            "order suggestion",
+            "reorder",
+            "kya order",
+            "kya mangwa",
+            "what to buy",
+            "what to order",
+            "kya kharidna",
+            "suggestion",
+        ]
+        if any(kw in normalized for kw in purchase_keywords):
+            return ParsedCommand(
+                action=CommandAction.PURCHASE_SUGGESTION,
+                product_name=None,
+                quantity=None,
+                confidence=0.98,
+                raw_message=message,
+            )
         # 6) Simple price update ("Maggi price 12", "Maggi ka rate 12").
         # We look for a price/rate keyword + a number and treat it as "update_price".
         price_words = {"price", "rate", "daam", "dam", "kimat", "keemat"}
@@ -1066,8 +1093,8 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
-2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, undo_last, help, list_udhar, or report_summary)
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "purchase_suggestion", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
+2. product_name: the name of the product mentioned (for udhar actions this is the customer name; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, purchase_suggestion, undo_last, help, list_udhar, or report_summary)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For "update_price", quantity is the new selling price per unit (in rupees). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar and customer_udhar, quantity should be null.
 
 IMPORTANT: Be VERY flexible and understand natural conversational language. Users can say things in ANY way they want, including full Hindi script.
@@ -1153,8 +1180,8 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
-    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, undo_last, help, list_udhar, top_product_today, or report_summary),
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "purchase_suggestion" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
+    "product_name": "product name" or null (for udhar actions this is the customer name; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, purchase_suggestion, undo_last, help, list_udhar, top_product_today, or report_summary),
     "quantity": number or null (for "update_price" this is the new selling price per unit in rupees; for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar and customer_udhar it should be null),
     "confidence": 0.0 to 1.0
 }
@@ -1196,6 +1223,7 @@ Do not include any explanation, just the JSON."""
                 "top_product_today": CommandAction.TOP_PRODUCT_TODAY,
                 "zero_sale_today": CommandAction.ZERO_SALE_TODAY,
                 "expiry_products": CommandAction.EXPIRY_PRODUCTS,
+                "purchase_suggestion": CommandAction.PURCHASE_SUGGESTION,
                 "undo_last": CommandAction.UNDO_LAST,
                 "help": CommandAction.HELP,
                 "add_udhar": CommandAction.ADD_UDHAR,
@@ -2119,7 +2147,70 @@ Do not include any explanation, just the JSON."""
 
             return nl.join(lines)
 
+        elif action == 'purchase_suggestion':
+            suggestions = result.get('suggestions', []) or []
+            total_suggestions = result.get('total_suggestions', 0)
+            last_month_start = result.get('last_month_start', '')
+            last_month_end = result.get('last_month_end', '')
 
+            nl = "\r\n"
+
+            if not suggestions:
+                if is_english:
+                    return "✅ No purchase suggestions at this time. All products have sufficient stock based on last month's sales."
+                return "✅ Abhi koi purchase suggestion nahi hai. Sabhi products ka stock last month ki bikri ke hisaab se theek hai."
+
+            # Build header
+            if is_english:
+                header = f"🛒 Purchase Suggestions (based on sales from {last_month_start} to {last_month_end}):"
+            else:
+                header = f"🛒 Purchase Suggestion (last month {last_month_start} se {last_month_end} ki bikri ke hisaab se):"
+
+            lines = [header, ""]
+
+            for s in suggestions:
+                name = s.get('name', 'Product')
+                brand = s.get('brand') or ""
+                current_stock = s.get('current_stock', 0)
+                unit = s.get('unit', 'pieces')
+                last_month_sales = s.get('last_month_sales', 0)
+                suggested_qty = s.get('suggested_order_qty', 0)
+                urgency = s.get('urgency', 'medium')
+
+                # Build display name
+                if brand:
+                    display_name = f"{brand} {name}"
+                else:
+                    display_name = name
+
+                # Urgency emoji
+                urgency_emoji = "🔴" if urgency == 'high' else "🟡"
+
+                if is_english:
+                    lines.append(f"{urgency_emoji} {display_name}:")
+                    lines.append(f"   📊 Current stock: {current_stock} {unit}")
+                    lines.append(f"   📈 Last month sold: {last_month_sales} {unit}")
+                    lines.append(f"   🛒 Suggested order: {suggested_qty} {unit}")
+                    lines.append("")
+                else:
+                    lines.append(f"{urgency_emoji} {display_name}:")
+                    lines.append(f"   📊 Abhi stock: {current_stock} {unit}")
+                    lines.append(f"   📈 Last month bika: {last_month_sales} {unit}")
+                    lines.append(f"   🛒 Order karna chahiye: {suggested_qty} {unit}")
+                    lines.append("")
+
+            if is_english:
+                lines.append(f"Total products needing reorder: {total_suggestions}")
+                lines.append("")
+                lines.append("🔴 = High urgency (stock < 10% of last month's sales)")
+                lines.append("🟡 = Medium urgency (stock < 20% of last month's sales)")
+            else:
+                lines.append(f"Kul products jinhe order karna chahiye: {total_suggestions}")
+                lines.append("")
+                lines.append("🔴 = Bahut urgent (stock last month ki bikri ka 10% se kam)")
+                lines.append("🟡 = Thoda urgent (stock last month ki bikri ka 20% se kam)")
+
+            return nl.join(lines)
 
         elif action == 'help':
             # Return a small help message with example commands.
