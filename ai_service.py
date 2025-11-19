@@ -56,7 +56,11 @@ class AIService:
                 print("⚠️ Transcription returned empty text.")
                 return None
 
-            return text
+            # Clean and normalize the transcribed text
+            cleaned_text = self.clean_voice_text(text)
+            print(f"   Cleaned: {repr(cleaned_text)}")
+
+            return cleaned_text
 
         except Exception as e:
             print(f"Error transcribing audio: {e}")
@@ -67,6 +71,56 @@ class AIService:
                     os.unlink(temp_file_path)
                 except Exception:
                     pass
+
+    def clean_voice_text(self, text: str) -> str:
+        """Clean and normalize voice-to-text output.
+
+        Uses regex-based cleaning for speed and reliability:
+        - Removes filler words (um, uh, hmm, like, you know, etc.)
+        - Removes repeated consecutive words
+        - Removes extra whitespace
+        - Normalizes common voice artifacts
+
+        Args:
+            text: Raw transcribed text from Whisper
+
+        Returns:
+            Cleaned and normalized text ready for command parsing
+        """
+        if not text or not text.strip():
+            return text
+
+        import re
+
+        cleaned = text.strip()
+
+        # Step 1: Remove common filler words (case-insensitive)
+        filler_words = [
+            r'\bum\b', r'\buh\b', r'\bhmm\b', r'\bhm\b', r'\buhm\b',
+            r'\blike\b', r'\byou know\b', r'\bI mean\b', r'\bactually\b',
+            r'\bbasically\b', r'\bliterally\b', r'\bso\b', r'\bwell\b',
+            r'\boh\b', r'\bah\b', r'\ber\b', r'\behm\b',
+        ]
+
+        for filler in filler_words:
+            cleaned = re.sub(filler, '', cleaned, flags=re.IGNORECASE)
+
+        # Step 2: Remove repeated consecutive words (e.g., "Maggi Maggi" → "Maggi")
+        # Match word boundaries to avoid breaking product names
+        cleaned = re.sub(r'\b(\w+)\s+\1\b', r'\1', cleaned, flags=re.IGNORECASE)
+
+        # Step 3: Remove extra whitespace (multiple spaces → single space)
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+
+        # Step 4: Remove leading/trailing whitespace
+        cleaned = cleaned.strip()
+
+        # Step 5: If cleaning resulted in empty string, return original
+        if not cleaned:
+            return text
+
+        return cleaned
+
     def detect_language(self, message: str) -> str:
         """Very simple language detector: returns 'hindi' or 'english'.
 
