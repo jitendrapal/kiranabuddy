@@ -149,28 +149,121 @@
       }
       .bill-table {
         width: 100%;
-        border-collapse: collapse;
-        margin-top: 4px;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 8px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
-      .bill-table th,
+      .bill-table thead {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      }
+      .bill-table th {
+        padding: 12px 8px;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: left;
+        color: #ffffff;
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .bill-table tbody tr {
+        background: #ffffff;
+        transition: all 0.2s ease;
+      }
+      .bill-table tbody tr:hover {
+        background: #f8fafc;
+        transform: scale(1.01);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
       .bill-table td {
         border-bottom: 1px solid #e5e7eb;
-        padding: 4px 2px;
-        font-size: 11px;
+        padding: 10px 8px;
+        font-size: 14px;
         text-align: left;
+        color: #1f2937;
+        font-weight: 500;
+      }
+      .bill-table tbody tr:last-child td {
+        border-bottom: none;
       }
       .bill-table input {
         width: 100%;
         box-sizing: border-box;
-        padding: 2px 4px;
-        font-size: 11px;
-        border-radius: 4px;
-        border: 1px solid #d1d5db;
+        padding: 6px 10px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 2px solid #e5e7eb;
+        transition: all 0.2s ease;
+        color: #111827;
+        font-weight: 500;
+      }
+      .bill-table input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+      .bill-table input::placeholder {
+        color: #9ca3af;
+        font-weight: 400;
       }
       .bill-summary {
-        margin-top: 4px;
-        font-size: 11px;
-        color: #4b5563;
+        margin-top: 12px;
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #059669;
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border-radius: 8px;
+        border-left: 4px solid #059669;
+      }
+      .bill-table .btn-delete {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+      }
+      .bill-table .btn-delete:hover {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+      }
+      .bill-table .btn-delete:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(239, 68, 68, 0.2);
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .bill-table tbody tr {
+        animation: slideIn 0.3s ease;
+      }
+      .bill-table tbody:empty::after {
+        content: "No items added yet. Click '+ Add line' to start scanning products.";
+        display: block;
+        padding: 40px 20px;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 14px;
+        font-style: italic;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin: 8px;
       }
       .products-grid {
         display: grid;
@@ -376,9 +469,20 @@
             </button>
           </div>
         </div>
-        <p style="margin: 0 0 4px 0; font-size: 11px; color: #6b7280">
-          Fast way to add today's purchase stock. Choose product, enter quantity
-          (and optional cost per unit).
+        <p
+          style="
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            color: #475569;
+            font-weight: 500;
+            padding: 10px 12px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            border-left: 3px solid #2563eb;
+          "
+        >
+          📦 Fast way to add today's purchase stock. Choose product, enter
+          quantity and optional cost per unit.
         </p>
         <table class="bill-table">
           <thead>
@@ -475,10 +579,11 @@
           <td>
             <button
               type="button"
-              class="btn btn-secondary"
+              class="btn-delete"
               onclick="this.closest('tr').remove();"
+              title="Remove this item"
             >
-              X
+              ✕
             </button>
           </td>
         `;
