@@ -722,7 +722,127 @@ def add_stock_bill():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/stock/create-product', methods=['POST'])
+def create_new_product():
+    """Create a new product with barcode, name, quantity, and expiry date.
 
+    Expects JSON:
+    {
+        "phone": "+91...",
+        "barcode": "8901234567890",
+        "name": "Maggi Noodles 70g",
+        "brand": "Nestle",
+        "quantity": 50,
+        "unit": "pieces",
+        "expiry_date": "2025-12-31",
+        "selling_price": 12.0,
+        "cost_price": 10.0
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        phone = (data.get('phone') or '').strip()
+        barcode = (data.get('barcode') or '').strip()
+        name = (data.get('name') or '').strip()
+        brand = (data.get('brand') or '').strip() or None
+        quantity = data.get('quantity')
+        unit = (data.get('unit') or 'pieces').strip()
+        expiry_date = (data.get('expiry_date') or '').strip() or None
+        selling_price = data.get('selling_price')
+        cost_price = data.get('cost_price')
+
+        # Validation
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+        if not barcode:
+            return jsonify({'success': False, 'message': 'barcode is required'}), 400
+        if not name:
+            return jsonify({'success': False, 'message': 'name is required'}), 400
+        if quantity is None or quantity < 0:
+            return jsonify({'success': False, 'message': 'valid quantity is required'}), 400
+
+        # Resolve shop from phone
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop or user not found for phone'}), 404
+            shop_id = shop.shop_id
+
+        # Check if product with this barcode already exists
+        existing_product = db.find_product_by_barcode(shop_id, barcode)
+        if existing_product:
+            return jsonify({
+                'success': False,
+                'message': f'Product with barcode {barcode} already exists: {existing_product.name}'
+            }), 400
+
+        # Create new product
+        import uuid
+        from datetime import datetime
+        from models import Product
+
+        product_id = str(uuid.uuid4())
+
+        # Create batches structure if expiry date is provided
+        batches = None
+        if expiry_date:
+            batch_id = "batch_001"
+            batches = {
+                batch_id: {
+                    "expiry_date": expiry_date,
+                    "qty": float(quantity),
+                    "cost_price": float(cost_price) if cost_price is not None else None,
+                    "added_on": datetime.utcnow().isoformat()
+                }
+            }
+
+        product = Product(
+            product_id=product_id,
+            shop_id=shop_id,
+            name=name,
+            normalized_name=name.lower().strip(),
+            current_stock=float(quantity),
+            unit=unit,
+            brand=brand,
+            barcode=barcode,
+            selling_price=float(selling_price) if selling_price is not None else None,
+            cost_price=float(cost_price) if cost_price is not None else None,
+            expiry_date=expiry_date,  # Keep legacy field for backward compatibility
+            batches=batches,  # Add batch structure
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+
+        # Save to database
+        db.db.collection("products").document(product_id).set(product.to_dict())
+
+        # Create transaction record for initial stock
+        from models import TransactionType
+        db.create_transaction(
+            shop_id=shop_id,
+            product_id=product_id,
+            product_name=name,
+            transaction_type=TransactionType.ADD_STOCK,
+            quantity=float(quantity),
+            previous_stock=0.0,
+            new_stock=float(quantity),
+            user_phone=phone,
+            notes=f"Initial stock for new product",
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Product created successfully',
+            'product': product.to_dict()
+        }), 201
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @app.route('/api/product-by-barcode', methods=['GET'])

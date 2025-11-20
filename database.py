@@ -392,6 +392,39 @@ class FirestoreDB:
 
         return best_product
 
+    def find_product_by_barcode(self, shop_id: str, barcode: str) -> Optional[Product]:
+        """Find a product by its barcode.
+
+        Args:
+            shop_id: The shop ID
+            barcode: The barcode to search for
+
+        Returns:
+            Product if found, None otherwise
+        """
+        if not barcode:
+            return None
+
+        # Clean barcode (remove spaces, ensure it's a string)
+        barcode_clean = str(barcode).strip().replace(" ", "")
+
+        if not barcode_clean:
+            return None
+
+        # Query Firestore for product with this barcode
+        docs = (
+            self.db.collection("products")
+            .where("shop_id", "==", shop_id)
+            .where("barcode", "==", barcode_clean)
+            .limit(1)
+            .stream()
+        )
+
+        for doc in docs:
+            return Product.from_dict(doc.to_dict())
+
+        return None
+
     def find_all_matching_products(self, shop_id: str, product_name: str, min_matches: int = 2) -> List[Product]:
         """Find ALL products that match the search term.
 

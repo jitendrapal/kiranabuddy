@@ -366,6 +366,83 @@
       .save-status.error {
         color: #b91c1c;
       }
+
+      /* Add Product Section Styles */
+      .add-product-section {
+        margin-bottom: 16px;
+        padding: 12px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #10b981;
+      }
+      .add-product-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .add-product-header h2 {
+        font-size: 16px;
+        margin: 0;
+        color: #111827;
+      }
+      .add-product-form {
+        margin-top: 12px;
+      }
+      .form-description {
+        margin: 0 0 16px 0;
+        font-size: 13px;
+        color: #475569;
+        font-weight: 500;
+        padding: 10px 12px;
+        background: #f0fdf4;
+        border-radius: 6px;
+        border-left: 3px solid #10b981;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .form-field label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #374151;
+      }
+      .form-field input,
+      .form-field select {
+        padding: 8px 12px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        transition: all 0.2s ease;
+      }
+      .form-field input:focus,
+      .form-field select:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      }
+      .form-field input::placeholder {
+        color: #9ca3af;
+      }
+      .form-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
+      }
+      .form-actions .status {
+        margin-left: auto;
+      }
     </style>
   </head>
   <body>
@@ -382,6 +459,131 @@
           Load products
         </button>
         <span id="globalStatus" class="status"></span>
+      </section>
+
+      <!-- Add New Product Section -->
+      <section class="add-product-section">
+        <div class="add-product-header">
+          <h2>➕ Add New Product</h2>
+          <button
+            class="btn btn-secondary"
+            type="button"
+            onclick="toggleAddProductForm()"
+            id="toggleFormBtn"
+          >
+            Show Form
+          </button>
+        </div>
+
+        <div id="addProductForm" class="add-product-form" style="display: none">
+          <p class="form-description">
+            🆕 Create a new product with barcode, name, initial quantity, and
+            expiry date.
+          </p>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="newProductBarcode">Barcode *</label>
+              <input
+                id="newProductBarcode"
+                type="text"
+                placeholder="e.g. 8901234567890"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="newProductName">Product Name *</label>
+              <input
+                id="newProductName"
+                type="text"
+                placeholder="e.g. Maggi Noodles 70g"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="newProductBrand">Brand</label>
+              <input
+                id="newProductBrand"
+                type="text"
+                placeholder="e.g. Nestle"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="newProductQuantity">Initial Quantity *</label>
+              <input
+                id="newProductQuantity"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 50"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="newProductUnit">Unit</label>
+              <select id="newProductUnit">
+                <option value="pieces">Pieces</option>
+                <option value="kg">Kg</option>
+                <option value="litre">Litre</option>
+                <option value="packet">Packet</option>
+                <option value="box">Box</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="newProductExpiry">Expiry Date</label>
+              <input
+                id="newProductExpiry"
+                type="date"
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="newProductSellingPrice">Selling Price (₹)</label>
+              <input
+                id="newProductSellingPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 12.00"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="newProductCostPrice">Cost Price (₹)</label>
+              <input
+                id="newProductCostPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 10.00"
+              />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              class="btn btn-primary"
+              type="button"
+              onclick="createNewProduct()"
+            >
+              Create Product
+            </button>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="clearNewProductForm()"
+            >
+              Clear Form
+            </button>
+            <span id="addProductStatus" class="status"></span>
+          </div>
+        </div>
       </section>
 
       <section class="filters">
@@ -1000,6 +1202,126 @@
           statusEl.textContent = err.message || "Error";
           statusEl.classList.add("error");
           setGlobalStatus("Error while saving changes.", true);
+        }
+      }
+
+      // Add Product Form Functions
+      function toggleAddProductForm() {
+        const form = document.getElementById("addProductForm");
+        const btn = document.getElementById("toggleFormBtn");
+
+        if (form.style.display === "none") {
+          form.style.display = "block";
+          btn.textContent = "Hide Form";
+        } else {
+          form.style.display = "none";
+          btn.textContent = "Show Form";
+        }
+      }
+
+      function clearNewProductForm() {
+        document.getElementById("newProductBarcode").value = "";
+        document.getElementById("newProductName").value = "";
+        document.getElementById("newProductBrand").value = "";
+        document.getElementById("newProductQuantity").value = "";
+        document.getElementById("newProductUnit").value = "pieces";
+        document.getElementById("newProductExpiry").value = "";
+        document.getElementById("newProductSellingPrice").value = "";
+        document.getElementById("newProductCostPrice").value = "";
+
+        const statusEl = document.getElementById("addProductStatus");
+        statusEl.textContent = "";
+        statusEl.classList.remove("error");
+      }
+
+      async function createNewProduct() {
+        const phone = currentPhone;
+        if (!phone) {
+          setGlobalStatus("Please load products with a phone first.", true);
+          return;
+        }
+
+        const statusEl = document.getElementById("addProductStatus");
+        statusEl.textContent = "Creating...";
+        statusEl.classList.remove("error");
+
+        // Get form values
+        const barcode = document
+          .getElementById("newProductBarcode")
+          .value.trim();
+        const name = document.getElementById("newProductName").value.trim();
+        const brand = document.getElementById("newProductBrand").value.trim();
+        const quantity = parseFloat(
+          document.getElementById("newProductQuantity").value
+        );
+        const unit = document.getElementById("newProductUnit").value;
+        const expiryDate = document.getElementById("newProductExpiry").value;
+        const sellingPrice = parseFloat(
+          document.getElementById("newProductSellingPrice").value
+        );
+        const costPrice = parseFloat(
+          document.getElementById("newProductCostPrice").value
+        );
+
+        // Validation
+        if (!barcode) {
+          statusEl.textContent = "Barcode is required";
+          statusEl.classList.add("error");
+          return;
+        }
+        if (!name) {
+          statusEl.textContent = "Product name is required";
+          statusEl.classList.add("error");
+          return;
+        }
+        if (isNaN(quantity) || quantity < 0) {
+          statusEl.textContent = "Valid quantity is required";
+          statusEl.classList.add("error");
+          return;
+        }
+
+        try {
+          // Create product payload
+          const payload = {
+            phone: phone,
+            barcode: barcode,
+            name: name,
+            brand: brand || null,
+            quantity: quantity,
+            unit: unit,
+            expiry_date: expiryDate || null,
+            selling_price: !isNaN(sellingPrice) ? sellingPrice : null,
+            cost_price: !isNaN(costPrice) ? costPrice : null,
+          };
+
+          const resp = await fetch("/api/stock/create-product", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await resp.json();
+
+          if (!resp.ok || !data.success) {
+            throw new Error(data.message || "Failed to create product");
+          }
+
+          statusEl.textContent = "✅ Product created successfully!";
+          statusEl.classList.remove("error");
+          setGlobalStatus("Product created successfully!", false);
+
+          // Clear form
+          clearNewProductForm();
+
+          // Reload products to show the new one
+          setTimeout(() => {
+            loadProducts();
+          }, 500);
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = err.message || "Error creating product";
+          statusEl.classList.add("error");
+          setGlobalStatus("Error creating product.", true);
         }
       }
     </script>
