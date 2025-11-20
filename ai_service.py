@@ -229,10 +229,19 @@ class AIService:
             'kam', 'ghata', 'minus', 'निकाल', 'बिक', 'बेच'
         ]
 
-        # CHECK keywords
+        # CHECK keywords - all ways to ask for stock
         check_keywords = [
-            'kitna', 'kitne', 'check', 'देखो', 'बताओ', 'batao',
-            'stock check', 'how much', 'कितना'
+            # Hindi/Hinglish
+            'kitna', 'kitne', 'kitni', 'कितना', 'कितने', 'कितनी',
+            'dikhao', 'dikha', 'दिखाओ', 'दिखा',
+            'batao', 'bata', 'बताओ', 'बता',
+            'bachi', 'bacha', 'बची', 'बचा', 'बचे',
+            'quantity', 'stock',
+            # English
+            'check', 'show', 'how much', 'how many',
+            'stock check', 'check stock',
+            # Phrases
+            'ka stock', 'ke packet', 'ki quantity',
         ]
 
         # Determine action
@@ -1458,6 +1467,42 @@ class AIService:
                 confidence=0.95,
                 raw_message=message,
             )
+
+        # IMPROVED: Detect CHECK_STOCK commands with keywords
+        # Examples: "maggi ka stock dikhao", "rice kitna hai", "oil batao"
+        check_stock_keywords = [
+            'kitna', 'kitne', 'kitni', 'dikhao', 'dikha', 'batao', 'bata',
+            'bachi', 'bacha', 'quantity', 'check', 'show', 'how much', 'how many',
+        ]
+
+        # If message contains CHECK keywords and no digits (not add/reduce), it's CHECK_STOCK
+        if not any(ch.isdigit() for ch in normalized):
+            has_check_keyword = any(kw in normalized for kw in check_stock_keywords)
+
+            if has_check_keyword:
+                # Extract product name by removing check keywords and common words
+                words_to_remove = check_stock_keywords + [
+                    'stock', 'hai', 'ka', 'ke', 'ki', 'packet', 'packets',
+                    'karo', 'do', 'the', 'is', 'are', 'h'
+                ]
+
+                product_words = []
+                for word in normalized.split():
+                    word_lower = word.lower()
+                    if word_lower not in words_to_remove and not any(kw in word_lower for kw in words_to_remove):
+                        product_words.append(word)
+
+                product_name = ' '.join(product_words).strip()
+
+                # If we extracted a product name, return CHECK_STOCK
+                if product_name:
+                    return ParsedCommand(
+                        action=CommandAction.CHECK_STOCK,
+                        product_name=product_name,
+                        quantity=None,
+                        confidence=0.95,
+                        raw_message=message,
+                    )
 
         # Simple heuristic: if user just types a product name (1-3 words,
         # without any numbers), treat it as a CHECK_STOCK query.

@@ -225,7 +225,13 @@ class CommandProcessor:
                 print(f"🔍 Seasonal suggestion result: {result}")
 
             # Step 6: Generate response
-            if result['success']:
+            # IMPROVED: If result already has a custom message (e.g., CHECK_STOCK with multiple products),
+            # use that instead of generating a new one
+            if result.get('message'):
+                # Result already has a formatted message - use it directly
+                response_message = result['message']
+            elif result['success']:
+                # Generate response using AI service
                 response_message = self.ai_service.generate_response(
                     parsed_command.action.value,
                     result,
@@ -449,53 +455,72 @@ class CommandProcessor:
                 )
 
             elif command.action == CommandAction.CHECK_STOCK:
+                # IMPROVED: Show stock for ALL matching products
                 # Check for multiple matching products first
-                matching_products = self.db.find_all_matching_products(shop_id, command.product_name)
-                if matching_products:
-                    # Multiple matches found - save pending selection and ask user to choose
-                    product_ids = [p.product_id for p in matching_products]
-                    product_names = [p.name for p in matching_products]
+                matching_products = self.db.find_all_matching_products(shop_id, command.product_name, min_matches=1)
 
-                    self.db.save_pending_selection(
-                        shop_id=shop_id,
-                        user_phone=user_phone,
-                        action="CHECK_STOCK",
-                        quantity=0,  # Not used for check stock
-                        product_ids=product_ids,
-                        product_names=product_names,
-                    )
+                if matching_products and len(matching_products) > 1:
+                    # Multiple matches found - show stock for ALL products
+                    message = f"📦 Stock for '{command.product_name}':\n\n"
 
-                    # Build numbered list message
-                    message = f"🤔 Multiple products found for '{command.product_name}':\n\n"
-                    for i, name in enumerate(product_names, 1):
-                        message += f"{i}. {name}\n"
-                    message += f"\nPlease reply with the number (1-{len(product_names)}) to check stock."
+                    for i, product in enumerate(matching_products, 1):
+                        stock_status = "✅" if product.current_stock > 0 else "❌"
+                        message += f"{i}. {product.name}\n"
+                        message += f"   {stock_status} Stock: {product.current_stock} {product.unit or 'pieces'}\n"
+                        if product.selling_price:
+                            message += f"   💰 Price: ₹{product.selling_price}\n"
+                        if product.brand:
+                            message += f"   🏷️ Brand: {product.brand}\n"
+                        message += "\n"
+
+                    total_stock = sum(p.current_stock for p in matching_products)
+                    message += f"📊 Total stock across all variants: {total_stock} {matching_products[0].unit or 'pieces'}"
 
                     return {
-                        'success': False,
+                        'success': True,
                         'message': message,
-                        'multiple_matches': True,
+                        'multiple_products': True,
+                        'products': [
+                            {
+                                'product_name': p.name,
+                                'current_stock': p.current_stock,
+                                'unit': p.unit,
+                                'selling_price': p.selling_price,
+                                'brand': p.brand,
+                            }
+                            for p in matching_products
+                        ],
                     }
 
-                # Single or no match - use existing logic
-                product = self.db.find_existing_product_by_name(shop_id, command.product_name)
-                if not product:
+                elif matching_products and len(matching_products) == 1:
+                    # Single match found
+                    product = matching_products[0]
+                    stock_status = "✅" if product.current_stock > 0 else "❌"
+                    message = f"📦 {product.name}\n"
+                    message += f"{stock_status} Stock: {product.current_stock} {product.unit or 'pieces'}\n"
+                    if product.selling_price:
+                        message += f"💰 Price: ₹{product.selling_price}\n"
+                    if product.brand:
+                        message += f"🏷️ Brand: {product.brand}\n"
+
+                    return {
+                        'success': True,
+                        'message': message,
+                        'product_name': product.name,
+                        'current_stock': product.current_stock,
+                        'unit': product.unit,
+                        'selling_price': product.selling_price,
+                        'cost_price': product.cost_price,
+                        'expiry_date': product.expiry_date,
+                        'brand': product.brand,
+                    }
+
+                else:
+                    # No match found
                     return {
                         'success': False,
                         'message': f"❌ '{command.product_name}' product list mein nahi mila. Pehle product ko list mein add karo ya sahi naam bolo.",
                     }
-                # Build the same shape as db.check_stock would return, but without
-                # creating any new product. Include price and expiry information.
-                return {
-                    'success': True,
-                    'product_name': product.name,
-                    'current_stock': product.current_stock,
-                    'unit': product.unit,
-                    'selling_price': product.selling_price,
-                    'cost_price': product.cost_price,
-                    'expiry_date': product.expiry_date,
-                    'brand': product.brand,
-                }
 
             elif command.action == CommandAction.TOTAL_SALES:
                 return self.db.get_total_sales_today(shop_id=shop_id)
