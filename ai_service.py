@@ -1389,23 +1389,54 @@ class AIService:
                         action = CommandAction.REDUCE_STOCK
 
                     if action is not None:
-                        # Try to infer product name as the words BEFORE the number
-                        orig_words = message.split()
-                        norm_words = normalized.split()
-                        if len(orig_words) == len(norm_words):
-                            num_idx = next(
-                                (i for i, w in enumerate(norm_words) if any(ch.isdigit() for ch in w)),
-                                None,
-                            )
+                        # IMPROVED: Extract product name from normalized message
+                        # The normalized message is in format: "QUANTITY PRODUCT ACTION"
+                        # Example: "10 rice add kar do"
+                        # We need to extract just "rice" (between quantity and action keywords)
 
-                            product_tokens = []
-                            if num_idx is not None and num_idx > 0:
-                                # Product name is BEFORE the number
-                                product_tokens = orig_words[:num_idx]
+                        # Remove quantity from normalized message
+                        text_without_qty = normalized
+                        if qty_val:
+                            # Remove the quantity number
+                            qty_str = str(int(qty_val) if qty_val.is_integer() else qty_val)
+                            text_without_qty = re.sub(r'\b' + re.escape(qty_str) + r'\b', '', normalized, count=1).strip()
 
-                            product_name = " ".join(t.strip() for t in product_tokens).strip() or message.strip()
-                        else:
-                            product_name = message.strip()
+                        # Remove action keywords
+                        all_action_keywords = add_keywords + reduce_keywords + [
+                            'kar', 'karo', 'do', 'diya', 'diye', 'gaya', 'gaye', 'hai', 'ka', 'ke', 'ki',
+                            'stock', 'करो', 'दो', 'दिया', 'दिये', 'गया', 'गये', 'है', 'का', 'के', 'की'
+                        ]
+
+                        # Extract product name by removing action keywords
+                        product_words = []
+                        for word in text_without_qty.split():
+                            word_lower = word.lower()
+                            # Keep word if it's not an action keyword
+                            if word_lower not in all_action_keywords and not any(kw in word_lower for kw in all_action_keywords):
+                                product_words.append(word)
+
+                        product_name = " ".join(product_words).strip()
+
+                        # Fallback: if no product name found, use the original extraction logic
+                        if not product_name:
+                            orig_words = message.split()
+                            norm_words = normalized.split()
+                            if len(orig_words) == len(norm_words):
+                                num_idx = next(
+                                    (i for i, w in enumerate(norm_words) if any(ch.isdigit() for ch in w)),
+                                    None,
+                                )
+
+                                product_tokens = []
+                                if num_idx is not None and num_idx > 0:
+                                    # Product name is BEFORE the number
+                                    product_tokens = orig_words[:num_idx]
+
+                                product_name = " ".join(t.strip() for t in product_tokens).strip()
+
+                        # Final fallback
+                        if not product_name:
+                            product_name = "unknown"
 
                         return ParsedCommand(
                             action=action,

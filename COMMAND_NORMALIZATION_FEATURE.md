@@ -9,12 +9,14 @@ This feature makes the bot **super intelligent** at understanding commands regar
 ## 🎯 **Problem Solved**
 
 **Before:**
+
 - Bot only understood: "10 rice add kar do" (specific word order)
 - If shopkeeper said: "rice 10 add kar do" → ❌ Confused
 - If shopkeeper said: "add 10 rice" → ❌ Confused
 - If shopkeeper said: "rice badha do 10" → ❌ Confused
 
 **After:**
+
 - ✅ "10 rice add kar do" → Works!
 - ✅ "rice 10 add kar do" → Works!
 - ✅ "add 10 rice" → Works!
@@ -42,6 +44,7 @@ The bot intelligently extracts 3 components from ANY position in the sentence:
 The bot recognizes multiple keywords for each action:
 
 **ADD Keywords:**
+
 - add, aad, dal, daal, डाल
 - jod, jodo, जोड़
 - badha, badhao, बढ़ा
@@ -50,6 +53,7 @@ The bot recognizes multiple keywords for each action:
 - aur, और
 
 **REDUCE Keywords:**
+
 - bik, bika, बिक
 - bech, beche, बेच
 - sold, sell, sale
@@ -57,6 +61,7 @@ The bot recognizes multiple keywords for each action:
 - निकाल
 
 **CHECK Keywords:**
+
 - kitna, kitne, कितना
 - check, देखो
 - batao, बताओ
@@ -80,48 +85,48 @@ The normalized command is then parsed by the existing heuristic parser, which no
 
 ### **Example 1: Different Word Orders**
 
-| Input | Normalized | Result |
-|-------|-----------|--------|
+| Input                | Normalized           | Result         |
+| -------------------- | -------------------- | -------------- |
 | `10 rice add kar do` | `10 rice add kar do` | ✅ ADD 10 rice |
 | `rice 10 add kar do` | `10 rice add kar do` | ✅ ADD 10 rice |
-| `add 10 rice` | `10 rice add kar do` | ✅ ADD 10 rice |
-| `add rice 10` | `10 rice add kar do` | ✅ ADD 10 rice |
-| `rice badha do 10` | `10 rice add kar do` | ✅ ADD 10 rice |
+| `add 10 rice`        | `10 rice add kar do` | ✅ ADD 10 rice |
+| `add rice 10`        | `10 rice add kar do` | ✅ ADD 10 rice |
+| `rice badha do 10`   | `10 rice add kar do` | ✅ ADD 10 rice |
 
 ### **Example 2: Different Action Keywords**
 
-| Input | Normalized | Result |
-|-------|-----------|--------|
-| `10 rice add kar do` | `10 rice add kar do` | ✅ ADD 10 rice |
-| `10 rice jod do` | `10 rice add kar do` | ✅ ADD 10 rice |
-| `10 rice badha do` | `10 rice add kar do` | ✅ ADD 10 rice |
-| `10 rice dal do` | `10 rice add kar do` | ✅ ADD 10 rice |
-| `10 rice update kar do` | `10 rice add kar do` | ✅ ADD 10 rice |
+| Input                            | Normalized           | Result         |
+| -------------------------------- | -------------------- | -------------- |
+| `10 rice add kar do`             | `10 rice add kar do` | ✅ ADD 10 rice |
+| `10 rice jod do`                 | `10 rice add kar do` | ✅ ADD 10 rice |
+| `10 rice badha do`               | `10 rice add kar do` | ✅ ADD 10 rice |
+| `10 rice dal do`                 | `10 rice add kar do` | ✅ ADD 10 rice |
+| `10 rice update kar do`          | `10 rice add kar do` | ✅ ADD 10 rice |
 | `10 rice ka stock update kar do` | `10 rice add kar do` | ✅ ADD 10 rice |
 
 ### **Example 3: REDUCE Stock**
 
-| Input | Normalized | Result |
-|-------|-----------|--------|
-| `5 maggi bik gaya` | `5 maggi bik gaya` | ✅ REDUCE 5 maggi |
+| Input               | Normalized         | Result            |
+| ------------------- | ------------------ | ----------------- |
+| `5 maggi bik gaya`  | `5 maggi bik gaya` | ✅ REDUCE 5 maggi |
 | `maggi 5 bech diya` | `5 maggi bik gaya` | ✅ REDUCE 5 maggi |
-| `5 maggi sold` | `5 maggi bik gaya` | ✅ REDUCE 5 maggi |
+| `5 maggi sold`      | `5 maggi bik gaya` | ✅ REDUCE 5 maggi |
 | `maggi bech diya 5` | `5 maggi bik gaya` | ✅ REDUCE 5 maggi |
 
 ### **Example 4: CHECK Stock**
 
-| Input | Normalized | Result |
-|-------|-----------|--------|
+| Input            | Normalized       | Result        |
+| ---------------- | ---------------- | ------------- |
 | `rice kitna hai` | `rice kitna hai` | ✅ CHECK rice |
 | `kitna hai rice` | `rice kitna hai` | ✅ CHECK rice |
 
 ### **Example 5: Multi-Word Products**
 
-| Input | Normalized | Result |
-|-------|-----------|--------|
-| `10 Parle G add kar do` | `10 Parle G add kar do` | ✅ ADD 10 Parle G |
-| `Parle G 10 add kar do` | `10 Parle G add kar do` | ✅ ADD 10 Parle G |
-| `add 10 Parle G` | `10 Parle G add kar do` | ✅ ADD 10 Parle G |
+| Input                       | Normalized                  | Result                |
+| --------------------------- | --------------------------- | --------------------- |
+| `10 Parle G add kar do`     | `10 Parle G add kar do`     | ✅ ADD 10 Parle G     |
+| `Parle G 10 add kar do`     | `10 Parle G add kar do`     | ✅ ADD 10 Parle G     |
+| `add 10 Parle G`            | `10 Parle G add kar do`     | ✅ ADD 10 Parle G     |
 | `5 Basmati Rice add kar do` | `5 Basmati Rice add kar do` | ✅ ADD 5 Basmati Rice |
 | `Basmati Rice 5 add kar do` | `5 Basmati Rice add kar do` | ✅ ADD 5 Basmati Rice |
 
@@ -166,12 +171,14 @@ Only 1 test failed due to OpenAI rate limit (not a code issue).
 ### **ai_service.py**
 
 **Added `normalize_command_structure()` method (lines 185-312):**
+
 - Extracts quantity from anywhere in the sentence
 - Identifies action type by keywords (ADD/REDUCE/CHECK)
 - Extracts product name by removing quantity and action keywords
 - Reconstructs command in standard format
 
 **Updated `parse_command()` method (lines 458-481):**
+
 - Added normalization step before heuristic parsing
 - Normalizes command structure first, then parses
 
@@ -192,16 +199,19 @@ Only 1 test failed due to OpenAI rate limit (not a code issue).
 ## 🎯 **Supported Variations**
 
 ### **Quantity Position:**
+
 - ✅ `10 rice add` (beginning)
 - ✅ `rice 10 add` (middle)
 - ✅ `rice add 10` (end)
 
 ### **Action Position:**
+
 - ✅ `add 10 rice` (beginning)
 - ✅ `10 add rice` (middle)
 - ✅ `10 rice add` (end)
 
 ### **Product Position:**
+
 - ✅ `rice 10 add` (beginning)
 - ✅ `10 rice add` (middle)
 - ✅ `add 10 rice` (end)
@@ -212,3 +222,64 @@ Only 1 test failed due to OpenAI rate limit (not a code issue).
 
 **Feature is ready to use! The bot is now super smart at understanding commands!** 🚀
 
+---
+
+## 🧪 **Real Database Test Results**
+
+Tested with actual Firestore database:
+
+```
+Test 1: '10 rice add kar do'
+✅ Parsed: Action=add_stock, Product='rice', Qty=10.0
+✅ Found 5 matching products in database:
+   - Basmati Rice Daawat 1kg (Stock: 20.0)
+   - Basmati Rice Kohinoor 1kg (Stock: 0.0)
+   - Sona Masoori Rice 1kg (Stock: 0.0)
+   - Rajdhani Basmati Rice 5kg (Stock: 25.0)
+   - Kohinoor Basmati Rice 1kg (Stock: 50.0)
+
+Test 2: 'rice 10 add kar do'
+✅ Parsed: Action=add_stock, Product='rice', Qty=10.0
+✅ Found 5 matching products (same as above)
+
+Test 3: 'add 10 rice'
+✅ Parsed: Action=add_stock, Product='rice', Qty=10.0
+✅ Found 5 matching products (same as above)
+
+Test 4: '10 rice badha do'
+✅ Parsed: Action=add_stock, Product='rice', Qty=10.0
+✅ Found 5 matching products (same as above)
+
+Test 5: 'rice badha do 10'
+✅ Parsed: Action=add_stock, Product='rice', Qty=10.0
+✅ Found 5 matching products (same as above)
+```
+
+**All variations work perfectly and trigger multi-product selection!** 🎉
+
+---
+
+## 🔄 **Integration with Multi-Product Selection**
+
+When the bot finds multiple matching products (like 5 rice brands), it will:
+
+1. ✅ Parse the command correctly (e.g., "rice 10 add kar do" → Product: "rice", Qty: 10)
+2. ✅ Find all matching products in database (5 rice products)
+3. ✅ Show numbered list to user:
+
+   ```
+   🤔 Multiple products found for 'rice':
+
+   1. Basmati Rice Daawat 1kg
+   2. Basmati Rice Kohinoor 1kg
+   3. Sona Masoori Rice 1kg
+   4. Rajdhani Basmati Rice 5kg
+   5. Kohinoor Basmati Rice 1kg
+
+   Please reply with the number (1-5) to select which product you want to update.
+   ```
+
+4. ✅ User replies with number (e.g., "2")
+5. ✅ Bot updates the selected product
+
+**No more errors! Perfect integration!** 🚀
