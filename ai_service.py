@@ -1481,15 +1481,17 @@ class AIService:
 
             if has_check_keyword:
                 # Extract product name by removing check keywords and common words
-                words_to_remove = check_stock_keywords + [
+                # FIXED: Use exact word matching to avoid removing "ghee" when "do" is in words_to_remove
+                words_to_remove = set(check_stock_keywords + [
                     'stock', 'hai', 'ka', 'ke', 'ki', 'packet', 'packets',
-                    'karo', 'do', 'the', 'is', 'are', 'h'
-                ]
+                    'karo', 'do', 'the', 'is', 'are', 'h', 'kare', 'karo'
+                ])
 
                 product_words = []
                 for word in normalized.split():
                     word_lower = word.lower()
-                    if word_lower not in words_to_remove and not any(kw in word_lower for kw in words_to_remove):
+                    # FIXED: Only remove if word exactly matches (not substring match)
+                    if word_lower not in words_to_remove:
                         product_words.append(word)
 
                 product_name = ' '.join(product_words).strip()
