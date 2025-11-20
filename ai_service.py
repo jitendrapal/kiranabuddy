@@ -182,6 +182,135 @@ class AIService:
 
         return cleaned
 
+    def normalize_command_structure(self, text: str) -> str:
+        """Normalize command structure to standard format: QUANTITY PRODUCT ACTION
+
+        This method intelligently extracts:
+        1. Quantity (number) - from anywhere in the sentence
+        2. Product name - from anywhere in the sentence
+        3. Action keywords - from anywhere in the sentence
+
+        Then reconstructs the command in a standard format that AI can easily parse.
+
+        Examples:
+            "10 rice add kar do" → "10 rice add kar do" (already good)
+            "rice 10 add kar do" → "10 rice add kar do" (reordered)
+            "add 10 rice" → "10 rice add" (reordered)
+            "10 rice jod do" → "10 rice add kar do" (normalized action)
+            "rice badha do 10" → "10 rice add kar do" (reordered + normalized)
+            "10 rice ka stock update kar do" → "10 rice add kar do" (simplified)
+
+        Args:
+            text: Cleaned text from clean_voice_text()
+
+        Returns:
+            Normalized command in standard format
+        """
+        if not text or not text.strip():
+            return text
+
+        import re
+
+        # Step 1: Extract quantity (any number in the text)
+        quantity_match = re.search(r'\b(\d+(?:\.\d+)?)\b', text)
+        quantity = quantity_match.group(1) if quantity_match else None
+
+        # Step 2: Identify action type by keywords
+        # ADD keywords
+        add_keywords = [
+            'add', 'aad', 'dal', 'daal', 'डाल', 'jod', 'jodo', 'जोड़',
+            'badha', 'badhao', 'बढ़ा', 'update', 'अपडेट',
+            'stock update', 'stock badha', 'aur', 'और'
+        ]
+
+        # REDUCE/SELL keywords
+        reduce_keywords = [
+            'bik', 'bika', 'bech', 'beche', 'sold', 'sell', 'sale',
+            'kam', 'ghata', 'minus', 'निकाल', 'बिक', 'बेच'
+        ]
+
+        # CHECK keywords
+        check_keywords = [
+            'kitna', 'kitne', 'check', 'देखो', 'बताओ', 'batao',
+            'stock check', 'how much', 'कितना'
+        ]
+
+        # Determine action
+        text_lower = text.lower()
+        action_type = None
+        action_phrase = None
+
+        # Check for ADD action
+        for keyword in add_keywords:
+            if keyword in text_lower:
+                action_type = 'ADD'
+                action_phrase = 'add kar do'
+                break
+
+        # Check for REDUCE action (overrides ADD if found)
+        if not action_type:
+            for keyword in reduce_keywords:
+                if keyword in text_lower:
+                    action_type = 'REDUCE'
+                    action_phrase = 'bik gaya'
+                    break
+
+        # Check for CHECK action (overrides others if found)
+        if not action_type:
+            for keyword in check_keywords:
+                if keyword in text_lower:
+                    action_type = 'CHECK'
+                    action_phrase = 'kitna hai'
+                    break
+
+        # If no action identified, return original text
+        if not action_type:
+            return text
+
+        # Step 3: Extract product name (everything except quantity and action keywords)
+        # Remove quantity from text
+        text_without_quantity = text
+        if quantity:
+            text_without_quantity = re.sub(r'\b' + re.escape(quantity) + r'\b', '', text, count=1)
+
+        # Remove action keywords and common command words
+        words_to_remove = add_keywords + reduce_keywords + check_keywords + [
+            'kar', 'karo', 'do', 'gaya', 'hai', 'ka', 'ke', 'ki',
+            'stock', 'करो', 'दो', 'गया', 'है', 'का', 'के', 'की'
+        ]
+
+        product_name_parts = []
+        for word in text_without_quantity.split():
+            word_lower = word.lower()
+            # Keep word if it's not an action keyword or command word
+            if word_lower not in words_to_remove and not any(kw in word_lower for kw in words_to_remove):
+                product_name_parts.append(word)
+
+        product_name = ' '.join(product_name_parts).strip()
+
+        # If no product name found, return original text
+        if not product_name:
+            return text
+
+        # Step 4: Reconstruct command in standard format
+        if action_type == 'ADD':
+            if quantity:
+                normalized = f"{quantity} {product_name} add kar do"
+            else:
+                normalized = f"{product_name} add kar do"
+        elif action_type == 'REDUCE':
+            if quantity:
+                normalized = f"{quantity} {product_name} bik gaya"
+            else:
+                normalized = f"{product_name} bik gaya"
+        elif action_type == 'CHECK':
+            normalized = f"{product_name} kitna hai"
+        else:
+            return text
+
+        print(f"🔄 Command normalized: '{text}' → '{normalized}'")
+        return normalized
+
     def detect_language(self, message: str) -> str:
         """Very simple language detector: returns 'hindi' or 'english'.
 
@@ -338,6 +467,14 @@ class AIService:
         """
         # Normalize common Hindi script to Hinglish for more robust parsing
         hinglish_message = self._normalize_hindi_to_hinglish(message)
+
+        # STEP 1: Normalize command structure (reorder words to standard format)
+        # This handles commands like "rice 10 add", "add 10 rice", "10 rice badha do"
+        # and converts them to standard format: "10 rice add kar do"
+        normalized_structure = self.normalize_command_structure(hinglish_message)
+
+        # Use the normalized structure for parsing
+        hinglish_message = normalized_structure
 
         # Simple heuristic before calling OpenAI: detect some common intents
         normalized = hinglish_message.lower().strip()
