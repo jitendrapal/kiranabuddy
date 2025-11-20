@@ -76,21 +76,17 @@ class AIService:
                 except Exception:
                     pass
 
-    def clean_voice_text(self, text: str) -> str:
-        """Clean and normalize voice-to-text output.
+    def _convert_hindi_numbers_to_digits(self, text: str) -> str:
+        """Convert Hindi and English number words to digits.
 
-        Uses regex-based cleaning for speed and reliability:
-        - Converts Hindi number words to digits (do → 2, teen → 3)
-        - Removes filler words (um, uh, hmm, like, you know, etc.)
-        - Removes repeated consecutive words
-        - Removes extra whitespace
-        - Normalizes common voice artifacts
+        Handles both Hindi (teen, panch, das) and English (five, ten, twenty) number words.
+        Special handling for "do" to avoid confusion with command suffix "kar do".
 
         Args:
-            text: Raw transcribed text from Whisper
+            text: Text containing number words
 
         Returns:
-            Cleaned and normalized text ready for command parsing
+            Text with number words converted to digits
         """
         if not text or not text.strip():
             return text
@@ -99,8 +95,8 @@ class AIService:
 
         cleaned = text.strip()
 
-        # Step 0: Convert Hindi number words to digits FIRST (before cleaning)
-        # This prevents confusion with "do" (2) vs "do" (command suffix in "kar do")
+        # Step 1: Convert Hindi number words to digits
+        # Special handling for "do" - only convert if followed by action words
 
         # Special handling for "do" - only convert if followed by action words
         # "Maggi do add" → "Maggi 2 add" (convert)
@@ -154,6 +150,70 @@ class AIService:
         # Convert Hindi numbers to digits (case-insensitive)
         for hindi_word, digit in hindi_numbers.items():
             cleaned = re.sub(hindi_word, digit, cleaned, flags=re.IGNORECASE)
+
+        # Step 2: Convert English number words to digits
+        english_numbers = {
+            r'\bone\b': '1',
+            r'\btwo\b': '2',
+            r'\bthree\b': '3',
+            r'\bfour\b': '4',
+            r'\bfive\b': '5',
+            r'\bsix\b': '6',
+            r'\bseven\b': '7',
+            r'\beight\b': '8',
+            r'\bnine\b': '9',
+            r'\bten\b': '10',
+            r'\beleven\b': '11',
+            r'\btwelve\b': '12',
+            r'\bthirteen\b': '13',
+            r'\bfourteen\b': '14',
+            r'\bfifteen\b': '15',
+            r'\bsixteen\b': '16',
+            r'\bseventeen\b': '17',
+            r'\beighteen\b': '18',
+            r'\bnineteen\b': '19',
+            r'\btwenty\b': '20',
+            r'\bthirty\b': '30',
+            r'\bforty\b': '40',
+            r'\bfifty\b': '50',
+            r'\bsixty\b': '60',
+            r'\bseventy\b': '70',
+            r'\beighty\b': '80',
+            r'\bninety\b': '90',
+            r'\bhundred\b': '100',
+        }
+
+        # Convert English numbers to digits (case-insensitive)
+        for english_word, digit in english_numbers.items():
+            cleaned = re.sub(english_word, digit, cleaned, flags=re.IGNORECASE)
+
+        return cleaned
+
+    def clean_voice_text(self, text: str) -> str:
+        """Clean and normalize voice-to-text output.
+
+        Uses regex-based cleaning for speed and reliability:
+        - Converts Hindi number words to digits (do → 2, teen → 3)
+        - Removes filler words (um, uh, hmm, like, you know, etc.)
+        - Removes repeated consecutive words
+        - Removes extra whitespace
+        - Normalizes common voice artifacts
+
+        Args:
+            text: Raw transcribed text from Whisper
+
+        Returns:
+            Cleaned and normalized text ready for command parsing
+        """
+        if not text or not text.strip():
+            return text
+
+        import re
+
+        cleaned = text.strip()
+
+        # Step 0: Convert Hindi/English number words to digits FIRST (before cleaning)
+        cleaned = self._convert_hindi_numbers_to_digits(cleaned)
 
         # Step 1: Remove common filler words (case-insensitive)
         filler_words = [
@@ -476,6 +536,11 @@ class AIService:
         """
         # Normalize common Hindi script to Hinglish for more robust parsing
         hinglish_message = self._normalize_hindi_to_hinglish(message)
+
+        # IMPROVED: Convert Hindi number words to digits for ALL commands (text + voice)
+        # This handles: "teen rice add kar do" → "3 rice add kar do"
+        #               "panch oil badha do" → "5 oil badha do"
+        hinglish_message = self._convert_hindi_numbers_to_digits(hinglish_message)
 
         # STEP 1: Normalize command structure (reorder words to standard format)
         # This handles commands like "rice 10 add", "add 10 rice", "10 rice badha do"
