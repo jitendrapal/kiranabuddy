@@ -101,6 +101,56 @@ class CommandProcessor:
             else:
                 response_language = self.ai_service.detect_language(text)
 
+            # Check if user has a pending product selection
+            pending = self.db.get_pending_selection(from_phone)
+            if pending and not pending.is_expired():
+                # User might be responding with a number to select a product
+                number_match = re.match(r'^\s*(\d+)\s*$', text.strip())
+                if number_match:
+                    selection_num = int(number_match.group(1))
+                    if 1 <= selection_num <= len(pending.product_ids):
+                        # Valid selection - execute the pending action
+                        selected_product_id = pending.product_ids[selection_num - 1]
+                        selected_product_name = pending.product_names[selection_num - 1]
+
+                        print(f"✅ User selected option {selection_num}: {selected_product_name}")
+
+                        # Delete the pending selection
+                        self.db.delete_pending_selection(from_phone)
+
+                        # Execute the action with the selected product
+                        if pending.action == "ADD_STOCK":
+                            result = self.db.add_stock(shop_id, selected_product_name, pending.quantity, from_phone)
+                            response_message = self.ai_service.generate_response(
+                                "add_stock", result, language=response_language
+                            )
+                        elif pending.action == "REDUCE_STOCK":
+                            result = self.db.reduce_stock(shop_id, selected_product_name, pending.quantity, from_phone)
+                            response_message = self.ai_service.generate_response(
+                                "reduce_stock", result, language=response_language
+                            )
+                        elif pending.action == "CHECK_STOCK":
+                            result = self.db.check_stock(shop_id, selected_product_name)
+                            response_message = self.ai_service.generate_response(
+                                "check_stock", result, language=response_language
+                            )
+                        else:
+                            result = {'success': False, 'message': 'Unknown action'}
+                            response_message = "❌ Unknown action"
+
+                        return {
+                            'success': result['success'],
+                            'message': response_message,
+                            'send_reply': True,
+                            'result': result,
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'message': f"❌ Invalid selection. Please choose a number between 1 and {len(pending.product_ids)}.",
+                            'send_reply': True,
+                        }
+
             # Special handling: batch of multiple barcode + quantity lines
             batch_result = self._try_process_barcode_batch(
                 shop_id=shop_id,
@@ -313,9 +363,35 @@ class CommandProcessor:
         try:
             print(f"🔧 _execute_command: action={command.action}, product={command.product_name}")
             if command.action == CommandAction.ADD_STOCK:
-                # For voice/text commands, only update existing products from the
-                # shop's catalog. Do NOT auto-create new products if the name
-                # doesn't match.
+                # Check for multiple matching products first
+                matching_products = self.db.find_all_matching_products(shop_id, command.product_name)
+                if matching_products:
+                    # Multiple matches found - save pending selection and ask user to choose
+                    product_ids = [p.product_id for p in matching_products]
+                    product_names = [p.name for p in matching_products]
+
+                    self.db.save_pending_selection(
+                        shop_id=shop_id,
+                        user_phone=user_phone,
+                        action="ADD_STOCK",
+                        quantity=command.quantity,
+                        product_ids=product_ids,
+                        product_names=product_names,
+                    )
+
+                    # Build numbered list message
+                    message = f"🤔 Multiple products found for '{command.product_name}':\n\n"
+                    for i, name in enumerate(product_names, 1):
+                        message += f"{i}. {name}\n"
+                    message += f"\nPlease reply with the number (1-{len(product_names)}) to select which product you want to update."
+
+                    return {
+                        'success': False,
+                        'message': message,
+                        'multiple_matches': True,
+                    }
+
+                # Single or no match - use existing logic
                 product = self.db.find_existing_product_by_name(shop_id, command.product_name)
                 if not product:
                     return {
@@ -330,6 +406,35 @@ class CommandProcessor:
                 )
 
             elif command.action == CommandAction.REDUCE_STOCK:
+                # Check for multiple matching products first
+                matching_products = self.db.find_all_matching_products(shop_id, command.product_name)
+                if matching_products:
+                    # Multiple matches found - save pending selection and ask user to choose
+                    product_ids = [p.product_id for p in matching_products]
+                    product_names = [p.name for p in matching_products]
+
+                    self.db.save_pending_selection(
+                        shop_id=shop_id,
+                        user_phone=user_phone,
+                        action="REDUCE_STOCK",
+                        quantity=command.quantity,
+                        product_ids=product_ids,
+                        product_names=product_names,
+                    )
+
+                    # Build numbered list message
+                    message = f"🤔 Multiple products found for '{command.product_name}':\n\n"
+                    for i, name in enumerate(product_names, 1):
+                        message += f"{i}. {name}\n"
+                    message += f"\nPlease reply with the number (1-{len(product_names)}) to select which product you want to update."
+
+                    return {
+                        'success': False,
+                        'message': message,
+                        'multiple_matches': True,
+                    }
+
+                # Single or no match - use existing logic
                 product = self.db.find_existing_product_by_name(shop_id, command.product_name)
                 if not product:
                     return {
@@ -344,6 +449,35 @@ class CommandProcessor:
                 )
 
             elif command.action == CommandAction.CHECK_STOCK:
+                # Check for multiple matching products first
+                matching_products = self.db.find_all_matching_products(shop_id, command.product_name)
+                if matching_products:
+                    # Multiple matches found - save pending selection and ask user to choose
+                    product_ids = [p.product_id for p in matching_products]
+                    product_names = [p.name for p in matching_products]
+
+                    self.db.save_pending_selection(
+                        shop_id=shop_id,
+                        user_phone=user_phone,
+                        action="CHECK_STOCK",
+                        quantity=0,  # Not used for check stock
+                        product_ids=product_ids,
+                        product_names=product_names,
+                    )
+
+                    # Build numbered list message
+                    message = f"🤔 Multiple products found for '{command.product_name}':\n\n"
+                    for i, name in enumerate(product_names, 1):
+                        message += f"{i}. {name}\n"
+                    message += f"\nPlease reply with the number (1-{len(product_names)}) to check stock."
+
+                    return {
+                        'success': False,
+                        'message': message,
+                        'multiple_matches': True,
+                    }
+
+                # Single or no match - use existing logic
                 product = self.db.find_existing_product_by_name(shop_id, command.product_name)
                 if not product:
                     return {

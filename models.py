@@ -374,6 +374,62 @@ class UnrecognizedCommand:
 
 
 @dataclass
+class PendingSelection:
+    """Model for storing pending product selections when multiple matches are found"""
+    selection_id: str
+    shop_id: str
+    user_phone: str
+    action: str  # The action to perform (ADD_STOCK, REDUCE_STOCK, etc.)
+    quantity: float  # The quantity for the action
+    product_ids: List[str]  # List of matching product IDs
+    product_names: List[str]  # List of matching product names for display
+    timestamp: datetime = None
+    expires_at: datetime = None  # Selection expires after 5 minutes
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.utcnow()
+        if self.expires_at is None:
+            from datetime import timedelta
+            self.expires_at = datetime.utcnow() + timedelta(minutes=5)
+
+    def is_expired(self) -> bool:
+        """Check if the selection has expired"""
+        return datetime.utcnow() > self.expires_at
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data['timestamp'] = self.timestamp.isoformat()
+        data['expires_at'] = self.expires_at.isoformat()
+        return data
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'PendingSelection':
+        d = dict(data or {})
+        ts = d.get('timestamp')
+        if isinstance(ts, str):
+            try:
+                d['timestamp'] = datetime.fromisoformat(ts)
+            except Exception:
+                d['timestamp'] = datetime.utcnow()
+        elif not isinstance(ts, datetime):
+            d['timestamp'] = datetime.utcnow()
+
+        exp = d.get('expires_at')
+        if isinstance(exp, str):
+            try:
+                d['expires_at'] = datetime.fromisoformat(exp)
+            except Exception:
+                from datetime import timedelta
+                d['expires_at'] = datetime.utcnow() + timedelta(minutes=5)
+        elif not isinstance(exp, datetime):
+            from datetime import timedelta
+            d['expires_at'] = datetime.utcnow() + timedelta(minutes=5)
+
+        return PendingSelection(**d)
+
+
+@dataclass
 class ParsedCommand:
     """Parsed command from user message"""
     action: CommandAction

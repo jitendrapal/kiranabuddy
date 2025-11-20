@@ -9,7 +9,7 @@ from google.cloud import firestore
 from google.oauth2 import service_account
 import uuid
 
-from models import Shop, User, Product, Transaction, UserRole, TransactionType, UdharEntry, UnrecognizedCommand
+from models import Shop, User, Product, Transaction, UserRole, TransactionType, UdharEntry, UnrecognizedCommand, PendingSelection
 
 # Dummy Indian products catalog for barcode-based demo.
 # In a real deployment you would load this from your own product master data.
@@ -391,6 +391,79 @@ class FirestoreDB:
                 best_product = p
 
         return best_product
+
+    def find_all_matching_products(self, shop_id: str, product_name: str, min_matches: int = 2) -> List[Product]:
+        """Find ALL products that match the search term.
+
+        Returns a list of matching products. If only 1 product matches, returns empty list
+        (use find_existing_product_by_name for single match).
+
+        This is used when we want to show the user multiple options to choose from.
+        """
+        if not product_name:
+            return []
+
+        normalized_name = canonical_product_key(product_name)
+
+        # Helper function to tokenize and match
+        def _tokenize_for_match(text: str) -> set:
+            if not text:
+                return set()
+            s = text.lower().replace("-", " ")
+            cleaned_chars = []
+            for ch in s:
+                if ch.isdigit() or ch in "+-":
+                    cleaned_chars.append(" ")
+                else:
+                    cleaned_chars.append(ch)
+            s = "".join(cleaned_chars)
+            stopwords = {
+                "add", "added", "sold", "sale", "bought", "purchase", "customer",
+                "new", "stock", "ne", "ko", "hai", "pieces", "piece", "packet",
+                "packets", "kg", "g", "gm", "ml", "ltr", "l",
+            }
+            tokens = [t for t in s.split() if t and t not in stopwords]
+            return set(tokens)
+
+        target_tokens = _tokenize_for_match(normalized_name)
+        if not target_tokens:
+            return []
+
+        matching_products = []
+
+        for p in self.get_products_by_shop(shop_id):
+            name_norm = (p.normalized_name or "").strip().lower()
+            if not name_norm:
+                continue
+            product_tokens = _tokenize_for_match(name_norm)
+            if not product_tokens:
+                continue
+
+            common = target_tokens & product_tokens
+            if not common:
+                continue
+
+            score = len(common)
+            coverage = score / max(1, len(product_tokens))
+
+            # For single-word searches (like "rice"), be more lenient
+            # For multi-word searches, require at least half the product tokens to match
+            min_coverage = 0.3 if len(target_tokens) == 1 else 0.5
+
+            if coverage >= min_coverage:
+                matching_products.append((p, score, coverage))
+
+        # Sort by score (descending) and then by coverage (descending)
+        matching_products.sort(key=lambda x: (x[1], x[2]), reverse=True)
+
+        # Return only the products (not scores)
+        products = [p for p, _, _ in matching_products]
+
+        # Only return if we have multiple matches
+        if len(products) >= min_matches:
+            return products
+        else:
+            return []
 
 
     def update_product_stock(self, product_id: str, new_stock: float) -> None:
@@ -2487,3 +2560,76 @@ class FirestoreDB:
                     "total_customers": 0,
                     "message": "❌ Udhar summary nikalte waqt error aaya.",
                 }
+
+    # ==================== PENDING SELECTION METHODS ====================
+
+    def save_pending_selection(
+        self,
+        shop_id: str,
+        user_phone: str,
+        action: str,
+        quantity: float,
+        product_ids: List[str],
+        product_names: List[str],
+    ) -> PendingSelection:
+        """Save a pending product selection when multiple matches are found."""
+        try:
+            # Delete any existing pending selection for this user
+            self.delete_pending_selection(user_phone)
+
+            selection_id = str(uuid.uuid4())
+            pending = PendingSelection(
+                selection_id=selection_id,
+                shop_id=shop_id,
+                user_phone=user_phone,
+                action=action,
+                quantity=quantity,
+                product_ids=product_ids,
+                product_names=product_names,
+            )
+
+            self.db.collection('pending_selections').document(selection_id).set(pending.to_dict())
+            print(f"✅ Saved pending selection: {selection_id} for user {user_phone}")
+            return pending
+        except Exception as e:
+            print(f"❌ Error saving pending selection: {e}")
+            raise
+
+    def get_pending_selection(self, user_phone: str) -> Optional[PendingSelection]:
+        """Get the pending selection for a user."""
+        try:
+            query = self.db.collection('pending_selections').where('user_phone', '==', user_phone)
+            docs = list(query.stream())
+
+            if not docs:
+                return None
+
+            # Get the most recent one (should only be one)
+            doc = docs[0]
+            pending = PendingSelection.from_dict(doc.to_dict())
+
+            # Check if expired
+            if pending.is_expired():
+                print(f"⏰ Pending selection expired for {user_phone}")
+                self.delete_pending_selection(user_phone)
+                return None
+
+            return pending
+        except Exception as e:
+            print(f"Error getting pending selection: {e}")
+            return None
+
+    def delete_pending_selection(self, user_phone: str) -> bool:
+        """Delete pending selection for a user."""
+        try:
+            query = self.db.collection('pending_selections').where('user_phone', '==', user_phone)
+            docs = list(query.stream())
+
+            for doc in docs:
+                doc.reference.delete()
+                print(f"🗑️ Deleted pending selection for {user_phone}")
+
+            return True
+        except Exception as e:
+            print(f"Error deleting pending selection: {e}")
+            return False
