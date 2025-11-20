@@ -46,7 +46,7 @@ class AIService:
                 )
 
             text = getattr(transcript, "text", None)
-            print(f"   Transcript: {repr(text)}")
+            print(f"   📝 Whisper Transcript (RAW): {repr(text)}")
 
             if text is None:
                 return None
@@ -57,8 +57,9 @@ class AIService:
                 return None
 
             # Clean and normalize the transcribed text
+            print(f"   🔍 Before cleaning: {repr(text)}")
             cleaned_text = self.clean_voice_text(text)
-            print(f"   Cleaned: {repr(cleaned_text)}")
+            print(f"   ✨ After cleaning: {repr(cleaned_text)}")
 
             return cleaned_text
 
@@ -100,9 +101,13 @@ class AIService:
 
         # Special handling for "do" - only convert if followed by action words
         # "Maggi do add" → "Maggi 2 add" (convert)
-        # "add kar do" → "add kar do" (don't convert)
-        cleaned = re.sub(r'\bdo\b(?=\s+(add|bik|sold|stock|check|kitna|hai))', '2', cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r'\bdoh\b(?=\s+(add|bik|sold|stock|check|kitna|hai))', '2', cleaned, flags=re.IGNORECASE)
+        # "Maggi do bik gaya" → "Maggi 2 bik gaya" (convert)
+        # "add kar do" → "add kar do" (don't convert - it's a command suffix)
+        # "karo do" → "karo do" (don't convert - it's a command suffix)
+
+        # Pattern: "do" followed by action words (add, bik, sold, etc.) but NOT command suffixes (kar, karo)
+        cleaned = re.sub(r'\bdo\b(?=\s+(add|aad|dal|daal|डाल|bik|sold|sell|bech|बेच|stock|check|kitna|hai))', '2', cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r'\bdoh\b(?=\s+(add|aad|dal|daal|डाल|bik|sold|sell|bech|बेच|stock|check|kitna|hai))', '2', cleaned, flags=re.IGNORECASE)
 
         # Other Hindi numbers (no ambiguity, convert all)
         hindi_numbers = {
