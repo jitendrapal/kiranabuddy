@@ -444,14 +444,20 @@ class FirestoreDB:
                 continue
 
             score = len(common)
-            coverage = score / max(1, len(product_tokens))
 
-            # For single-word searches (like "rice"), be more lenient
-            # For multi-word searches, require at least half the product tokens to match
-            min_coverage = 0.3 if len(target_tokens) == 1 else 0.5
-
-            if coverage >= min_coverage:
-                matching_products.append((p, score, coverage))
+            # IMPROVED: For single-word searches (like "oil", "rice", "maggi"),
+            # if the search term appears in the product, it's a match regardless of coverage
+            # This fixes the issue where "Fortune Rice Bran Oil 1L" (4 tokens) was excluded
+            # because coverage was 1/4 = 0.25 < 0.3
+            if len(target_tokens) == 1:
+                # Single-word search: if the word is in the product, it's a match
+                matching_products.append((p, score, 1.0))
+            else:
+                # Multi-word search: require at least half the product tokens to match
+                coverage = score / max(1, len(product_tokens))
+                min_coverage = 0.5
+                if coverage >= min_coverage:
+                    matching_products.append((p, score, coverage))
 
         # Sort by score (descending) and then by coverage (descending)
         matching_products.sort(key=lambda x: (x[1], x[2]), reverse=True)
