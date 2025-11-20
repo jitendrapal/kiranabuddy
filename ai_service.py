@@ -61,6 +61,9 @@ class AIService:
             cleaned_text = self.clean_voice_text(text)
             print(f"   ✨ After cleaning: {repr(cleaned_text)}")
 
+            # Store for unrecognized command tracking
+            self._last_cleaned_text = cleaned_text
+
             return cleaned_text
 
         except Exception as e:

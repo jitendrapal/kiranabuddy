@@ -795,6 +795,132 @@ def test_parse():
         return jsonify({'error': str(e)}), 500
 
 
+# ==================== BUG TRACKING ROUTES ====================
+
+@app.route('/bug')
+@login_required
+def bug_page():
+    """Page to view unrecognized commands (bugs)"""
+    return render_template('bug.html')
+
+
+@app.route('/api/bug', methods=['GET'])
+def get_bug_api():
+    """API endpoint to get unrecognized commands for a shop"""
+    try:
+        phone = request.args.get('phone')
+        include_resolved = request.args.get('include_resolved', 'false').lower() == 'true'
+
+        if not phone:
+            return jsonify({
+                'success': False,
+                'message': 'Phone number is required'
+            }), 400
+
+        # Get shop by phone
+        shop = db.get_shop_by_phone(phone)
+        if not shop:
+            return jsonify({
+                'success': False,
+                'message': f'No shop found for phone: {phone}'
+            }), 404
+
+        # Get unrecognized commands
+        commands = db.get_unrecognized_commands(
+            shop_id=shop.shop_id,
+            include_resolved=include_resolved
+        )
+
+        # Convert to dict for JSON response
+        commands_data = []
+        for cmd in commands:
+            commands_data.append({
+                'command_id': cmd.command_id,
+                'shop_id': cmd.shop_id,
+                'user_phone': cmd.user_phone,
+                'message_type': cmd.message_type,
+                'raw_text': cmd.raw_text,
+                'transcribed_text': cmd.transcribed_text,
+                'cleaned_text': cmd.cleaned_text,
+                'parsed_action': cmd.parsed_action,
+                'confidence': cmd.confidence,
+                'timestamp': cmd.timestamp.isoformat(),
+                'resolved': cmd.resolved,
+                'resolution_notes': cmd.resolution_notes,
+            })
+
+        return jsonify({
+            'success': True,
+            'shop_id': shop.shop_id,
+            'shop_name': shop.name,
+            'commands': commands_data
+        }), 200
+
+    except Exception as e:
+        print(f"Error getting unrecognized commands: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/bug/resolve', methods=['POST'])
+def resolve_bug():
+    """API endpoint to mark a command as resolved"""
+    try:
+        data = request.get_json()
+        command_id = data.get('command_id')
+        notes = data.get('notes', '')
+
+        if not command_id:
+            return jsonify({
+                'success': False,
+                'message': 'command_id is required'
+            }), 400
+
+        success = db.mark_command_resolved(command_id, notes)
+
+        return jsonify({
+            'success': success,
+            'message': 'Command marked as resolved' if success else 'Failed to mark as resolved'
+        }), 200
+
+    except Exception as e:
+        print(f"Error resolving command: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/bug/delete', methods=['POST'])
+def delete_bug():
+    """API endpoint to delete a command"""
+    try:
+        data = request.get_json()
+        command_id = data.get('command_id')
+
+        if not command_id:
+            return jsonify({
+                'success': False,
+                'message': 'command_id is required'
+            }), 400
+
+        success = db.delete_unrecognized_command(command_id)
+
+        return jsonify({
+            'success': success,
+            'message': 'Command deleted' if success else 'Failed to delete command'
+        }), 200
+
+    except Exception as e:
+        print(f"Error deleting command: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

@@ -335,6 +335,45 @@ class UdharEntry:
         return UdharEntry(**d)
 
 @dataclass
+class UnrecognizedCommand:
+    """Model for storing unrecognized voice/text commands"""
+    command_id: str
+    shop_id: str
+    user_phone: str
+    message_type: str  # 'voice' or 'text'
+    raw_text: str  # Original message text
+    transcribed_text: Optional[str] = None  # For voice messages, the Whisper transcription
+    cleaned_text: Optional[str] = None  # After voice cleaning (Hindi number conversion, filler removal)
+    parsed_action: Optional[str] = None  # What action the AI tried to parse
+    confidence: float = 0.0  # AI confidence score
+    timestamp: datetime = None
+    resolved: bool = False
+    resolution_notes: Optional[str] = None
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.utcnow()
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data['timestamp'] = self.timestamp.isoformat()
+        return data
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'UnrecognizedCommand':
+        d = dict(data or {})
+        ts = d.get('timestamp')
+        if isinstance(ts, str):
+            try:
+                d['timestamp'] = datetime.fromisoformat(ts)
+            except Exception:
+                d['timestamp'] = datetime.utcnow()
+        elif not isinstance(ts, datetime):
+            d['timestamp'] = datetime.utcnow()
+        return UnrecognizedCommand(**d)
+
+
+@dataclass
 class ParsedCommand:
     """Parsed command from user message"""
     action: CommandAction

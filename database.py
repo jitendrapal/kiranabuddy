@@ -9,7 +9,7 @@ from google.cloud import firestore
 from google.oauth2 import service_account
 import uuid
 
-from models import Shop, User, Product, Transaction, UserRole, TransactionType, UdharEntry
+from models import Shop, User, Product, Transaction, UserRole, TransactionType, UdharEntry, UnrecognizedCommand
 
 # Dummy Indian products catalog for barcode-based demo.
 # In a real deployment you would load this from your own product master data.
@@ -2243,7 +2243,101 @@ class FirestoreDB:
                 "message": "❌ Udhar history nikalte waqt error aaya.",
             }
 
+    # ==================== UNRECOGNIZED COMMAND OPERATIONS ====================
 
+    def save_unrecognized_command(
+        self,
+        shop_id: str,
+        user_phone: str,
+        message_type: str,
+        raw_text: str,
+        transcribed_text: Optional[str] = None,
+        cleaned_text: Optional[str] = None,
+        parsed_action: Optional[str] = None,
+        confidence: float = 0.0,
+    ) -> UnrecognizedCommand:
+        """Save an unrecognized command to the database for review."""
+        try:
+            command_id = str(uuid.uuid4())
+            unrecognized_cmd = UnrecognizedCommand(
+                command_id=command_id,
+                shop_id=shop_id,
+                user_phone=user_phone,
+                message_type=message_type,
+                raw_text=raw_text,
+                transcribed_text=transcribed_text,
+                cleaned_text=cleaned_text,
+                parsed_action=parsed_action,
+                confidence=confidence,
+                timestamp=datetime.utcnow(),
+                resolved=False,
+                resolution_notes=None,
+            )
+
+            self.db.collection('unrecognized_commands').document(command_id).set(unrecognized_cmd.to_dict())
+            print(f"✅ Saved unrecognized command: {command_id}")
+            return unrecognized_cmd
+        except Exception as e:
+            print(f"❌ Error saving unrecognized command: {e}")
+            raise
+
+    def get_unrecognized_commands(
+        self,
+        shop_id: str,
+        include_resolved: bool = False,
+        limit: int = 100
+    ) -> List[UnrecognizedCommand]:
+        """Get unrecognized commands for a shop."""
+        try:
+            # Query only by shop_id to avoid composite index requirement
+            query = self.db.collection('unrecognized_commands').where('shop_id', '==', shop_id)
+
+            docs = query.stream()
+            commands = []
+            for doc in docs:
+                try:
+                    cmd = UnrecognizedCommand.from_dict(doc.to_dict())
+                    # Filter resolved in Python instead of Firestore
+                    if include_resolved or not cmd.resolved:
+                        commands.append(cmd)
+                except Exception as e:
+                    print(f"Error parsing unrecognized command {doc.id}: {e}")
+
+            # Sort by timestamp in Python
+            commands.sort(key=lambda x: x.timestamp, reverse=True)
+
+            # Apply limit
+            return commands[:limit]
+        except Exception as e:
+            print(f"Error getting unrecognized commands: {e}")
+            return []
+
+    def mark_command_resolved(
+        self,
+        command_id: str,
+        resolution_notes: Optional[str] = None
+    ) -> bool:
+        """Mark an unrecognized command as resolved."""
+        try:
+            self.db.collection('unrecognized_commands').document(command_id).update({
+                'resolved': True,
+                'resolution_notes': resolution_notes or "Marked as resolved",
+            })
+            print(f"✅ Marked command {command_id} as resolved")
+            return True
+        except Exception as e:
+            print(f"❌ Error marking command as resolved: {e}")
+            return False
+
+    def delete_unrecognized_command(self, command_id: str) -> bool:
+        """Delete an unrecognized command."""
+        try:
+            self.db.collection('unrecognized_commands').document(command_id).delete()
+            print(f"✅ Deleted unrecognized command: {command_id}")
+            return True
+        except Exception as e:
+            print(f"❌ Error deleting unrecognized command: {e}")
+            return False
 
 
 

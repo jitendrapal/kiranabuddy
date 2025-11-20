@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bug Report - KiranaBuddy</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        font-weight: 600;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 15px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: white;
+        color: #667eea;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid white;
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .filters {
+        padding: 20px 30px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+
+      .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .filter-group label {
+        font-size: 14px;
+        color: #495057;
+        font-weight: 500;
+      }
+
+      .filter-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+
+      .stat-card h3 {
+        font-size: 14px;
+        font-weight: 500;
+        opacity: 0.9;
+        margin-bottom: 8px;
+      }
+
+      .stat-card .value {
+        font-size: 32px;
+        font-weight: 700;
+      }
+
+      .commands-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .command-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.3s;
+      }
+
+      .command-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .command-card.resolved {
+        opacity: 0.6;
+        background: #f8f9fa;
+      }
+
+      .command-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+      }
+
+      .command-meta {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+        color: #6c757d;
+      }
+
+      .badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .badge-voice {
+        background: #e7f3ff;
+        color: #0066cc;
+      }
+
+      .badge-text {
+        background: #fff3e0;
+        color: #e65100;
+      }
+
+      .badge-resolved {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+
+      .command-text {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+
+      .command-text h4 {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+
+      .command-text p {
+        font-size: 14px;
+        color: #212529;
+        margin: 5px 0;
+        font-family: "Courier New", monospace;
+      }
+
+      .command-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+
+      .btn-success {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #218838;
+      }
+
+      .btn-danger {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #c82333;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+      }
+
+      .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+      }
+
+      .empty-state h3 {
+        font-size: 20px;
+        margin-bottom: 10px;
+      }
+
+      .empty-state p {
+        font-size: 14px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+      }
+
+      .confidence-bar {
+        height: 6px;
+        background: #e9ecef;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+
+      .confidence-fill {
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          #dc3545 0%,
+          #ffc107 50%,
+          #28a745 100%
+        );
+        transition: width 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🐛 Bug Report</h1>
+        <div class="header-actions">
+          <button
+            class="btn btn-secondary"
+            onclick="window.location.href='/test'"
+          >
+            ← Back to Chat
+          </button>
+          <button class="btn btn-primary" onclick="loadCommands()">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <input type="checkbox" id="showResolved" onchange="loadCommands()" />
+          <label for="showResolved">Show Resolved</label>
+        </div>
+        <div class="filter-group">
+          <label>Shop Phone:</label>
+          <input
+            type="text"
+            id="shopPhone"
+            placeholder="+919876543210"
+            style="
+              padding: 8px;
+              border: 1px solid #ced4da;
+              border-radius: 6px;
+              font-size: 14px;
+            "
+          />
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="loadCommands()">
+          Load
+        </button>
+      </div>
+
+      <div class="content">
+        <div class="stats" id="stats">
+          <div class="stat-card">
+            <h3>Total Bugs</h3>
+            <div class="value" id="totalCount">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Voice Messages</h3>
+            <div class="value" id="voiceCount">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Text Messages</h3>
+            <div class="value" id="textCount">0</div>
+          </div>
+        </div>
+
+        <div id="commandsList" class="commands-list">
+          <div class="loading">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentShopId = null;
+
+      async function loadCommands() {
+        const shopPhone = document.getElementById("shopPhone").value.trim();
+        const showResolved = document.getElementById("showResolved").checked;
+
+        if (!shopPhone) {
+          alert("Please enter shop phone number");
+          return;
+        }
+
+        document.getElementById("commandsList").innerHTML =
+          '<div class="loading">Loading...</div>';
+
+        try {
+          const response = await fetch(
+            `/api/bug?phone=${encodeURIComponent(
+              shopPhone
+            )}&include_resolved=${showResolved}`
+          );
+          const data = await response.json();
+
+          if (!data.success) {
+            document.getElementById(
+              "commandsList"
+            ).innerHTML = `<div class="empty-state"><p>${
+              data.message || "Error loading commands"
+            }</p></div>`;
+            return;
+          }
+
+          currentShopId = data.shop_id;
+          displayCommands(data.commands);
+          updateStats(data.commands);
+        } catch (error) {
+          console.error("Error loading commands:", error);
+          document.getElementById("commandsList").innerHTML =
+            '<div class="empty-state"><p>Error loading commands</p></div>';
+        }
+      }
+
+      function updateStats(commands) {
+        const total = commands.length;
+        const voice = commands.filter((c) => c.message_type === "voice").length;
+        const text = commands.filter((c) => c.message_type === "text").length;
+
+        document.getElementById("totalCount").textContent = total;
+        document.getElementById("voiceCount").textContent = voice;
+        document.getElementById("textCount").textContent = text;
+      }
+
+      function displayCommands(commands) {
+        const container = document.getElementById("commandsList");
+
+        if (commands.length === 0) {
+          container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>🎉 No Bugs Found!</h3>
+                        <p>All commands are being understood correctly.</p>
+                    </div>
+                `;
+          return;
+        }
+
+        container.innerHTML = commands
+          .map(
+            (cmd) => `
+                <div class="command-card ${cmd.resolved ? "resolved" : ""}">
+                    <div class="command-header">
+                        <div class="command-meta">
+                            <div class="meta-item">
+                                <span class="badge ${
+                                  cmd.message_type === "voice"
+                                    ? "badge-voice"
+                                    : "badge-text"
+                                }">
+                                    ${
+                                      cmd.message_type === "voice"
+                                        ? "🎤 Voice"
+                                        : "💬 Text"
+                                    }
+                                </span>
+                            </div>
+                            ${
+                              cmd.resolved
+                                ? '<span class="badge badge-resolved">✓ Resolved</span>'
+                                : ""
+                            }
+                            <div class="meta-item">📅 ${new Date(
+                              cmd.timestamp
+                            ).toLocaleString()}</div>
+                            <div class="meta-item">📞 ${cmd.user_phone}</div>
+                            <div class="meta-item">🎯 Action: ${
+                              cmd.parsed_action || "unknown"
+                            }</div>
+                        </div>
+                    </div>
+
+                    <div class="command-text">
+                        <h4>Raw Text</h4>
+                        <p>${escapeHtml(cmd.raw_text)}</p>
+                    </div>
+
+                    ${
+                      cmd.transcribed_text
+                        ? `
+                        <div class="command-text">
+                            <h4>Whisper Transcription</h4>
+                            <p>${escapeHtml(cmd.transcribed_text)}</p>
+                        </div>
+                    `
+                        : ""
+                    }
+
+                    ${
+                      cmd.cleaned_text
+                        ? `
+                        <div class="command-text">
+                            <h4>Cleaned Text (After Hindi Number Conversion)</h4>
+                            <p>${escapeHtml(cmd.cleaned_text)}</p>
+                        </div>
+                    `
+                        : ""
+                    }
+
+                    <div class="meta-item">
+                        <span>AI Confidence: ${(cmd.confidence * 100).toFixed(
+                          0
+                        )}%</span>
+                        <div class="confidence-bar" style="width: 200px;">
+                            <div class="confidence-fill" style="width: ${
+                              cmd.confidence * 100
+                            }%"></div>
+                        </div>
+                    </div>
+
+                    ${
+                      cmd.resolution_notes
+                        ? `
+                        <div class="command-text" style="margin-top: 10px;">
+                            <h4>Resolution Notes</h4>
+                            <p>${escapeHtml(cmd.resolution_notes)}</p>
+                        </div>
+                    `
+                        : ""
+                    }
+
+                    <div class="command-actions" style="margin-top: 15px;">
+                        ${
+                          !cmd.resolved
+                            ? `
+                            <button class="btn btn-success btn-sm" onclick="markResolved('${cmd.command_id}')">
+                                ✓ Mark as Resolved
+                            </button>
+                        `
+                            : ""
+                        }
+                        <button class="btn btn-danger btn-sm" onclick="deleteCommand('${
+                          cmd.command_id
+                        }')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      async function markResolved(commandId) {
+        const notes = prompt("Resolution notes (optional):");
+        if (notes === null) return; // User cancelled
+
+        try {
+          const response = await fetch("/api/bug/resolve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command_id: commandId, notes: notes }),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            loadCommands();
+          } else {
+            alert("Error: " + (data.message || "Failed to mark as resolved"));
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Error marking as resolved");
+        }
+      }
+
+      async function deleteCommand(commandId) {
+        if (!confirm("Are you sure you want to delete this bug?")) return;
+
+        try {
+          const response = await fetch("/api/bug/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command_id: commandId }),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            loadCommands();
+          } else {
+            alert("Error: " + (data.message || "Failed to delete"));
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Error deleting bug");
+        }
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Load commands on page load if phone is in session
+      window.addEventListener("load", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const phone = urlParams.get("phone");
+        if (phone) {
+          document.getElementById("shopPhone").value = phone;
+          loadCommands();
+        }
+      });
+    </script>
+  </body>
+</html>

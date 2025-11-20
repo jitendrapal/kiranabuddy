@@ -118,12 +118,41 @@ class CommandProcessor:
                 f"Parsed command: action={parsed_command.action.value}, "
                 f"product={parsed_command.product_name}, "
                 f"quantity={parsed_command.quantity}, "
+                f"confidence={parsed_command.confidence}, "
                 f"language={response_language}"
             )
 
             # Step 4: Validate command
             is_valid = parsed_command.is_valid()
             print(f"🔍 Command validation: action={parsed_command.action}, is_valid={is_valid}")
+
+            # Save unrecognized commands to database for review
+            if not is_valid or parsed_command.action == CommandAction.UNKNOWN or parsed_command.confidence < 0.5:
+                print(f"⚠️ Saving unrecognized command to database...")
+                try:
+                    # Get transcribed and cleaned text for voice messages
+                    transcribed_text = None
+                    cleaned_text = None
+                    if message_type == "voice":
+                        transcribed_text = text  # This is the transcribed text from Whisper
+                        # Try to get cleaned text if available
+                        if hasattr(self.ai_service, '_last_cleaned_text'):
+                            cleaned_text = self.ai_service._last_cleaned_text
+
+                    self.db.save_unrecognized_command(
+                        shop_id=shop_id,
+                        user_phone=from_phone,
+                        message_type=message_type,
+                        raw_text=text if message_type == "text" else (transcribed_text or text),
+                        transcribed_text=transcribed_text if message_type == "voice" else None,
+                        cleaned_text=cleaned_text,
+                        parsed_action=parsed_command.action.value,
+                        confidence=parsed_command.confidence,
+                    )
+                    print(f"✅ Unrecognized command saved successfully")
+                except Exception as e:
+                    print(f"❌ Failed to save unrecognized command: {e}")
+
             if not is_valid:
                 return {
                     'success': False,
