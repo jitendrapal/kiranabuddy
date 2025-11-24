@@ -212,31 +212,60 @@ class AIService:
 
         cleaned = text.strip()
 
+        # Detect if text is primarily Hindi (Devanagari script)
+        # If so, skip English filler word removal
+        devanagari_chars = len(re.findall(r'[\u0900-\u097F]', cleaned))
+        total_chars = len(re.findall(r'\w', cleaned))
+        is_hindi = devanagari_chars > (total_chars * 0.3)  # More than 30% Devanagari
+
         # Step 0: Convert Hindi/English number words to digits FIRST (before cleaning)
         cleaned = self._convert_hindi_numbers_to_digits(cleaned)
 
-        # Step 1: Remove common filler words (case-insensitive)
-        filler_words = [
-            r'\bum\b', r'\buh\b', r'\bhmm\b', r'\bhm\b', r'\buhm\b',
-            r'\blike\b', r'\byou know\b', r'\bI mean\b', r'\bactually\b',
-            r'\bbasically\b', r'\bliterally\b', r'\bso\b', r'\bwell\b',
-            r'\boh\b', r'\bah\b', r'\ber\b', r'\behm\b',
-        ]
+        # Only apply English filler word removal if text is NOT primarily Hindi
+        if not is_hindi:
+            # Step 1: Remove trailing filler phrases first (end of sentence)
+            trailing_phrases = [
+                r'\s+also\s+coming\s+you\s*$',
+                r'\s+also\s+coming\s*$',
+                r'\s+coming\s+you\s*$',
+                r'\s+you\s+know\s*$',
+                r'\s+thank\s+you\s*$',
+                r'\s+please\s*$',
+                r'\s+okay\s*$',
+                r'\s+ok\s*$',
+                r'\s+done\s*$',
+                r'\s+right\s*$',
+            ]
 
-        for filler in filler_words:
-            cleaned = re.sub(filler, '', cleaned, flags=re.IGNORECASE)
+            for phrase in trailing_phrases:
+                cleaned = re.sub(phrase, '', cleaned, flags=re.IGNORECASE)
 
-        # Step 2: Remove repeated consecutive words (e.g., "Maggi Maggi" → "Maggi")
-        # Match word boundaries to avoid breaking product names
-        cleaned = re.sub(r'\b(\w+)\s+\1\b', r'\1', cleaned, flags=re.IGNORECASE)
+            # Step 2: Remove common filler words (case-insensitive)
+            # Replace with space to preserve word boundaries
+            filler_words = [
+                r'\bum\b', r'\buh\b', r'\bhmm\b', r'\bhm\b', r'\buhm\b',
+                r'\blike\b', r'\byou know\b', r'\bI mean\b', r'\bactually\b',
+                r'\bbasically\b', r'\bliterally\b', r'\bso\b', r'\bwell\b',
+                r'\boh\b', r'\bah\b', r'\ber\b', r'\behm\b',
+                r'\balso\b', r'\bcoming\b', r'\bjust\b',
+            ]
 
-        # Step 3: Remove extra whitespace (multiple spaces → single space)
+            for filler in filler_words:
+                cleaned = re.sub(filler, ' ', cleaned, flags=re.IGNORECASE)
+
+        # Step 3: Normalize whitespace (multiple spaces → single space)
         cleaned = re.sub(r'\s+', ' ', cleaned)
 
-        # Step 4: Remove leading/trailing whitespace
+        # Step 4: Remove repeated consecutive words (works for both Hindi and English)
+        # This handles cases like "Maggi Maggi" → "Maggi"
+        # For Hindi, we need to be more careful with word boundaries
+        if not is_hindi:
+            cleaned = re.sub(r'\b(\w+)\s+\1\b', r'\1', cleaned, flags=re.IGNORECASE)
+
+        # Step 5: Remove leading/trailing whitespace
         cleaned = cleaned.strip()
 
-        # Step 5: If cleaning resulted in empty string, return original
+        # Step 6: If cleaning resulted in empty string, return original
         if not cleaned:
             return text
 

@@ -113,9 +113,9 @@ async function verifyOTP() {
   const otp = document.getElementById("otp").value.trim();
   const name = document.getElementById("name").value.trim();
 
-  // Validate OTP (5 digits for hardcoded OTP)
-  if (!otp || otp.length !== 5 || !/^\d{5}$/.test(otp)) {
-    showMessage("Please enter a valid 5-digit OTP", "error");
+  // Validate OTP (6 digits)
+  if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+    showMessage("Please enter a valid 6-digit OTP", "error");
     return;
   }
 

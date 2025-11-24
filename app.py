@@ -92,7 +92,7 @@ def login_page():
 
 @app.route('/api/auth/send-otp', methods=['POST'])
 def send_otp():
-    """Send OTP to phone number"""
+    """Send OTP to phone number with rate limiting and security"""
     try:
         data = request.get_json()
         phone = data.get('phone', '').strip()
@@ -111,20 +111,34 @@ def send_otp():
                 'message': 'Please enter a valid 10-digit phone number'
             }), 400
 
-        # Create OTP
-        otp = otp_service.create_otp(phone)
+        # Create OTP (with rate limiting)
+        otp_result = otp_service.create_otp(phone)
+
+        if not otp_result['success']:
+            # Rate limit or cooldown error
+            return jsonify(otp_result), 429
+
+        otp = otp_result['otp']
+        otp_code = otp_result['otp_code']
 
         # Send OTP
-        send_result = otp_service.send_otp(phone, otp.otp_code)
+        send_result = otp_service.send_otp(phone, otp_code)
 
         if send_result['success']:
-            return jsonify({
+            response_data = {
                 'success': True,
                 'message': f'OTP sent to {phone}',
                 'otp_id': otp.otp_id,
                 'expires_in_minutes': otp_service.otp_validity_minutes,
-                'dev_otp': otp.otp_code if otp_service.sms_provider == 'console' else None
-            })
+                'provider': send_result.get('provider', 'unknown')
+            }
+
+            # In development mode, include OTP in response
+            if otp_service.dev_mode or otp_service.sms_provider == 'console':
+                response_data['dev_otp'] = otp_code
+                response_data['dev_mode'] = True
+
+            return jsonify(response_data)
         else:
             return jsonify({
                 'success': False,
@@ -132,7 +146,9 @@ def send_otp():
             }), 500
 
     except Exception as e:
-        print(f"Error sending OTP: {e}")
+        print(f"❌ Error sending OTP: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error sending OTP: {str(e)}'
@@ -338,6 +354,155 @@ def test_audio_file(filename):
     """Serve uploaded test audio file for transcription."""
     audio_dir = os.path.join(app.root_path, 'temp_audio')
     return send_from_directory(audio_dir, filename)
+
+
+@app.route('/api/transcribe-voice', methods=['POST'])
+def transcribe_voice():
+    """
+    Transcribe voice audio directly using Whisper API
+    Works on all mobile browsers (Android, iOS, iPad)
+    """
+    try:
+        if 'audio' not in request.files:
+            return jsonify({'success': False, 'error': 'No audio file provided'}), 400
+
+        audio_file = request.files['audio']
+
+        if not audio_file or audio_file.filename == '':
+            return jsonify({'success': False, 'error': 'Empty audio file'}), 400
+
+        print(f"🎤 Received voice file: {audio_file.filename}, size: {audio_file.content_length} bytes")
+
+        # Process audio in-memory (no disk storage needed)
+        # This works on any server without needing temp directories
+        print(f"🔊 Transcribing with Whisper (in-memory)...")
+
+        # Read audio data into memory
+        audio_file.seek(0)  # Reset file pointer to beginning
+        audio_data = audio_file.read()
+        print(f"   Audio size: {len(audio_data)} bytes")
+
+        # Create a file-like object from bytes for Whisper API
+        from io import BytesIO
+        audio_buffer = BytesIO(audio_data)
+        audio_buffer.name = "voice.webm"  # Whisper needs a filename
+
+        try:
+            # Two-pass approach:
+            # Pass 1: Auto-detect and check what script is used
+            # Pass 2: If Urdu script detected, re-transcribe as Hindi (Devanagari)
+            print(f"   Pass 1: Auto-detecting language...")
+
+            # First pass - auto-detect
+            transcript_detect = ai_service.client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_buffer,
+                response_format="verbose_json"
+            )
+
+            detected_language = transcript_detect.language
+            detected_text = transcript_detect.text
+            print(f"   🌐 Detected language: {detected_language}")
+            print(f"   📝 Detected text: {detected_text[:50]}...")
+
+            # Check if text contains Urdu/Arabic script (U+0600 to U+06FF)
+            import re
+            has_urdu_script = bool(re.search(r'[\u0600-\u06FF]', detected_text))
+            has_devanagari = bool(re.search(r'[\u0900-\u097F]', detected_text))
+            has_latin = bool(re.search(r'[a-zA-Z]', detected_text))
+
+            print(f"   Script analysis: Urdu={has_urdu_script}, Devanagari={has_devanagari}, Latin={has_latin}")
+
+            # If Urdu script detected, re-transcribe as Hindi (Devanagari)
+            if has_urdu_script:
+                print(f"   🔄 Urdu script detected! Re-transcribing as Hindi (Devanagari)...")
+
+                # Create fresh buffer
+                audio_buffer_new = BytesIO(audio_data)
+                audio_buffer_new.name = "voice.webm"
+
+                transcript = ai_service.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_buffer_new,
+                    response_format="text",
+                    language="hi"  # Force Devanagari script
+                )
+                print(f"   ✅ Re-transcribed in Devanagari: {transcript[:50]}...")
+            else:
+                # English or already Devanagari - use original
+                print(f"   ✅ Using original transcription")
+                transcript = detected_text
+
+            print(f"   Final transcript: {transcript[:100]}...")
+
+            # Get text from response
+            print(f"   Transcript type: {type(transcript)}")
+            print(f"   Transcript value: {repr(transcript)}")
+
+            if isinstance(transcript, str):
+                text = transcript
+            else:
+                text = getattr(transcript, 'text', str(transcript))
+
+            text = text.strip()
+
+            print(f"📝 Raw transcript: {repr(text)}")
+            print(f"📝 Transcript length: {len(text)} characters")
+            print(f"📝 Transcript type: {type(text)}")
+
+            if not text:
+                print(f"❌ Empty transcript received from Whisper!")
+                print(f"   Audio file size was: {os.path.getsize(temp_path)} bytes")
+                return jsonify({
+                    'success': False,
+                    'error': 'Whisper returned empty transcript. Audio may be too short or unclear.'
+                }), 400
+
+            # STEP 1: Remove Whisper artifacts (always appears at end)
+            # Whisper sometimes adds these phrases consistently
+            import re
+            whisper_artifacts = [
+                r'\s+coming\s+you\s*$',
+                r'\s+also\s+coming\s+you\s*$',
+                r'\s+also\s+coming\s*$',
+                r'\s+you\s*$',
+            ]
+
+            for artifact in whisper_artifacts:
+                text = re.sub(artifact, '', text, flags=re.IGNORECASE)
+
+            text = text.strip()
+
+            print(f"🧹 After artifact removal: {repr(text)}")
+
+            # STEP 2: Clean the transcribed text (filler words, etc.)
+            cleaned_text = ai_service.clean_voice_text(text)
+
+            print(f"✨ Final cleaned transcript: {repr(cleaned_text)}")
+
+            return jsonify({
+                'success': True,
+                'text': cleaned_text,
+                'raw_text': text
+            })
+
+        except Exception as inner_e:
+            print(f"❌ Error during transcription: {inner_e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'error': f'Transcription error: {str(inner_e)}'
+            }), 500
+
+    except Exception as e:
+        print(f"❌ Error transcribing voice: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'Transcription error: {str(e)}'
+        }), 500
 
 
 
