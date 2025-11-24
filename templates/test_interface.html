@@ -1016,6 +1016,69 @@
           padding-bottom: 16px;
         }
       }
+
+      /* Recording Wave Animation (WhatsApp style) */
+      .recording-wave {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: rgba(220, 38, 38, 0.1);
+        border-left: 3px solid #dc2626;
+        border-radius: 8px;
+        margin: 8px 0;
+      }
+
+      .recording-wave-icon {
+        color: #dc2626;
+        font-size: 18px;
+      }
+
+      .recording-wave-bars {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 24px;
+      }
+
+      .recording-wave-bar {
+        width: 3px;
+        background: #dc2626;
+        border-radius: 2px;
+        animation: wave 1.2s ease-in-out infinite;
+      }
+
+      .recording-wave-bar:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .recording-wave-bar:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+      .recording-wave-bar:nth-child(3) {
+        animation-delay: 0.2s;
+      }
+      .recording-wave-bar:nth-child(4) {
+        animation-delay: 0.3s;
+      }
+      .recording-wave-bar:nth-child(5) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes wave {
+        0%,
+        100% {
+          height: 4px;
+        }
+        50% {
+          height: 24px;
+        }
+      }
+
+      .recording-wave-text {
+        color: #dc2626;
+        font-weight: 500;
+        margin-left: 8px;
+      }
     </style>
   </head>
   <body class="theme-light">
@@ -1823,6 +1886,10 @@
 
             mediaRecorder.onstop = async () => {
               console.log("🛑 Recording stopped, processing...");
+
+              // Hide recording wave animation
+              hideRecordingWave();
+
               console.log(
                 `📊 Total audio chunks collected: ${audioChunks.length}`
               );
@@ -1873,7 +1940,9 @@
             btn.style.background = "#d32f2f"; // Red background
 
             console.log("🎙️ Recording started, state:", mediaRecorder.state);
-            // Removed UI message - recording is silent
+
+            // Show animated recording wave (like WhatsApp)
+            showRecordingWave();
           } catch (error) {
             console.error("❌ Error accessing microphone:", error);
             appendMessage(
@@ -1995,6 +2064,44 @@
         if (scannerStream) {
           scannerStream.getTracks().forEach((t) => t.stop());
           scannerStream = null;
+        }
+      }
+
+      let recordingWaveElement = null;
+
+      function showRecordingWave() {
+        const chat = document.getElementById("chatWindow");
+        if (!chat) return;
+
+        // Remove existing wave if any
+        hideRecordingWave();
+
+        // Create wave element
+        const waveDiv = document.createElement("div");
+        waveDiv.className = "recording-wave";
+        waveDiv.id = "recordingWave";
+
+        waveDiv.innerHTML = `
+          <span class="recording-wave-icon">🎤</span>
+          <div class="recording-wave-bars">
+            <div class="recording-wave-bar"></div>
+            <div class="recording-wave-bar"></div>
+            <div class="recording-wave-bar"></div>
+            <div class="recording-wave-bar"></div>
+            <div class="recording-wave-bar"></div>
+          </div>
+          <span class="recording-wave-text">Recording...</span>
+        `;
+
+        chat.appendChild(waveDiv);
+        chat.scrollTop = chat.scrollHeight;
+        recordingWaveElement = waveDiv;
+      }
+
+      function hideRecordingWave() {
+        if (recordingWaveElement) {
+          recordingWaveElement.remove();
+          recordingWaveElement = null;
         }
       }
 
