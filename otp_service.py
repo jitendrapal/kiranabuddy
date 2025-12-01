@@ -28,8 +28,8 @@ class OTPService:
         # SMS provider configuration (supports multiple providers)
         self.sms_provider = os.getenv('SMS_PROVIDER', 'console')  # console, twilio, msg91, fast2sms
 
-        # Development mode - use hardcoded OTP
-        self.dev_mode = os.getenv('OTP_DEV_MODE', 'true').lower() == 'true'
+        # Development mode - use hardcoded OTP (ALWAYS ENABLED FOR TESTING)
+        self.dev_mode = True  # Hardcoded to always use dev mode
         self.dev_otp = '123456'  # Hardcoded OTP for development
 
         # Twilio configuration
