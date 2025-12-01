@@ -237,8 +237,8 @@ class OTPService:
         otp_data = latest_doc.to_dict()
         otp_id = latest_doc.id
 
-        # Check if already verified
-        if otp_data.get('verified', False):
+        # Check if already verified (SKIP IN DEV MODE FOR TESTING)
+        if not self.dev_mode and otp_data.get('verified', False):
             print(f"❌ OTP already used")
             return {
                 'success': False,
@@ -246,25 +246,26 @@ class OTPService:
                 'error_code': 'OTP_ALREADY_USED'
             }
 
-        # Check if expired - convert expires_at timestamp
-        expires_at = otp_data.get('expires_at')
-        if expires_at:
-            if hasattr(expires_at, 'timestamp'):
-                expires_at = datetime.fromtimestamp(expires_at.timestamp())
-            elif isinstance(expires_at, str):
-                expires_at = datetime.max
+        # Check if expired (SKIP IN DEV MODE FOR TESTING)
+        if not self.dev_mode:
+            expires_at = otp_data.get('expires_at')
+            if expires_at:
+                if hasattr(expires_at, 'timestamp'):
+                    expires_at = datetime.fromtimestamp(expires_at.timestamp())
+                elif isinstance(expires_at, str):
+                    expires_at = datetime.max
 
-            if datetime.now() > expires_at:
-                print(f"❌ OTP expired")
-                return {
-                    'success': False,
-                    'message': 'OTP expired. Please request a new one.',
-                    'error_code': 'OTP_EXPIRED'
-                }
+                if datetime.now() > expires_at:
+                    print(f"❌ OTP expired")
+                    return {
+                        'success': False,
+                        'message': 'OTP expired. Please request a new one.',
+                        'error_code': 'OTP_EXPIRED'
+                    }
 
-        # Check attempts
+        # Check attempts (SKIP IN DEV MODE FOR TESTING)
         attempts = otp_data.get('attempts', 0)
-        if attempts >= self.max_attempts:
+        if not self.dev_mode and attempts >= self.max_attempts:
             print(f"❌ Too many attempts")
             # Mark as verified to prevent further attempts
             self.db.collection('otps').document(otp_id).update({'verified': True})
