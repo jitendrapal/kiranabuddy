@@ -981,6 +981,108 @@ class FirestoreDB:
             'unit': product.unit
         }
 
+    def get_total_sales_yesterday(self, shop_id: str) -> Dict[str, Any]:
+        """Get total sales for yesterday (items + revenue + cost + profit)."""
+        from datetime import datetime, timedelta
+
+        # Get start of yesterday (midnight)
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_start = today_start - timedelta(days=1)
+        yesterday_end = today_start  # End of yesterday is start of today
+
+        # Build a cost map from products
+        products = self.get_products_by_shop(shop_id)
+        cost_by_id: Dict[str, float] = {}
+        cost_by_name: Dict[str, float] = {}
+        for p in products:
+            try:
+                cp = getattr(p, "cost_price", None)
+                if cp is None:
+                    continue
+                cp_val = float(cp)
+            except Exception:
+                continue
+            if getattr(p, "product_id", None):
+                cost_by_id[p.product_id] = cp_val
+            if getattr(p, "name", None):
+                cost_by_name[p.name] = cp_val
+
+        # Query transactions for yesterday
+        transactions_ref = self.db.collection("transactions").where("shop_id", "==", shop_id)
+        all_transactions = transactions_ref.stream()
+
+        total_items_sold = 0.0
+        total_revenue = 0.0
+        total_cost = 0.0
+        products_sold: Dict[str, float] = {}
+        revenue_by_product: Dict[str, float] = {}
+        cost_by_product: Dict[str, float] = {}
+
+        for trans_doc in all_transactions:
+            trans = trans_doc.to_dict()
+
+            # Check if transaction is from yesterday
+            trans_time = trans.get("timestamp")
+            if trans_time:
+                # Convert string timestamps back to datetime for comparison
+                if isinstance(trans_time, str):
+                    try:
+                        trans_time = datetime.fromisoformat(trans_time)
+                    except Exception:
+                        continue
+
+                # Check if transaction is within yesterday's time range
+                if yesterday_start <= trans_time < yesterday_end:
+                    # Check if it's a sale (reduce_stock)
+                    if trans.get("transaction_type") in ("reduce_stock", "sale"):
+                        quantity = float(trans.get("quantity", 0) or 0)
+                        product_name = trans.get("product_name", "Unknown") or "Unknown"
+                        product_id = trans.get("product_id")
+
+                        total_items_sold += quantity
+                        products_sold[product_name] = products_sold.get(product_name, 0.0) + quantity
+
+                        # Revenue (if price is stored)
+                        unit_price = trans.get("unit_price")
+                        total_amount = trans.get("total_amount")
+
+                        sale_amount = 0.0
+                        try:
+                            if total_amount is not None:
+                                sale_amount = float(total_amount)
+                            elif unit_price is not None:
+                                sale_amount = float(unit_price) * quantity
+                        except Exception:
+                            sale_amount = 0.0
+
+                        total_revenue += sale_amount
+                        revenue_by_product[product_name] = revenue_by_product.get(product_name, 0.0) + sale_amount
+
+                        # Cost (if available)
+                        cost_per_unit = 0.0
+                        if product_id and product_id in cost_by_id:
+                            cost_per_unit = cost_by_id[product_id]
+                        elif product_name in cost_by_name:
+                            cost_per_unit = cost_by_name[product_name]
+
+                        item_cost = cost_per_unit * quantity
+                        total_cost += item_cost
+                        cost_by_product[product_name] = cost_by_product.get(product_name, 0.0) + item_cost
+
+        total_profit = total_revenue - total_cost
+
+        return {
+            "success": True,
+            "total_items_sold": total_items_sold,
+            "total_revenue": round(total_revenue, 2),
+            "total_cost": round(total_cost, 2),
+            "total_profit": round(total_profit, 2),
+            "products_sold": products_sold,
+            "revenue_by_product": {k: round(v, 2) for k, v in revenue_by_product.items()},
+            "cost_by_product": {k: round(v, 2) for k, v in cost_by_product.items()},
+            "date": yesterday_start.strftime("%Y-%m-%d"),
+        }
+
     def get_total_sales_today(self, shop_id: str) -> Dict[str, Any]:
         """Get total sales for today (items + revenue + cost + profit).
 

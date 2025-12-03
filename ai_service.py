@@ -969,16 +969,17 @@ class AIService:
 
         # 3b) Profit queries (estimated profit)
         # Examples:
-        # - "Today's estimated profit"
-        # - "Aaj ka profit"
+        # - "Today's estimated profit" / "Aaj ka profit" / "आज का प्राफिट"
+        # - "Yesterday's profit" / "Kal ka profit" / "खल का प्राफिट"
         # - "Weekly profit" / "hafte ka profit"
         # - "Monthly estimated profit" / "mahine ka profit"
         # - "Yearly profit" / "saal ka profit"
-        if ("profit" in normalized) or ("munafa" in normalized):
+        if ("profit" in normalized) or ("munafa" in normalized) or ("प्राफिट" in hindi_msg) or ("प्राफ़िट" in hindi_msg):
             yearly_markers = ["year", "saal", "sal", "yearly", "saal ka", "sal ka"]
             monthly_markers = ["month", "mahina", "mahine", "mahine ka", "monthly"]
             weekly_markers = ["week", "hafte", "hafta", "weekly", "hafte ka", "hafta ka"]
-            today_markers = ["aaj", "aj ", "today"]
+            yesterday_markers = ["yesterday", "kal", "khal", "खल", "कल", "yesterday ka", "kal ka", "khal ka"]
+            today_markers = ["aaj", "aj ", "today", "आज"]
 
             if any(y in normalized for y in yearly_markers):
                 return ParsedCommand(
@@ -1007,7 +1008,17 @@ class AIService:
                     raw_message=message,
                 )
 
-            if any(t in normalized for t in today_markers):
+            # Check yesterday BEFORE today (because "kal" should match yesterday first)
+            if any(y in normalized for y in yesterday_markers) or any(y in hindi_msg for y in yesterday_markers):
+                return ParsedCommand(
+                    action=CommandAction.YESTERDAY_PROFIT,
+                    product_name=None,
+                    quantity=None,
+                    confidence=0.99,
+                    raw_message=message,
+                )
+
+            if any(t in normalized for t in today_markers) or any(t in hindi_msg for t in today_markers):
                 return ParsedCommand(
                     action=CommandAction.TODAY_PROFIT,
                     product_name=None,
@@ -1563,17 +1574,24 @@ class AIService:
             )
 
         # IMPROVED: Detect CHECK_STOCK commands with keywords
-        # Examples: "maggi ka stock dikhao", "rice kitna hai", "oil batao"
+        # Examples: "maggi ka stock dikhao", "rice kitna hai", "oil batao", "राइस का स्टॉक बताओ"
         check_stock_keywords = [
             'kitna', 'kitne', 'kitni', 'dikhao', 'dikha', 'batao', 'bata',
             'bachi', 'bacha', 'quantity', 'check', 'show', 'how much', 'how many',
         ]
 
+        # Hindi Devanagari keywords for stock checking
+        check_stock_keywords_hindi = [
+            'बताओ', 'बता', 'दिखाओ', 'दिखा', 'कितना', 'कितने', 'कितनी',
+            'स्टॉक', 'स्टाक'
+        ]
+
         # If message contains CHECK keywords and no digits (not add/reduce), it's CHECK_STOCK
         if not any(ch.isdigit() for ch in normalized):
             has_check_keyword = any(kw in normalized for kw in check_stock_keywords)
+            has_check_keyword_hindi = any(kw in hindi_msg for kw in check_stock_keywords_hindi)
 
-            if has_check_keyword:
+            if has_check_keyword or has_check_keyword_hindi:
                 # Extract product name by removing check keywords and common words
                 # FIXED: Use exact word matching to avoid removing "ghee" when "do" is in words_to_remove
                 words_to_remove = set(check_stock_keywords + [
@@ -1581,14 +1599,22 @@ class AIService:
                     'karo', 'do', 'the', 'is', 'are', 'h', 'kare', 'karo'
                 ])
 
-                product_words = []
-                for word in normalized.split():
-                    word_lower = word.lower()
-                    # FIXED: Only remove if word exactly matches (not substring match)
-                    if word_lower not in words_to_remove:
-                        product_words.append(word)
-
-                product_name = ' '.join(product_words).strip()
+                # For Hindi messages, extract product name from original message
+                if has_check_keyword_hindi and not has_check_keyword:
+                    # Remove Hindi keywords from the message
+                    product_name = hindi_msg
+                    for kw in check_stock_keywords_hindi + ['का', 'के', 'की', 'है', 'हैं']:
+                        product_name = product_name.replace(kw, ' ')
+                    product_name = ' '.join(product_name.split()).strip()
+                else:
+                    # Extract from normalized message
+                    product_words = []
+                    for word in normalized.split():
+                        word_lower = word.lower()
+                        # FIXED: Only remove if word exactly matches (not substring match)
+                        if word_lower not in words_to_remove:
+                            product_words.append(word)
+                    product_name = ' '.join(product_words).strip()
 
                 # If we extracted a product name, return CHECK_STOCK
                 if product_name:
@@ -1662,7 +1688,7 @@ class AIService:
 
         system_prompt = """You are an AI assistant for a Kirana (grocery) shop inventory management system.
 Your job is to understand natural language messages in Hindi (Devanagari script), English, or Hinglish and extract:
-1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "monthly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "purchase_suggestion", "set_low_stock_threshold", "predictive_alert", "seasonal_suggestion", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
+1. action: one of "add_stock", "reduce_stock", "check_stock", "total_sales", "today_profit", "yesterday_profit", "weekly_profit", "monthly_profit", "yearly_profit", "list_products", "low_stock", "adjust_stock", "update_price", "top_product_today", "zero_sale_today", "expiry_products", "purchase_suggestion", "set_low_stock_threshold", "predictive_alert", "seasonal_suggestion", "undo_last", "help", "add_udhar", "pay_udhar", "list_udhar", "customer_udhar", "report_summary", or "unknown"
 2. product_name: the name of the product mentioned (for udhar actions this is the customer name; for seasonal_suggestion this is the festival/season name like "diwali", "holi", "summer"; not needed for total_sales, today_profit, monthly_profit, list_products, low_stock, top_product_today, zero_sale_today, expiry_products, purchase_suggestion, predictive_alert, undo_last, help, list_udhar, or report_summary)
 3. quantity: the quantity mentioned (if applicable). For "adjust_stock", quantity should be the CORRECT quantity for the last entry (e.g., if user says "Maggi 3 nahi 1 the" then quantity is 1). For "update_price", quantity is the new selling price per unit (in rupees). For udhar actions that include an amount (add_udhar, pay_udhar), quantity is the rupee amount (always positive). For list_udhar, customer_udhar, and seasonal_suggestion, quantity should be null.
 
@@ -1757,7 +1783,7 @@ Be intelligent and understand the INTENT, not just exact phrases.
 
 Return ONLY a JSON object with this exact structure:
 {
-    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "purchase_suggestion" | "set_low_stock_threshold" | "predictive_alert" | "seasonal_suggestion" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
+    "action": "add_stock" | "reduce_stock" | "check_stock" | "total_sales" | "today_profit" | "yesterday_profit" | "weekly_profit" | "monthly_profit" | "yearly_profit" | "list_products" | "low_stock" | "adjust_stock" | "update_price" | "top_product_today" | "zero_sale_today" | "expiry_products" | "purchase_suggestion" | "set_low_stock_threshold" | "predictive_alert" | "seasonal_suggestion" | "undo_last" | "help" | "add_udhar" | "pay_udhar" | "list_udhar" | "customer_udhar" | "report_summary" | "unknown",
     "product_name": "product name" or null (for udhar actions this is the customer name; for seasonal_suggestion this is the festival/season name like "diwali", "holi", "summer"; not needed for total_sales, today_profit, weekly_profit, monthly_profit, yearly_profit, list_products, low_stock, adjust_stock, zero_sale_today, expiry_products, purchase_suggestion, predictive_alert, undo_last, help, list_udhar, top_product_today, or report_summary; for set_low_stock_threshold this is the product name),
     "quantity": number or null (for "update_price" this is the new selling price per unit in rupees; for udhar actions that involve a rupee amount (add_udhar, pay_udhar) this is the amount in rupees, always positive; for list_udhar, customer_udhar, and seasonal_suggestion it should be null),
     "confidence": 0.0 to 1.0
@@ -1790,6 +1816,7 @@ Do not include any explanation, just the JSON."""
                 "check_stock": CommandAction.CHECK_STOCK,
                 "total_sales": CommandAction.TOTAL_SALES,
                 "today_profit": CommandAction.TODAY_PROFIT,
+                "yesterday_profit": CommandAction.YESTERDAY_PROFIT,
                 "weekly_profit": CommandAction.WEEKLY_PROFIT,
                 "monthly_profit": CommandAction.MONTHLY_PROFIT,
                 "yearly_profit": CommandAction.YEARLY_PROFIT,
@@ -2205,6 +2232,74 @@ Do not include any explanation, just the JSON."""
             else:
                 lines = [
                     "💰 Aaj ka munafa:",
+                    f"✅ Total items sold: {total_items}",
+                    f"📦 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}",
+                ]
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Khareed ka kharcha (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Munafa: ₹{total_profit_val:,.2f}")
+
+            return nl.join(lines)
+
+        elif action == 'yesterday_profit':
+            total_items = result.get('total_items_sold', 0)
+            total_revenue = result.get('total_revenue')
+            total_cost = result.get('total_cost')
+            total_profit = result.get('total_profit')
+            date = result.get('date', 'yesterday')
+
+            nl = "\r\n"
+
+            if total_revenue is None:
+                if is_english:
+                    return (
+                        f"💰 Yesterday's profit ({date}): ₹0.00" + nl +
+                        "ℹ️ No sales recorded yesterday, so profit is zero."
+                    )
+                return (
+                    f"💰 Kal ka munafa ({date}): ₹0.00" + nl +
+                    "ℹ️ Kal koi sale record nahi hui, isliye munafa zero hai."
+                )
+
+            try:
+                total_revenue_val = float(total_revenue)
+            except Exception:
+                total_revenue_val = 0.0
+
+            total_cost_val = None
+            if total_cost is not None:
+                try:
+                    total_cost_val = float(total_cost)
+                except Exception:
+                    total_cost_val = None
+
+            total_profit_val = None
+            if total_profit is not None:
+                try:
+                    total_profit_val = float(total_profit)
+                except Exception:
+                    total_profit_val = None
+
+            # Fallback: if profit not provided but we have revenue and cost, compute it
+            if total_profit_val is None and total_cost_val is not None:
+                total_profit_val = total_revenue_val - total_cost_val
+
+            # If still None, treat profit as revenue (best-effort)
+            if total_profit_val is None:
+                total_profit_val = total_revenue_val
+
+            if is_english:
+                lines = [
+                    f"💰 Yesterday's profit ({date}):",
+                    f"✅ Total items sold: {total_items}",
+                    f"📦 Total sales (revenue): ₹{total_revenue_val:,.2f}",
+                ]
+                if total_cost_val is not None:
+                    lines.append(f"🧾 Purchase cost (approx): ₹{total_cost_val:,.2f}")
+                lines.append(f"💵 Profit: ₹{total_profit_val:,.2f}")
+            else:
+                lines = [
+                    f"💰 Kal ka munafa ({date}):",
                     f"✅ Total items sold: {total_items}",
                     f"📦 Kul bikri (rupaye mein): ₹{total_revenue_val:,.2f}",
                 ]

@@ -544,6 +544,9 @@ class CommandProcessor:
                 # because purchase cost is not yet tracked separately.
                 return self.db.get_total_sales_today(shop_id=shop_id)
 
+            elif command.action == CommandAction.YESTERDAY_PROFIT:
+                return self.db.get_total_sales_yesterday(shop_id=shop_id)
+
             elif command.action == CommandAction.WEEKLY_PROFIT:
                 return self.db.get_total_sales_current_week(shop_id=shop_id)
 

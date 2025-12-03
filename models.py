@@ -28,6 +28,7 @@ class CommandAction(Enum):
     CHECK_STOCK = "check_stock"
     TOTAL_SALES = "total_sales"
     TODAY_PROFIT = "today_profit"
+    YESTERDAY_PROFIT = "yesterday_profit"
     WEEKLY_PROFIT = "weekly_profit"
     MONTHLY_PROFIT = "monthly_profit"
     YEARLY_PROFIT = "yearly_profit"
