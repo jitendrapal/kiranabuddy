@@ -492,6 +492,7 @@ class AIService:
             "दाल": "dal",
             "दल": "dal",
             "तेल": "oil",
+            "टेल": "oil",
             "आयल": "oil",
             "तेल": "tel",
             "चीनी": "sugar",
@@ -546,6 +547,8 @@ class AIService:
             "प्रोडक्ट": "product",
             "प्रोडक्ट्स": "products",
             "प्रॉडक्ट": "product",
+            "प्रौडर्क": "product",
+            "प्रौडक्ट": "product",
             "आइटम": "item",
             "आइटम्स": "items",
             "स्टॉक": "stock",
@@ -557,6 +560,11 @@ class AIService:
             "प्राफ़िट": "profit",
             "मुनाफा": "munafa",
             "मुनाफ़ा": "munafa",
+            "एक्सपाइरी": "expiry",
+            "एक्सपायरी": "expiry",
+            "एक्सपाइर": "expire",
+            "खराब": "kharab",
+            "ख़राब": "kharab",
 
             # Verbs / helpers
             "ऐड": "add",
@@ -570,6 +578,7 @@ class AIService:
             "दो": "do",
             "लो": "lo",
             "बताओ": "batao",
+            "बतरो": "batao",
             "बता": "bata",
             "दिखाओ": "dikhao",
             "दिखा": "dikha",
@@ -1145,13 +1154,29 @@ class AIService:
         # - "expiry items"
         # - "kaun sa maal expire hone wala hai"
         # - "expiring stock"
+        # - "एक्सपाइरी प्रौडर्क बताओ"
+        # - "एक्सपाइरी बताओ"
         expiry_keywords = [
             "expiry",
             "expire",
             "expiring",
             "expired",
         ]
-        if any(kw in normalized for kw in expiry_keywords):
+
+        # Hindi keywords for expiry
+        expiry_keywords_hindi = [
+            "एक्सपाइरी",
+            "एक्सपायरी",
+            "एक्सपाइर",
+            "खराब",
+            "ख़राब",
+        ]
+
+        # Check both normalized (English/Hinglish) and original Hindi message
+        has_expiry_keyword = any(kw in normalized for kw in expiry_keywords)
+        has_expiry_keyword_hindi = any(kw in hindi_msg for kw in expiry_keywords_hindi)
+
+        if has_expiry_keyword or has_expiry_keyword_hindi:
             return ParsedCommand(
                 action=CommandAction.EXPIRY_PRODUCTS,
                 product_name=None,
