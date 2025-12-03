@@ -486,6 +486,19 @@ class AIService:
 
         # Very small dictionary of high-value words
         word_map = {
+            # Hindi Devanagari Numbers (1-10)
+            "एक": "ek",
+            "दो": "do",
+            "तीन": "teen",
+            "चार": "char",
+            "पाँच": "panch",
+            "पांच": "panch",
+            "छह": "chhe",
+            "सात": "saat",
+            "आठ": "aath",
+            "नौ": "nau",
+            "दस": "das",
+
             # Common Grocery Products (Hindi to English)
             "राइस": "rice",
             "चावल": "rice",
@@ -549,6 +562,8 @@ class AIService:
             "प्रॉडक्ट": "product",
             "प्रौडर्क": "product",
             "प्रौडक्ट": "product",
+            "प्रोड़ेक्ट": "product",
+            "प्रड़ेक्ट": "product",
             "आइटम": "item",
             "आइटम्स": "items",
             "स्टॉक": "stock",
@@ -556,6 +571,9 @@ class AIService:
             "बिक्री": "bikri",
             "सेल": "sale",
             "सामान": "samaan",
+            "साल": "year",
+            "साल": "saal",
+            "वर्ष": "year",
             "प्राफिट": "profit",
             "प्राफ़िट": "profit",
             "मुनाफा": "munafa",
@@ -565,10 +583,15 @@ class AIService:
             "एक्सपाइर": "expire",
             "खराब": "kharab",
             "ख़राब": "kharab",
+            "सारे": "all",
+            "सब": "all",
+            "लो": "low",
+            "कम": "low",
 
             # Verbs / helpers
             "ऐड": "add",
             "एड": "add",
+            "आएड": "add",
             "बेच": "bech",
             "बिक": "bik",
             "कर": "kar",
@@ -582,6 +605,9 @@ class AIService:
             "बता": "bata",
             "दिखाओ": "dikhao",
             "दिखा": "dikha",
+            "कौन": "kaun",
+            "कोन": "kaun",
+            "से": "se",
 
             # Particles / small words
             "आज": "aaj",
@@ -1047,12 +1073,13 @@ class AIService:
         # - "Yearly profit" / "saal ka profit"
         if ("profit" in normalized) or ("munafa" in normalized) or ("प्राफिट" in hindi_msg) or ("प्राफ़िट" in hindi_msg):
             yearly_markers = ["year", "saal", "sal", "yearly", "saal ka", "sal ka"]
+            yearly_markers_hindi = ["साल", "वर्ष", "साल का", "वर्ष का"]
             monthly_markers = ["month", "mahina", "mahine", "mahine ka", "monthly"]
             weekly_markers = ["week", "hafte", "hafta", "weekly", "hafte ka", "hafta ka"]
             yesterday_markers = ["yesterday", "kal", "khal", "खल", "कल", "yesterday ka", "kal ka", "khal ka"]
             today_markers = ["aaj", "aj ", "today", "आज"]
 
-            if any(y in normalized for y in yearly_markers):
+            if any(y in normalized for y in yearly_markers) or any(y in hindi_msg for y in yearly_markers_hindi):
                 return ParsedCommand(
                     action=CommandAction.YEARLY_PROFIT,
                     product_name=None,
@@ -1435,6 +1462,18 @@ class AIService:
             "सभी प्रोडक्ट",
             "सब प्रोडक्ट",
         ]
+
+        # Additional Hindi keywords for list products
+        list_keywords_hindi = [
+            "सारे प्रोडक्ट",
+            "सारे प्रॉडक्ट",
+            "सारे प्रोड़ेक्ट",
+            "सारे प्रड़ेक्ट",
+            "प्रोडक्ट दिखाओ",
+            "प्रोड़ेक्ट दिखाओ",
+            "प्रड़ेक्ट दिखाओ",
+        ]
+
         if any(kw in normalized for kw in list_keywords) or any(
             kw in hindi_msg
             for kw in [
@@ -1443,7 +1482,7 @@ class AIService:
                 "कितने आइटम",
                 "सभी प्रोडक्ट",
                 "सभी प्रॉडक्ट",
-            ]
+            ] + list_keywords_hindi
         ):
             return ParsedCommand(
                 action=CommandAction.LIST_PRODUCTS,
@@ -1463,14 +1502,31 @@ class AIService:
             "near out of stock",
             "khatam hone wala",
             "khatam hone wale",
+            "low product",
+            "low products",
         ]
+
+        # Hindi keywords for low stock
+        low_stock_keywords_hindi = [
+            "कम स्टॉक",
+            "कम स्टाक",
+            "लो स्टॉक",
+            "लो स्टाक",
+            "कौन कौन से स्टॉक लो",
+            "कौन से स्टॉक कम",
+            "कौन से प्रोडक्ट कम",
+            "लो प्रोडक्ट",
+            "लो प्रड़ेक्ट",
+            "लो प्रोड़ेक्ट",
+        ]
+
         if any(kw in normalized for kw in low_stock_keywords) or (
             "low" in normalized
             and any(w in normalized for w in ["product", "products", "item", "items"])
         ) or (
             "कम" in hindi_msg
-            and any(w in hindi_msg for w in ["प्रोडक्ट", "प्रॉडक्ट", "आइटम"])
-        ):
+            and any(w in hindi_msg for w in ["प्रोडक्ट", "प्रॉडक्ट", "आइटम", "स्टॉक"])
+        ) or any(kw in hindi_msg for kw in low_stock_keywords_hindi):
             return ParsedCommand(
                 action=CommandAction.LOW_STOCK,
                 product_name=None,
@@ -1686,22 +1742,15 @@ class AIService:
                     'karo', 'do', 'the', 'is', 'are', 'h', 'kare', 'karo'
                 ])
 
-                # For Hindi messages, extract product name from original message
-                if has_check_keyword_hindi and not has_check_keyword:
-                    # Remove Hindi keywords from the message
-                    product_name = hindi_msg
-                    for kw in check_stock_keywords_hindi + ['का', 'के', 'की', 'है', 'हैं']:
-                        product_name = product_name.replace(kw, ' ')
-                    product_name = ' '.join(product_name.split()).strip()
-                else:
-                    # Extract from normalized message
-                    product_words = []
-                    for word in normalized.split():
-                        word_lower = word.lower()
-                        # FIXED: Only remove if word exactly matches (not substring match)
-                        if word_lower not in words_to_remove:
-                            product_words.append(word)
-                    product_name = ' '.join(product_words).strip()
+                # ALWAYS extract from the transliterated/normalized message (hinglish_message)
+                # This ensures Hindi product names like "तेल" are already converted to "oil"
+                product_words = []
+                for word in normalized.split():
+                    word_lower = word.lower()
+                    # FIXED: Only remove if word exactly matches (not substring match)
+                    if word_lower not in words_to_remove:
+                        product_words.append(word)
+                product_name = ' '.join(product_words).strip()
 
                 # If we extracted a product name, return CHECK_STOCK
                 if product_name:
