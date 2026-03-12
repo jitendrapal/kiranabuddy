@@ -1,0 +1,16 @@
+[Unit]
+Description=KiranaBuddy POS System
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/KiranaBuddy
+Environment="PATH=/home/pi/KiranaBuddy/venv/bin"
+ExecStart=/home/pi/KiranaBuddy/venv/bin/python app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
