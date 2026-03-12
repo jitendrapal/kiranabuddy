@@ -1206,6 +1206,65 @@ def delete_bug():
         }), 500
 
 
+# ==================== CUSTOMER DISPLAY ROUTES ====================
+# In-memory store for live customer display sessions.
+# Each entry: { session_id, shop_name, items, grand_total, status, updated_at }
+# 'status' is 'active' while scanning, 'checked_out' after payment.
+_display_sessions: dict = {}
+
+
+@app.route('/customer-display')
+def customer_display_page():
+    """Serve the customer-facing live bill display page."""
+    session_id = request.args.get('session', '')
+    return render_template('customer_display.html', session_id=session_id)
+
+
+@app.route('/api/display-session', methods=['POST'])
+def create_display_session():
+    """Create a new live display session (called by cashier screen)."""
+    try:
+        data = request.get_json() or {}
+        sid = str(uuid.uuid4())
+        _display_sessions[sid] = {
+            'session_id': sid,
+            'shop_name': data.get('shop_name', 'Kirana Shop'),
+            'items': [],
+            'grand_total': 0,
+            'status': 'active',
+            'updated_at': datetime.utcnow().isoformat(),
+        }
+        return jsonify({'success': True, 'session_id': sid}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/display-session/<session_id>', methods=['GET'])
+def get_display_session(session_id):
+    """Return current cart state (polled by customer screen every ~1.5 s)."""
+    sess = _display_sessions.get(session_id)
+    if not sess:
+        return jsonify({'success': False, 'message': 'Session not found'}), 404
+    return jsonify({'success': True, 'session': sess}), 200
+
+
+@app.route('/api/display-session/<session_id>', methods=['PATCH'])
+def update_display_session(session_id):
+    """Update cart items / totals / status (called by cashier screen)."""
+    sess = _display_sessions.get(session_id)
+    if not sess:
+        return jsonify({'success': False, 'message': 'Session not found'}), 404
+    data = request.get_json() or {}
+    if 'items' in data:
+        sess['items'] = data['items']
+    if 'grand_total' in data:
+        sess['grand_total'] = data['grand_total']
+    if 'status' in data:
+        sess['status'] = data['status']
+    sess['updated_at'] = datetime.utcnow().isoformat()
+    return jsonify({'success': True}), 200
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

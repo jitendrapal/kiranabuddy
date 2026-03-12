@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -13,7 +13,11 @@
       }
 
       body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
           sans-serif;
         background: radial-gradient(
           circle at top,
@@ -106,7 +110,9 @@
         font-size: 15px;
         background: rgba(15, 23, 42, 0.9);
         color: #e5e7eb;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease,
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease,
           background 0.2s ease;
       }
 
@@ -132,7 +138,9 @@
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
-        transition: transform 0.15s ease, box-shadow 0.15s ease,
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
           background 0.2s ease;
       }
 
@@ -1131,19 +1139,28 @@
               <div id="headerMenu" class="menu-dropdown">
                 <button
                   class="menu-item"
-                  onclick="sendQuickReport('expiry products'); toggleHeaderMenu(false);"
+                  onclick="
+                    sendQuickReport('expiry products');
+                    toggleHeaderMenu(false);
+                  "
                 >
                   Expiry
                 </button>
                 <button
                   class="menu-item"
-                  onclick="sendQuickReport('Monthly estimated profit'); toggleHeaderMenu(false);"
+                  onclick="
+                    sendQuickReport('Monthly estimated profit');
+                    toggleHeaderMenu(false);
+                  "
                 >
                   Total profit
                 </button>
                 <button
                   class="menu-item"
-                  onclick="sendQuickReport('Show all stock'); toggleHeaderMenu(false);"
+                  onclick="
+                    sendQuickReport('Show all stock');
+                    toggleHeaderMenu(false);
+                  "
                 >
                   Show stock
                 </button>
@@ -1183,6 +1200,16 @@
           onclick="sendQuickReport('Kaun se product aaj nahi bika?')"
         >
           😴 Zero sale items
+        </button>
+        <button
+          class="report-btn"
+          onclick="openCustomerDisplay()"
+          style="
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            border-color: #6d28d9;
+          "
+        >
+          📺 Customer Screen
         </button>
       </div>
 
@@ -1327,6 +1354,108 @@
       let lastScannedCode = null;
       let lastScanTime = 0;
 
+      // --- Customer display session ---
+      let customerDisplaySessionId = null;
+      let customerDisplayWindow = null;
+
+      async function openCustomerDisplay() {
+        try {
+          // Create a new display session
+          const phoneInput = document.getElementById("phone");
+          const phone = phoneInput ? phoneInput.value : "";
+
+          const resp = await fetch("/api/display-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ shop_name: "Kirana Shop" }),
+          });
+
+          if (!resp.ok) {
+            alert("Failed to create customer display session");
+            return;
+          }
+
+          const data = await resp.json();
+          if (!data.success || !data.session_id) {
+            alert("Failed to create customer display session");
+            return;
+          }
+
+          customerDisplaySessionId = data.session_id;
+
+          // Open customer display in new window/tab
+          const url = "/customer-display?session=" + customerDisplaySessionId;
+          customerDisplayWindow = window.open(
+            url,
+            "CustomerDisplay",
+            "width=1024,height=768",
+          );
+
+          if (!customerDisplayWindow) {
+            alert("Please allow popups to open the customer display screen");
+            return;
+          }
+
+          appendMessage(
+            "📺 Customer display opened! Session: " +
+              customerDisplaySessionId.substring(0, 8) +
+              "...",
+            "bot",
+          );
+
+          // Push current cart if any
+          if (scanCart.length > 0) {
+            pushCartToDisplay();
+          }
+        } catch (e) {
+          console.error("Error opening customer display:", e);
+          alert("Error: " + e.message);
+        }
+      }
+
+      async function pushCartToDisplay() {
+        if (!customerDisplaySessionId) return;
+
+        // Build items array from scanCart
+        const items = scanCart.map((item) => {
+          const absQty = Math.abs(item.delta || 0);
+          const price =
+            typeof item.price === "number" && !Number.isNaN(item.price)
+              ? item.price
+              : null;
+          const lineTotal = price !== null ? price * absQty : null;
+
+          return {
+            code: item.code,
+            name: item.name || item.code,
+            qty: absQty,
+            unit: item.unit || "",
+            unit_price: price,
+            line_total: lineTotal,
+          };
+        });
+
+        // Calculate grand total
+        let grandTotal = 0;
+        items.forEach((it) => {
+          if (it.line_total !== null) grandTotal += it.line_total;
+        });
+
+        try {
+          await fetch("/api/display-session/" + customerDisplaySessionId, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              items: items,
+              grand_total: grandTotal,
+              status: "active",
+            }),
+          });
+        } catch (e) {
+          console.error("Failed to push cart to display:", e);
+        }
+      }
+
       // Simple beep sound when a product is scanned
       let scanBeepContext = null;
       function playScanBeep() {
@@ -1348,7 +1477,7 @@
           gain.gain.setValueAtTime(0.25, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(
             0.001,
-            ctx.currentTime + duration
+            ctx.currentTime + duration,
           );
 
           osc.connect(gain);
@@ -1367,7 +1496,7 @@
 
         if (!("BarcodeDetector" in window)) {
           alert(
-            "Barcode scanning is not supported in this browser. Please type the code manually."
+            "Barcode scanning is not supported in this browser. Please type the code manually.",
           );
           return;
         }
@@ -1469,7 +1598,7 @@
           });
 
           const resp = await fetch(
-            `/api/product-by-barcode?${params.toString()}`
+            `/api/product-by-barcode?${params.toString()}`,
           );
           if (!resp.ok) return;
 
@@ -1488,7 +1617,7 @@
           console.error(
             "Failed to lookup product name for barcode",
             item.code,
-            e
+            e,
           );
         }
       }
@@ -1620,6 +1749,9 @@
             totalEl.textContent = "Total: Rs 0";
           }
         }
+
+        // Push to customer display if session is active
+        pushCartToDisplay();
       }
 
       function setScanCartMode(mode) {
@@ -1652,6 +1784,7 @@
       function clearScanCart() {
         scanCart = [];
         updateScanCartUI();
+        // updateScanCartUI() will call pushCartToDisplay() automatically
       }
 
       async function sendScanCartToBackend() {
@@ -1749,7 +1882,7 @@
               }
             } else {
               errorLines.push(
-                "❌ Error: " + (data.message || JSON.stringify(data))
+                "❌ Error: " + (data.message || JSON.stringify(data)),
               );
             }
           } catch (error) {
@@ -1760,12 +1893,25 @@
         if (summaryLines.length) {
           appendMessage(
             "✅ Products updated:\n" + summaryLines.join("\n"),
-            "bot"
+            "bot",
           );
         }
 
         if (errorLines.length) {
           appendMessage(errorLines.join("\n"), "bot");
+        }
+
+        // Mark customer display session as checked out
+        if (customerDisplaySessionId) {
+          try {
+            await fetch("/api/display-session/" + customerDisplaySessionId, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "checked_out" }),
+            });
+          } catch (e) {
+            console.error("Failed to mark display session as checked out:", e);
+          }
         }
       }
 
@@ -1829,15 +1975,16 @@
             console.log("🎤 Available microphones:", audioInputs);
             console.log(
               "🎤 Currently using:",
-              audioStream.getAudioTracks()[0].label
+              audioStream.getAudioTracks()[0].label,
             );
 
             console.log("✅ Microphone access granted");
             console.log("🎤 Audio stream tracks:", audioStream.getTracks());
 
             // Create audio context to monitor volume
-            const audioContext = new (window.AudioContext ||
-              window.webkitAudioContext)();
+            const audioContext = new (
+              window.AudioContext || window.webkitAudioContext
+            )();
             const analyser = audioContext.createAnalyser();
             const microphone =
               audioContext.createMediaStreamSource(audioStream);
@@ -1854,7 +2001,7 @@
               console.log(`🔊 Microphone volume: ${Math.round(average)}/255`);
               if (average < 5) {
                 console.warn(
-                  "⚠️ Very low volume! Speak louder or check microphone!"
+                  "⚠️ Very low volume! Speak louder or check microphone!",
                 );
               }
               setTimeout(checkVolume, 500); // Check every 500ms
@@ -1891,7 +2038,7 @@
               hideRecordingWave();
 
               console.log(
-                `📊 Total audio chunks collected: ${audioChunks.length}`
+                `📊 Total audio chunks collected: ${audioChunks.length}`,
               );
 
               // Log each chunk size
@@ -1904,7 +2051,7 @@
               const audioBlob = new Blob(audioChunks, { type: mimeType });
 
               console.log(
-                `📦 Audio blob created: ${audioBlob.size} bytes, type: ${mimeType}`
+                `📦 Audio blob created: ${audioBlob.size} bytes, type: ${mimeType}`,
               );
 
               // Stop all audio tracks
@@ -1947,7 +2094,7 @@
             console.error("❌ Error accessing microphone:", error);
             appendMessage(
               "Microphone access denied. Please allow microphone permission.",
-              "bot"
+              "bot",
             );
             stopRecording();
           }
@@ -1981,11 +2128,11 @@
           console.log("📦 audioBlob:", audioBlob);
           console.log(
             "📦 audioBlob.size:",
-            audioBlob ? audioBlob.size : "null"
+            audioBlob ? audioBlob.size : "null",
           );
           console.log(
             "📦 audioBlob.type:",
-            audioBlob ? audioBlob.type : "null"
+            audioBlob ? audioBlob.type : "null",
           );
 
           // Check if audio blob is empty
@@ -1993,7 +2140,7 @@
             console.error("❌ Audio blob is empty!");
             appendMessage(
               "❌ No audio recorded. Please speak while recording.",
-              "bot"
+              "bot",
             );
             return;
           }
@@ -2043,7 +2190,7 @@
             console.error("❌ Transcription failed:", data.error);
             appendMessage(
               "❌ " + (data.error || "Could not transcribe audio"),
-              "bot"
+              "bot",
             );
           }
         } catch (error) {
@@ -2178,7 +2325,7 @@
           } else {
             appendMessage(
               "Error: " + (data.message || JSON.stringify(data)),
-              "bot"
+              "bot",
             );
           }
         } catch (error) {
