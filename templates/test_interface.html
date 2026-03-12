@@ -2021,6 +2021,12 @@
 
         overlay.classList.add("show");
 
+        // Show cart panel if there are already items in cart
+        const panel = document.getElementById("scanCartPanel");
+        if (panel && scanCart.length > 0) {
+          panel.classList.remove("hidden");
+        }
+
         try {
           scannerStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" },
@@ -2073,6 +2079,12 @@
 
         lastScannedCode = code;
         lastScanTime = now;
+
+        // Show scanner cart panel if not already visible
+        const panel = document.getElementById("scanCartPanel");
+        if (panel && panel.classList.contains("hidden")) {
+          panel.classList.remove("hidden");
+        }
 
         // Default quantity = 1, sign based on global mode
         const baseQty = 1;
