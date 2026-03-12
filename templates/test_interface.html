@@ -775,6 +775,83 @@
         box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
       }
 
+      /* Cart Popup Overlay - Shows when scanning with physical scanner */
+      .cart-popup-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+      }
+
+      .cart-popup-overlay.show {
+        display: flex;
+      }
+
+      .cart-popup {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 20px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        border: 3px solid #3b82f6;
+        overflow: hidden;
+      }
+
+      .cart-popup-header {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #1e40af;
+      }
+
+      .cart-popup-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .cart-popup-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: #ffffff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .cart-popup-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+      }
+
+      .cart-popup-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        min-height: 200px;
+      }
+
       .header-title {
         display: flex;
         align-items: center;
@@ -1581,6 +1658,28 @@
       </div>
     </div>
 
+    <!-- Cart Popup Overlay - For Physical Scanner -->
+    <div class="cart-popup-overlay" id="cartPopupOverlay">
+      <div class="cart-popup">
+        <div class="cart-popup-header">
+          <div class="cart-popup-title">🛒 Scanned Items</div>
+          <button class="cart-popup-close" onclick="closeCartPopup()">✕</button>
+        </div>
+        <div class="cart-popup-body">
+          <div
+            id="cartPopupPanel"
+            class="scan-cart"
+            style="
+              border: none;
+              box-shadow: none;
+              background: transparent;
+              padding: 0;
+            "
+          ></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Payment Modal -->
     <div class="payment-modal-overlay" id="paymentModalOverlay">
       <div class="payment-modal">
@@ -1823,6 +1922,111 @@
         } catch (e) {
           console.error("Failed to push cart to display:", e);
         }
+      }
+
+      // --- Cart Popup Functions ---
+      function showCartPopup() {
+        const overlay = document.getElementById("cartPopupOverlay");
+        if (overlay) {
+          overlay.classList.add("show");
+          updateCartPopup();
+        }
+      }
+
+      function closeCartPopup() {
+        const overlay = document.getElementById("cartPopupOverlay");
+        if (overlay) {
+          overlay.classList.remove("show");
+        }
+      }
+
+      function updateCartPopup() {
+        const popupPanel = document.getElementById("cartPopupPanel");
+        if (!popupPanel) return;
+
+        // Build the same cart UI as in scanner
+        let html = `
+          <div class="scan-cart-header">
+            <div class="scan-cart-title">
+              Scanned Items
+              <span class="scan-cart-count">${scanCart.length}</span>
+            </div>
+            <div class="scan-cart-controls">
+              <button class="sale-btn ${scanCartMode === "sale" ? "active" : ""}" onclick="setScanCartMode('sale')">Sale</button>
+              <button class="add-btn ${scanCartMode === "add" ? "active" : ""}" onclick="setScanCartMode('add')">Add</button>
+            </div>
+          </div>
+          <div class="scan-cart-items">
+        `;
+
+        if (scanCart.length === 0) {
+          html +=
+            '<div style="text-align:center;padding:40px 20px;color:#64748b;font-size:14px">No items scanned yet<br/>Scan a barcode to add items</div>';
+        } else {
+          scanCart.forEach((item) => {
+            const absQty = Math.abs(item.delta || 0);
+            const price =
+              typeof item.price === "number" && !Number.isNaN(item.price)
+                ? item.price
+                : null;
+            const lineTotal = price !== null ? price * absQty : null;
+            const unit = item.unit || "";
+
+            html += `
+              <div class="scan-cart-item">
+                <div class="scan-cart-item-info">
+                  <div class="scan-cart-item-name">${escapeHtml(item.name || item.code)}</div>
+                  <div class="scan-cart-item-details">
+                    ${price !== null ? "Rs " + price.toFixed(2) : "Price N/A"} x ${absQty}${unit ? " " + unit : ""} =
+                    ${lineTotal !== null ? "Rs " + lineTotal.toFixed(2) : "N/A"}
+                  </div>
+                </div>
+                <div class="scan-cart-qty-controls">
+                  <button class="qty-minus" onclick="adjustScanCartQty('${escapeHtml(item.code)}', -1)">−</button>
+                  <span class="scan-cart-qty">${absQty}</span>
+                  <button class="qty-plus" onclick="adjustScanCartQty('${escapeHtml(item.code)}', 1)">+</button>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        html += "</div>";
+
+        // Calculate total
+        let grandTotal = 0;
+        scanCart.forEach((item) => {
+          const absQty = Math.abs(item.delta || 0);
+          const price =
+            typeof item.price === "number" && !Number.isNaN(item.price)
+              ? item.price
+              : null;
+          if (price !== null) {
+            grandTotal += price * absQty;
+          }
+        });
+
+        // Add actions
+        html += `
+          <div class="scan-cart-actions">
+            <div class="total-display">
+              <div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div>
+              <div style="font-size:24px;font-weight:900">₹ ${grandTotal.toFixed(2)}</div>
+            </div>
+            <div class="scan-cart-actions-row">
+              <button class="clear-btn" onclick="clearScanCart()">Clear</button>
+              <button class="primary" onclick="showPaymentModal()" style="background:linear-gradient(135deg,#10b981,#059669);font-size:1.1em;font-weight:700;flex:1">💰 Pay</button>
+            </div>
+          </div>
+        `;
+
+        popupPanel.innerHTML = html;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
       }
 
       // --- Payment Modal Functions ---
@@ -2093,6 +2297,12 @@
         // Clear input immediately
         input.value = "";
 
+        // Show cart popup if not already visible
+        const overlay = document.getElementById("cartPopupOverlay");
+        if (overlay && !overlay.classList.contains("show")) {
+          showCartPopup();
+        }
+
         // Process barcode same as camera scan
         const baseQty = 1;
         const delta = scanCartMode === "add" ? baseQty : -baseQty;
@@ -2331,6 +2541,12 @@
 
         // Push to customer display if session is active
         pushCartToDisplay();
+
+        // Update cart popup if it's open
+        const cartPopupOverlay = document.getElementById("cartPopupOverlay");
+        if (cartPopupOverlay && cartPopupOverlay.classList.contains("show")) {
+          updateCartPopup();
+        }
       }
 
       function setScanCartMode(mode) {
@@ -2364,6 +2580,9 @@
         scanCart = [];
         updateScanCartUI();
         // updateScanCartUI() will call pushCartToDisplay() automatically
+
+        // Close cart popup when cart is cleared
+        closeCartPopup();
       }
 
       async function sendScanCartToBackend() {
