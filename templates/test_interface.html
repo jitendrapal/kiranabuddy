@@ -604,9 +604,15 @@
 
       .scan-cart-actions {
         display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .scan-cart-actions-row {
+        display: flex;
         align-items: center;
         gap: 6px;
-        margin-top: 8px;
       }
 
       .scan-cart-actions button {
@@ -635,11 +641,17 @@
 
       .scan-cart-actions .total-display {
         flex: 1;
-        text-align: right;
-        font-size: 13px;
-        font-weight: 700;
-        color: #1e40af;
-        padding: 0 8px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 900;
+        color: #ffffff;
+        background: linear-gradient(135deg, #059669, #047857);
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 2px solid #10b981;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        letter-spacing: 0.5px;
+        margin: 0 6px;
       }
 
       .scan-cart-actions button.primary {
@@ -1469,8 +1481,17 @@
               color: #1e40af;
               padding: 8px 12px;
               border-radius: 8px;
+              transition: all 0.3s ease;
             "
             onkeypress="if (event.key === 'Enter') handleBarcodeInput();"
+            onfocus="
+              this.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.3)';
+              this.style.borderColor = '#2563eb';
+            "
+            onblur="
+              this.style.boxShadow = 'none';
+              this.style.borderColor = '#3b82f6';
+            "
             title="Physical barcode scanner input - scan or type barcode"
             autocomplete="off"
           />
@@ -1529,23 +1550,29 @@
                 </div>
                 <div id="scanCartItems" class="scan-cart-items"></div>
                 <div class="scan-cart-actions">
-                  <button class="clear-btn" onclick="clearScanCart()">
-                    Clear
-                  </button>
-                  <span class="total-display" id="scanCartTotal"
-                    >Total: Rs 0</span
-                  >
-                  <button
-                    class="primary"
-                    onclick="showPaymentModal()"
-                    style="
-                      background: linear-gradient(135deg, #10b981, #059669);
-                      font-size: 1.1em;
-                      font-weight: 700;
-                    "
-                  >
-                    💰 Pay
-                  </button>
+                  <!-- Total Display - Prominent -->
+                  <div class="total-display" id="scanCartTotal">
+                    Total: ₹ 0.00
+                  </div>
+
+                  <!-- Action Buttons Row -->
+                  <div class="scan-cart-actions-row">
+                    <button class="clear-btn" onclick="clearScanCart()">
+                      Clear
+                    </button>
+                    <button
+                      class="primary"
+                      onclick="showPaymentModal()"
+                      style="
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        font-size: 1.1em;
+                        font-weight: 700;
+                        flex: 1;
+                      "
+                    >
+                      💰 Pay
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1740,6 +1767,15 @@
           if (scanCart.length > 0) {
             pushCartToDisplay();
           }
+
+          // IMPORTANT: Refocus barcode input after opening customer display
+          // This ensures scanner input continues to work
+          setTimeout(() => {
+            const barcodeInput = document.getElementById("barcodeInput");
+            if (barcodeInput) {
+              barcodeInput.focus();
+            }
+          }, 500);
         } catch (e) {
           console.error("Error opening customer display:", e);
           alert("Error: " + e.message);
@@ -2088,6 +2124,32 @@
         }
       });
 
+      // Keep barcode input focused for scanner to work
+      // This ensures scanner input is always captured
+      setInterval(() => {
+        const barcodeInput = document.getElementById("barcodeInput");
+        const activeElement = document.activeElement;
+
+        // Only auto-focus if:
+        // 1. Barcode input exists
+        // 2. User is not typing in message input or other text fields
+        // 3. Scanner overlay is not open
+        if (
+          barcodeInput &&
+          activeElement?.id !== "message" &&
+          activeElement?.tagName !== "TEXTAREA" &&
+          !document.getElementById("scannerOverlay")?.classList.contains("show")
+        ) {
+          // Check if focus is lost (not on any input)
+          if (
+            activeElement?.tagName !== "INPUT" ||
+            activeElement === barcodeInput
+          ) {
+            barcodeInput.focus();
+          }
+        }
+      }, 2000); // Check every 2 seconds
+
       function addToScanCart(code, delta) {
         if (!code) return;
 
@@ -2263,9 +2325,13 @@
 
         if (totalEl) {
           if (grandTotal > 0) {
-            totalEl.textContent = "Total: Rs " + grandTotal.toFixed(2);
+            totalEl.innerHTML =
+              '<div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div><div style="font-size:24px;font-weight:900">₹ ' +
+              grandTotal.toFixed(2) +
+              "</div>";
           } else {
-            totalEl.textContent = "Total: Rs 0";
+            totalEl.innerHTML =
+              '<div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div><div style="font-size:24px;font-weight:900">₹ 0.00</div>';
           }
         }
 
