@@ -1087,6 +1087,230 @@
         font-weight: 500;
         margin-left: 8px;
       }
+
+      /* Payment Modal */
+      .payment-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+      }
+
+      .payment-modal-overlay.show {
+        display: flex;
+      }
+
+      .payment-modal {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 20px;
+        padding: 32px;
+        max-width: 480px;
+        width: 90%;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        border: 2px solid #334155;
+        animation: modalSlideIn 0.3s ease-out;
+      }
+
+      @keyframes modalSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-30px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .payment-modal h2 {
+        color: #10b981;
+        font-size: 1.8em;
+        margin-bottom: 24px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .payment-total-display {
+        background: linear-gradient(135deg, #065f46, #064e3b);
+        border: 2px solid #10b981;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        text-align: center;
+      }
+
+      .payment-total-label {
+        color: #6ee7b7;
+        font-size: 0.9em;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .payment-total-amount {
+        color: #10b981;
+        font-size: 2.5em;
+        font-weight: 900;
+        letter-spacing: -1px;
+      }
+
+      .payment-method-label {
+        color: #94a3b8;
+        font-size: 0.95em;
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+
+      .payment-methods {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .payment-method-btn {
+        flex: 1;
+        padding: 14px;
+        border: 2px solid #334155;
+        background: #1e293b;
+        color: #94a3b8;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .payment-method-btn:hover {
+        border-color: #10b981;
+        background: #0f172a;
+        color: #10b981;
+        transform: translateY(-2px);
+      }
+
+      .payment-method-btn.active {
+        border-color: #10b981;
+        background: linear-gradient(135deg, #065f46, #064e3b);
+        color: #10b981;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+      }
+
+      .payment-method-icon {
+        font-size: 1.5em;
+      }
+
+      .payment-input-group {
+        margin-bottom: 24px;
+      }
+
+      .payment-input-group label {
+        display: block;
+        color: #94a3b8;
+        font-size: 0.95em;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .payment-input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #334155;
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 10px;
+        font-size: 1.3em;
+        font-weight: 700;
+        text-align: center;
+        transition: all 0.2s;
+      }
+
+      .payment-input:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      }
+
+      .payment-change-display {
+        background: #0f172a;
+        border: 2px solid #334155;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 24px;
+        text-align: center;
+        display: none;
+      }
+
+      .payment-change-display.show {
+        display: block;
+      }
+
+      .payment-change-label {
+        color: #64748b;
+        font-size: 0.85em;
+        margin-bottom: 4px;
+      }
+
+      .payment-change-amount {
+        color: #fbbf24;
+        font-size: 1.8em;
+        font-weight: 800;
+      }
+
+      .payment-modal-actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      .payment-modal-btn {
+        flex: 1;
+        padding: 16px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.1em;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .payment-modal-btn.cancel {
+        background: #334155;
+        color: #94a3b8;
+      }
+
+      .payment-modal-btn.cancel:hover {
+        background: #475569;
+        transform: translateY(-2px);
+      }
+
+      .payment-modal-btn.confirm {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      }
+
+      .payment-modal-btn.confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      }
+
+      .payment-modal-btn.confirm:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
     </style>
   </head>
   <body class="theme-light">
@@ -1286,13 +1510,97 @@
                   <span class="total-display" id="scanCartTotal"
                     >Total: Rs 0</span
                   >
-                  <button class="primary" onclick="sendScanCartToBackend()">
-                    Send
+                  <button
+                    class="primary"
+                    onclick="showPaymentModal()"
+                    style="
+                      background: linear-gradient(135deg, #10b981, #059669);
+                      font-size: 1.1em;
+                      font-weight: 700;
+                    "
+                  >
+                    💰 Pay
                   </button>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="payment-modal-overlay" id="paymentModalOverlay">
+      <div class="payment-modal">
+        <h2>💰 Complete Payment</h2>
+
+        <div class="payment-total-display">
+          <div class="payment-total-label">Total Amount</div>
+          <div class="payment-total-amount" id="paymentTotalAmount">₹ 0.00</div>
+        </div>
+
+        <div class="payment-method-label">Payment Method</div>
+        <div class="payment-methods">
+          <button
+            class="payment-method-btn active"
+            onclick="selectPaymentMethod('cash')"
+            id="paymentMethodCash"
+          >
+            <div class="payment-method-icon">💵</div>
+            <div>Cash</div>
+          </button>
+          <button
+            class="payment-method-btn"
+            onclick="selectPaymentMethod('card')"
+            id="paymentMethodCard"
+          >
+            <div class="payment-method-icon">💳</div>
+            <div>Card</div>
+          </button>
+          <button
+            class="payment-method-btn"
+            onclick="selectPaymentMethod('upi')"
+            id="paymentMethodUPI"
+          >
+            <div class="payment-method-icon">📱</div>
+            <div>UPI</div>
+          </button>
+        </div>
+
+        <div class="payment-input-group">
+          <label for="paymentAmountInput">Amount Received</label>
+          <input
+            type="number"
+            id="paymentAmountInput"
+            class="payment-input"
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+            oninput="calculateChange()"
+          />
+        </div>
+
+        <div class="payment-change-display" id="paymentChangeDisplay">
+          <div class="payment-change-label">Change to Return</div>
+          <div class="payment-change-amount" id="paymentChangeAmount">
+            ₹ 0.00
+          </div>
+        </div>
+
+        <div class="payment-modal-actions">
+          <button
+            class="payment-modal-btn cancel"
+            onclick="closePaymentModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="payment-modal-btn confirm"
+            onclick="confirmPayment()"
+            id="confirmPaymentBtn"
+          >
+            Confirm Payment
+          </button>
         </div>
       </div>
     </div>
@@ -1454,6 +1762,150 @@
         } catch (e) {
           console.error("Failed to push cart to display:", e);
         }
+      }
+
+      // --- Payment Modal Functions ---
+      let currentPaymentTotal = 0;
+      let selectedPaymentMethod = "cash";
+
+      function showPaymentModal() {
+        if (!scanCart.length) {
+          return;
+        }
+
+        // Calculate total
+        let grandTotal = 0;
+        scanCart.forEach((item) => {
+          const absQty = Math.abs(item.delta || 0);
+          const price =
+            typeof item.price === "number" && !Number.isNaN(item.price)
+              ? item.price
+              : null;
+          if (price !== null) {
+            grandTotal += price * absQty;
+          }
+        });
+
+        currentPaymentTotal = grandTotal;
+
+        // Update modal display
+        const totalEl = document.getElementById("paymentTotalAmount");
+        if (totalEl) {
+          totalEl.textContent = "₹ " + grandTotal.toFixed(2);
+        }
+
+        // Reset payment input
+        const inputEl = document.getElementById("paymentAmountInput");
+        if (inputEl) {
+          inputEl.value = "";
+          // For card/UPI, auto-fill exact amount
+          if (selectedPaymentMethod !== "cash") {
+            inputEl.value = grandTotal.toFixed(2);
+            calculateChange();
+          }
+        }
+
+        // Reset payment method to cash
+        selectPaymentMethod("cash");
+
+        // Hide change display initially
+        const changeDisplay = document.getElementById("paymentChangeDisplay");
+        if (changeDisplay) {
+          changeDisplay.classList.remove("show");
+        }
+
+        // Show modal
+        const overlay = document.getElementById("paymentModalOverlay");
+        if (overlay) {
+          overlay.classList.add("show");
+          // Focus on input after a short delay
+          setTimeout(() => {
+            if (inputEl) inputEl.focus();
+          }, 300);
+        }
+      }
+
+      function closePaymentModal() {
+        const overlay = document.getElementById("paymentModalOverlay");
+        if (overlay) {
+          overlay.classList.remove("show");
+        }
+      }
+
+      function selectPaymentMethod(method) {
+        selectedPaymentMethod = method;
+
+        // Update button states
+        const cashBtn = document.getElementById("paymentMethodCash");
+        const cardBtn = document.getElementById("paymentMethodCard");
+        const upiBtn = document.getElementById("paymentMethodUPI");
+
+        if (cashBtn) cashBtn.classList.remove("active");
+        if (cardBtn) cardBtn.classList.remove("active");
+        if (upiBtn) upiBtn.classList.remove("active");
+
+        if (method === "cash" && cashBtn) cashBtn.classList.add("active");
+        if (method === "card" && cardBtn) cardBtn.classList.add("active");
+        if (method === "upi" && upiBtn) upiBtn.classList.add("active");
+
+        // For card/UPI, auto-fill exact amount
+        const inputEl = document.getElementById("paymentAmountInput");
+        if (inputEl && method !== "cash") {
+          inputEl.value = currentPaymentTotal.toFixed(2);
+          calculateChange();
+        }
+      }
+
+      function calculateChange() {
+        const inputEl = document.getElementById("paymentAmountInput");
+        const changeDisplay = document.getElementById("paymentChangeDisplay");
+        const changeAmountEl = document.getElementById("paymentChangeAmount");
+        const confirmBtn = document.getElementById("confirmPaymentBtn");
+
+        if (!inputEl || !changeDisplay || !changeAmountEl || !confirmBtn)
+          return;
+
+        const received = parseFloat(inputEl.value) || 0;
+        const change = received - currentPaymentTotal;
+
+        if (received >= currentPaymentTotal) {
+          confirmBtn.disabled = false;
+          if (change > 0 && selectedPaymentMethod === "cash") {
+            changeDisplay.classList.add("show");
+            changeAmountEl.textContent = "₹ " + change.toFixed(2);
+          } else {
+            changeDisplay.classList.remove("show");
+          }
+        } else {
+          confirmBtn.disabled = true;
+          changeDisplay.classList.remove("show");
+        }
+      }
+
+      async function confirmPayment() {
+        const inputEl = document.getElementById("paymentAmountInput");
+        const received = parseFloat(inputEl.value) || 0;
+
+        if (received < currentPaymentTotal) {
+          alert("Payment amount is less than total!");
+          return;
+        }
+
+        // Close modal
+        closePaymentModal();
+
+        // Show processing message
+        appendMessage(
+          "💰 Processing payment of ₹" +
+            currentPaymentTotal.toFixed(2) +
+            " via " +
+            selectedPaymentMethod.toUpperCase() +
+            "...",
+          "bot",
+        );
+
+        // Now process the actual stock deduction
+        await sendScanCartToBackend();
       }
 
       // Simple beep sound when a product is scanned
