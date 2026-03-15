@@ -19,65 +19,1149 @@
           BlinkMacSystemFont,
           "Segoe UI",
           sans-serif;
-        background: radial-gradient(
-          circle at top,
-          #1e293b 0,
-          #020617 55%,
-          #000 100%
-        );
-        color: #e5e7eb;
+        background: #f1f5f9;
+        color: #1e293b;
         min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: stretch;
+        margin: 0;
         padding: 0;
+        overflow: hidden;
       }
 
       .container {
         width: 100%;
-        max-width: 1100px;
         height: 100vh;
-        margin: 0 auto;
-        background: rgba(15, 23, 42, 0.96);
-        border-radius: 24px;
-        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.9);
-        overflow: hidden;
+        margin: 0;
+        background: #ffffff;
         display: flex;
         flex-direction: column;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        backdrop-filter: blur(18px);
+        overflow: hidden;
       }
 
+      /* ===== HEADER ===== */
       .header {
-        background: radial-gradient(
-          circle at top left,
-          #22c55e 0,
-          #16a34a 40%,
-          #064e3b 100%
-        );
-        color: #ecfdf5;
-        padding: 14px 20px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #ffffff;
+        padding: 0 24px;
+        height: 64px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.7);
+        border-bottom: 3px solid #3b82f6;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        flex-shrink: 0;
+        gap: 16px;
       }
 
-      .header h1 {
-        font-size: 1.7em;
-        margin-bottom: 4px;
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
       }
 
-      .header p {
-        opacity: 0.85;
+      .header-logo {
+        width: 42px;
+        height: 42px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
       }
 
+      .header-title h1 {
+        font-size: 18px;
+        font-weight: 800;
+        margin: 0;
+        color: #f1f5f9;
+        letter-spacing: -0.3px;
+      }
+      .header-title p {
+        font-size: 11px;
+        color: #64748b;
+        margin: 0;
+      }
+
+      /* Live clock block */
+      .header-clock {
+        text-align: center;
+        padding: 0 20px;
+        border-left: 1px solid #334155;
+        border-right: 1px solid #334155;
+      }
+      .header-clock .clock-time {
+        font-size: 22px;
+        font-weight: 800;
+        color: #f1f5f9;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 1px;
+      }
+      .header-clock .clock-date {
+        font-size: 10px;
+        color: #64748b;
+        margin-top: 1px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Bill number */
+      .header-bill {
+        background: rgba(59, 130, 246, 0.15);
+        border: 1px solid #3b82f6;
+        border-radius: 8px;
+        padding: 6px 14px;
+        text-align: center;
+      }
+      .header-bill .bill-label {
+        font-size: 10px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .header-bill .bill-num {
+        font-size: 15px;
+        font-weight: 800;
+        color: #60a5fa;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .header-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid #334155;
+        color: #94a3b8;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+      }
+      .header-btn:hover {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: #fff;
+        transform: translateY(-1px);
+      }
+      .header-btn.chat-btn {
+        border-color: #7c3aed;
+        color: #a78bfa;
+      }
+      .header-btn.chat-btn:hover {
+        background: #7c3aed;
+        border-color: #7c3aed;
+        color: #fff;
+      }
+      .header-btn.danger {
+        border-color: #7f1d1d;
+        color: #f87171;
+      }
+      .header-btn.danger:hover {
+        background: #dc2626;
+        border-color: #dc2626;
+        color: #fff;
+      }
+
+      /* ===== STATUS BAR ===== */
+      .pos-statusbar {
+        background: #0f172a;
+        border-bottom: 1px solid #1e293b;
+        padding: 5px 20px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-shrink: 0;
+      }
+      .pos-statusbar-item {
+        font-size: 11px;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .pos-statusbar-item .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10b981;
+      }
+      .pos-statusbar-item .dot.warn {
+        background: #f59e0b;
+      }
+
+      /* ===== MAIN POS LAYOUT ===== */
       .content {
         flex: 1;
         display: flex;
-        flex-direction: column;
-        background: radial-gradient(circle at top, #020617 0, #020617 55%);
         overflow: hidden;
+        background: #f1f5f9;
+      }
+
+      /* ===== LEFT PANEL ===== */
+      .pos-left {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-right: 2px solid #e2e8f0;
+        overflow: hidden;
+        background: #f8fafc;
+      }
+
+      .pos-left-header {
+        background: #ffffff;
+        padding: 8px 12px;
+        border-bottom: 2px solid #e2e8f0;
+        flex-shrink: 0;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .pos-search {
+        position: relative;
+        flex: 1;
+      }
+      .pos-search input {
+        width: 100%;
+        padding: 10px 14px 10px 38px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        background: #f8fafc;
+        color: #1e293b;
+        transition: all 0.2s;
+      }
+      .pos-search input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      .pos-search::before {
+        content: "🔍";
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 15px;
+        pointer-events: none;
+      }
+
+      /* Items count badge */
+      .pos-items-count {
+        font-size: 12px;
+        color: #64748b;
+        white-space: nowrap;
+      }
+
+      /* ===== CATEGORY SIDEBAR ===== */
+      .pos-left-body {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
+
+      .pos-category-sidebar {
+        width: 80px;
+        min-width: 80px;
+        background: #ffffff;
+        border-right: 2px solid #e2e8f0;
+        overflow-y: auto;
+        padding: 6px 0;
+        flex-shrink: 0;
+      }
+
+      .pos-category-item {
+        padding: 10px 4px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.15s;
+        border-left: 3px solid transparent;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        text-align: center;
+      }
+      .pos-category-item .cat-icon {
+        font-size: 20px;
+      }
+      .pos-category-item:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+      }
+      .pos-category-item.active {
+        background: #eff6ff;
+        color: #2563eb;
+        border-left-color: #3b82f6;
+        font-weight: 700;
+      }
+
+      /* ===== PRODUCT GRID ===== */
+      .pos-products {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+        background: #f1f5f9;
+      }
+
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 7px;
+      }
+
+      .product-card {
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+      }
+      .product-card:hover {
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.22);
+        z-index: 1;
+      }
+      .product-card:active {
+        transform: scale(0.97);
+      }
+
+      .product-card-img {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+      }
+
+      .product-card-body {
+        padding: 4px 6px 6px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .product-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        white-space: normal;
+      }
+
+      .product-price {
+        font-size: 13px;
+        font-weight: 800;
+        color: #059669;
+        margin-top: auto;
+      }
+
+      .product-stock-badge {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        font-size: 8px;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .stock-ok {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .stock-low {
+        background: #fef9c3;
+        color: #92400e;
+      }
+      .stock-out {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      /* Weight-based product badge on card */
+      .weight-badge {
+        background: #fef3c7;
+        color: #92400e;
+        border-top: 1px solid #fcd34d;
+        font-size: 9px;
+        font-weight: 800;
+        padding: 2px 0;
+        width: 100%;
+        text-align: center;
+        letter-spacing: 0.3px;
+      }
+
+      /* ===== TAX SETTINGS MODAL ===== */
+      .tax-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 20000;
+        align-items: center;
+        justify-content: center;
+      }
+      .tax-modal-overlay.show {
+        display: flex;
+      }
+
+      .tax-modal {
+        background: #fff;
+        border-radius: 18px;
+        width: 420px;
+        max-width: 95vw;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        animation: slideUp 0.25s ease;
+      }
+
+      .tax-modal-header {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: #fff;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .tax-modal-header-title {
+        font-size: 18px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .tax-modal-close {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tax-modal-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .tax-modal-body {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* Toggle switch */
+      .tax-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 18px;
+      }
+      .tax-toggle-label {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+      }
+      .tax-toggle-sub {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 2px;
+      }
+
+      .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 26px;
+        flex-shrink: 0;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: #cbd5e1;
+        border-radius: 26px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .toggle-slider::before {
+        content: "";
+        position: absolute;
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: 0.3s;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+      .toggle-switch input:checked + .toggle-slider {
+        background: #10b981;
+      }
+      .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(24px);
+      }
+
+      /* Tax name + rate fields */
+      .tax-field-row {
+        display: flex;
+        gap: 12px;
+      }
+      .tax-field {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .tax-field label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .tax-field input,
+      .tax-field select {
+        padding: 11px 14px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+        background: #f8fafc;
+        transition: border-color 0.2s;
+      }
+      .tax-field input:focus,
+      .tax-field select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #fff;
+      }
+
+      /* Quick preset buttons */
+      .tax-presets {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .tax-presets-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .tax-preset-btns {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+      .tax-preset-btn {
+        padding: 10px 4px;
+        border: 2px solid #e2e8f0;
+        background: #f8fafc;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+      }
+      .tax-preset-btn:hover,
+      .tax-preset-btn.active {
+        background: #3b82f6;
+        color: #fff;
+        border-color: #3b82f6;
+      }
+
+      /* Inclusive / Exclusive toggle */
+      .tax-type-row {
+        display: flex;
+        gap: 8px;
+      }
+      .tax-type-btn {
+        flex: 1;
+        padding: 11px;
+        border: 2px solid #e2e8f0;
+        background: #f8fafc;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+      }
+      .tax-type-btn.active {
+        background: #1e293b;
+        color: #fff;
+        border-color: #1e293b;
+      }
+
+      /* Preview box */
+      .tax-preview {
+        background: #f0fdf4;
+        border: 2px solid #86efac;
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 13px;
+        color: #166534;
+      }
+      .tax-preview-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      .tax-preview-row.total {
+        font-weight: 800;
+        font-size: 15px;
+        border-top: 1px solid #86efac;
+        padding-top: 8px;
+        margin-top: 4px;
+      }
+
+      /* Save button */
+      .tax-save-btn {
+        padding: 15px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+      }
+      .tax-save-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+      }
+
+      /* ===== WEIGHT INPUT MODAL ===== */
+      .weight-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 20000;
+        align-items: center;
+        justify-content: center;
+      }
+      .weight-modal-overlay.show {
+        display: flex;
+      }
+
+      .weight-modal {
+        background: #ffffff;
+        border-radius: 20px;
+        width: 380px;
+        max-width: 95vw;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+        animation: slideUp 0.25s ease;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .weight-modal-header {
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        color: #fff;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .weight-modal-icon {
+        font-size: 36px;
+      }
+      .weight-modal-product-name {
+        font-size: 18px;
+        font-weight: 800;
+      }
+      .weight-modal-per-kg {
+        font-size: 13px;
+        opacity: 0.85;
+        margin-top: 2px;
+      }
+
+      .weight-modal-body {
+        padding: 20px 24px;
+      }
+
+      /* Quick weight buttons */
+      .weight-quick-btns {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .weight-quick-btn {
+        padding: 10px 4px;
+        border: 2px solid #e2e8f0;
+        background: #f8fafc;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+      }
+      .weight-quick-btn:hover,
+      .weight-quick-btn.selected {
+        background: #16a34a;
+        color: #fff;
+        border-color: #16a34a;
+      }
+
+      /* Weight display */
+      .weight-display {
+        background: #f0fdf4;
+        border: 2px solid #86efac;
+        border-radius: 12px;
+        padding: 14px 20px;
+        text-align: center;
+        margin-bottom: 16px;
+      }
+      .weight-display-value {
+        font-size: 36px;
+        font-weight: 900;
+        color: #15803d;
+        font-variant-numeric: tabular-nums;
+      }
+      .weight-display-unit {
+        font-size: 16px;
+        font-weight: 600;
+        color: #16a34a;
+      }
+      .weight-display-amount {
+        font-size: 14px;
+        color: #64748b;
+        margin-top: 4px;
+        font-weight: 600;
+      }
+
+      /* Numpad */
+      .weight-numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .weight-numpad-btn {
+        padding: 14px;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        transition: all 0.12s;
+        text-align: center;
+      }
+      .weight-numpad-btn:hover {
+        background: #e2e8f0;
+      }
+      .weight-numpad-btn:active {
+        background: #cbd5e1;
+        transform: scale(0.96);
+      }
+      .weight-numpad-btn.del {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #fca5a5;
+      }
+      .weight-numpad-btn.del:hover {
+        background: #fee2e2;
+      }
+      .weight-numpad-btn.dot {
+        font-size: 22px;
+      }
+
+      /* Modal actions */
+      .weight-modal-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .weight-modal-cancel {
+        flex: 0 0 100px;
+        padding: 14px;
+        border: 2px solid #e2e8f0;
+        background: #f1f5f9;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 700;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .weight-modal-cancel:hover {
+        background: #e2e8f0;
+      }
+      .weight-modal-confirm {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 800;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+      }
+      .weight-modal-confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45);
+      }
+
+      /* Quick-add ripple on card */
+      .product-card .add-ripple {
+        position: absolute;
+        inset: 0;
+        background: rgba(59, 130, 246, 0.12);
+        border-radius: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+      .product-card:active .add-ripple {
+        opacity: 1;
+      }
+
+      /* Right Panel - Cart */
+      .pos-right {
+        width: 520px;
+        min-width: 480px;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -4px 0 24px rgba(15, 23, 42, 0.1);
+        border-left: 2px solid #e2e8f0;
+      }
+
+      .pos-cart-header {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        padding: 20px 24px 16px;
+        border-bottom: 3px solid #3b82f6;
+        flex-shrink: 0;
+      }
+
+      .pos-cart-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      /* Column headers for cart items */
+      .pos-cart-col-header {
+        display: grid;
+        grid-template-columns: 1fr 80px 70px 90px;
+        gap: 8px;
+        padding: 0 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .pos-cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 16px;
+        background: #f8fafc;
+      }
+
+      .pos-cart-item {
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        display: grid;
+        grid-template-columns: 1fr 80px 70px 90px;
+        gap: 8px;
+        align-items: center;
+        transition: box-shadow 0.2s;
+      }
+
+      .pos-cart-item:hover {
+        box-shadow: 0 2px 12px rgba(59, 130, 246, 0.12);
+        border-color: #bfdbfe;
+      }
+
+      .pos-cart-item-info {
+        min-width: 0;
+      }
+
+      .pos-cart-item-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 3px;
+      }
+
+      .pos-cart-item-price {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .pos-cart-item-unit {
+        font-size: 13px;
+        font-weight: 700;
+        color: #475569;
+        text-align: center;
+      }
+
+      .pos-cart-item-qty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .pos-cart-item-qty button {
+        width: 26px;
+        height: 26px;
+        border: 2px solid #e2e8f0;
+        background: #f1f5f9;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 800;
+        color: #475569;
+        line-height: 1;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pos-cart-item-qty button:hover {
+        border-color: #3b82f6;
+        background: #3b82f6;
+        color: #ffffff;
+      }
+
+      .pos-cart-item-qty span {
+        min-width: 22px;
+        text-align: center;
+        font-weight: 800;
+        font-size: 15px;
+        color: #1e293b;
+      }
+
+      .pos-cart-item-total {
+        font-size: 15px;
+        font-weight: 800;
+        color: #10b981;
+        text-align: right;
+      }
+
+      /* Summary rows above footer */
+      .pos-cart-summary {
+        padding: 0 16px 4px;
+        flex-shrink: 0;
+      }
+
+      .pos-cart-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .pos-cart-summary-row.total-row {
+        background: #1e293b;
+        border-radius: 10px;
+        margin-top: 6px;
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 800;
+        color: #ffffff;
+      }
+
+      .pos-cart-summary-row.total-row .total-amount {
+        font-size: 28px;
+        font-weight: 900;
+        color: #10b981;
+      }
+
+      .pos-cart-footer {
+        background: #ffffff;
+        padding: 16px 20px 20px;
+        border-top: 2px solid #e2e8f0;
+        flex-shrink: 0;
+      }
+
+      .pos-cart-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .pos-cart-btn {
+        flex: 1;
+        padding: 16px 12px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .pos-cart-btn.clear {
+        flex: 0 0 110px;
+        background: #f1f5f9;
+        color: #64748b;
+        border: 2px solid #e2e8f0;
+        font-size: 14px;
+      }
+
+      .pos-cart-btn.clear:hover {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #fca5a5;
+      }
+
+      .pos-cart-btn.checkout {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #ffffff;
+        font-size: 17px;
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+        letter-spacing: 0.02em;
+      }
+
+      .pos-cart-btn.checkout:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+      }
+
+      /* Chat Popup Window */
+      .chat-popup-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chat-popup-overlay.show {
+        display: flex;
+      }
+
+      .chat-popup {
+        background: #ffffff;
+        width: 90%;
+        max-width: 600px;
+        height: 80vh;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .chat-popup-header {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: #ffffff;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .chat-popup-title {
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .chat-popup-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: #ffffff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 20px;
+      }
+
+      .chat-popup-close:hover {
+        background: rgba(255, 255, 255, 0.3);
       }
 
       .section {
@@ -1444,254 +2528,720 @@
   </head>
   <body class="theme-light">
     <div class="container">
+      <!-- ===== POS HEADER ===== -->
       <div class="header">
-        <div class="header-title">
-          <div class="header-avatar">
-            {% if user %}{{ user.name[0].upper() }}{% else %}KB{% endif %}
-          </div>
-
-          <div>
-            <div class="header-main">
-              {% if user %}{{ user.shop_name }}{% else %}KiranaBuddy{% endif %}
-            </div>
-            <div class="header-sub">
-              {% if user %}{{ user.name }}'s Shop{% else %}Products Chat{% endif
+        <div class="header-left">
+          <div class="header-logo">🛒</div>
+          <div class="header-title">
+            <h1>
+              {% if user %}{{ user.shop_name }}{% else %}KiranaBuddy POS{% endif
               %}
-            </div>
+            </h1>
+            <p>
+              {% if user %}👤 {{ user.name }}{% else %}Point of Sale System{%
+              endif %}
+            </p>
           </div>
         </div>
+
+        <!-- Live Clock (centre) -->
+        <div class="header-clock">
+          <div class="clock-time" id="posClockTime">00:00:00</div>
+          <div class="clock-date" id="posClockDate">Loading...</div>
+        </div>
+
+        <!-- Bill number -->
+        <div class="header-bill">
+          <div class="bill-label">Bill No.</div>
+          <div class="bill-num" id="posBillNum">#—</div>
+        </div>
+
         <div class="header-right">
-          <div class="header-phone">
-            {% if user %} 👤 {{ user.name }} ({{ user.phone }}) {% else %} Test
-            phone: +919876543210 {% endif %}
-          </div>
-          <div class="header-actions">
-            <button
-              class="notification-bell"
-              onclick="sendQuickReport('expiry products')"
-              title="Expiry items"
-            >
-              🔔
-            </button>
-            <button
-              id="themeToggleButton"
-              class="theme-toggle"
-              onclick="toggleTheme()"
-              title="Toggle light/dark theme"
-            >
-              🌙
-            </button>
-            <div class="header-menu-container">
-              <button
-                class="menu-button"
-                onclick="toggleHeaderMenu()"
-                title="More options"
-              >
-                ⋮
-              </button>
-              <div id="headerMenu" class="menu-dropdown">
-                <button
-                  class="menu-item"
-                  onclick="
-                    sendQuickReport('expiry products');
-                    toggleHeaderMenu(false);
-                  "
-                >
-                  Expiry
-                </button>
-                <button
-                  class="menu-item"
-                  onclick="
-                    sendQuickReport('Monthly estimated profit');
-                    toggleHeaderMenu(false);
-                  "
-                >
-                  Total profit
-                </button>
-                <button
-                  class="menu-item"
-                  onclick="
-                    sendQuickReport('Show all stock');
-                    toggleHeaderMenu(false);
-                  "
-                >
-                  Show stock
-                </button>
-                <button
-                  class="menu-item"
-                  onclick="logout()"
-                  style="
-                    color: #ef4444;
-                    border-top: 1px solid rgba(148, 163, 184, 0.2);
-                    margin-top: 5px;
-                    padding-top: 10px;
-                  "
-                >
-                  🚪 Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="quick-reports">
-        <button
-          class="report-btn"
-          onclick="sendQuickReport('Aaj ki bikri kitni hai?')"
-        >
-          📊 Aaj ki sale
-        </button>
-        <button
-          class="report-btn"
-          onclick="sendQuickReport('Aaj sabse zyada kya bika?')"
-        >
-          ⭐ Top product
-        </button>
-        <button
-          class="report-btn"
-          onclick="sendQuickReport('Kaun se product aaj nahi bika?')"
-        >
-          😴 Zero sale items
-        </button>
-        <button
-          class="report-btn"
-          onclick="openCustomerDisplay()"
-          style="
-            background: linear-gradient(135deg, #7c3aed, #5b21b6);
-            border-color: #6d28d9;
-          "
-        >
-          📺 Customer Screen
-        </button>
-      </div>
-
-      <div class="content">
-        <div class="chat-window" id="chatWindow">
-          <div class="chat-message bot">
-            <div class="message-bubble">
-              Namaste! Main aapka KiranaBuddy hoon. Yahan aap chat mein stock |
-              sale |profit | expiry jaan sakte ho. Type kare aur jane!
-            </div>
-          </div>
-        </div>
-
-        <div class="chat-input-row">
           <button
-            class="scan-button"
+            class="header-btn"
+            onclick="openCustomerDisplay()"
+            title="Customer display"
+          >
+            📺 Display
+          </button>
+          <button
+            class="header-btn"
             onclick="startBarcodeScan()"
-            title="Camera Scanner"
+            title="Camera scanner"
           >
-            📷
+            📷 Scan
           </button>
-          <input
-            type="text"
-            id="barcodeInput"
-            placeholder="🔫 Scan barcode here..."
-            style="
-              flex: 0.5;
-              font-family: monospace;
-              font-size: 15px;
-              font-weight: 700;
-              background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-              border: 2px solid #3b82f6;
-              color: #1e40af;
-              padding: 8px 12px;
-              border-radius: 8px;
-              transition: all 0.3s ease;
-            "
-            onkeypress="if (event.key === 'Enter') handleBarcodeInput();"
-            onfocus="
-              this.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.3)';
-              this.style.borderColor = '#2563eb';
-            "
-            onblur="
-              this.style.boxShadow = 'none';
-              this.style.borderColor = '#3b82f6';
-            "
-            title="Physical barcode scanner input - scan or type barcode"
-            autocomplete="off"
-          />
           <button
-            class="voice-button"
-            id="voiceButton"
-            onclick="toggleVoiceRecording()"
+            class="header-btn chat-btn"
+            onclick="openChatPopup()"
+            title="AI Assistant"
           >
-            🎤
+            💬 AI Chat
           </button>
-
-          <input
-            type="hidden"
-            id="phone"
-            value="{% if user %}{{ user.phone }}{% else %}+919876543210{% endif %}"
-          />
-          <input
-            type="text"
-            id="message"
-            class="message-input"
-            placeholder="Type a message, e.g. 'Add 10 Maggi'"
-            onkeydown="handleKeyDown(event)"
-          />
-          <button class="send-button" onclick="simulateMessage()">➤</button>
+          <button
+            class="header-btn"
+            onclick="sendQuickReport('expiry products')"
+            title="Check expiry"
+          >
+            🔔
+          </button>
+          <button
+            class="header-btn"
+            onclick="openTaxModal()"
+            title="Configure VAT / Tax"
+            id="taxHeaderBtn"
+            style="border-color: #a855f7; color: #a855f7"
+          >
+            ⚙️ Tax: <span id="taxHeaderBadge">0%</span>
+          </button>
+          <button
+            class="header-btn"
+            onclick="seedDemoProducts()"
+            title="Import demo products into database"
+            id="seedBtn"
+            style="border-color: #f59e0b; color: #f59e0b"
+          >
+            📥 Import Products
+          </button>
+          <button class="header-btn danger" onclick="logout()" title="Logout">
+            🚪 Logout
+          </button>
         </div>
+      </div>
 
-        <div class="scanner-overlay" id="scannerOverlay">
-          <div class="scanner-box">
-            <video id="scannerVideo" autoplay playsinline></video>
-            <div class="scanner-controls">
-              <button class="scanner-close-btn" onclick="stopBarcodeScan()">
-                Close
-              </button>
-              <div id="scanCartPanel" class="scan-cart">
-                <div class="scan-cart-header">
-                  <div class="scan-cart-header-left">
-                    <span>Scanned items</span>
-                    <span id="scanCartCount">0</span>
-                  </div>
-                  <div class="scan-cart-header-mode">
-                    <button
-                      id="scanCartModeSale"
-                      class="mode-btn sale-btn active"
-                      onclick="setScanCartMode('sale')"
-                    >
-                      Sale
-                    </button>
-                    <button
-                      id="scanCartModeAdd"
-                      class="mode-btn add-btn"
-                      onclick="setScanCartMode('add')"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-                <div id="scanCartItems" class="scan-cart-items"></div>
-                <div class="scan-cart-actions">
-                  <!-- Total Display - Prominent -->
-                  <div class="total-display" id="scanCartTotal">
-                    Total: ₹ 0.00
-                  </div>
+      <!-- ===== STATUS BAR ===== -->
+      <div class="pos-statusbar">
+        <div class="pos-statusbar-item">
+          <span class="dot"></span> System Online
+        </div>
+        <div class="pos-statusbar-item">
+          🏪 {% if user %}{{ user.shop_name }}{% else %}Demo Store{% endif %}
+        </div>
+        <div class="pos-statusbar-item">
+          👤 Cashier: {% if user %}{{ user.name }}{% else %}Admin{% endif %}
+        </div>
+        <div class="pos-statusbar-item">
+          <span class="dot warn"></span> Tax: 0% (GST)
+        </div>
+        <div class="pos-statusbar-item" style="margin-left: auto">
+          Press
+          <kbd
+            style="
+              background: #1e293b;
+              color: #94a3b8;
+              padding: 1px 5px;
+              border-radius: 3px;
+              font-size: 10px;
+            "
+            >Enter</kbd
+          >
+          to scan
+        </div>
+      </div>
 
-                  <!-- Action Buttons Row -->
-                  <div class="scan-cart-actions-row">
-                    <button class="clear-btn" onclick="clearScanCart()">
-                      Clear
-                    </button>
-                    <button
-                      class="primary"
-                      onclick="showPaymentModal()"
-                      style="
-                        background: linear-gradient(135deg, #10b981, #059669);
-                        font-size: 1.1em;
-                        font-weight: 700;
-                        flex: 1;
-                      "
-                    >
-                      💰 Pay
-                    </button>
+      <!-- ===== MAIN POS BODY ===== -->
+      <div class="content">
+        <!-- LEFT: Product Catalog -->
+        <div class="pos-left">
+          <!-- Search bar + barcode input -->
+          <div class="pos-left-header">
+            <div class="pos-search">
+              <input
+                type="text"
+                id="productSearch"
+                placeholder="Search products by name or barcode..."
+                oninput="filterProducts()"
+                autocomplete="off"
+              />
+            </div>
+            <input
+              type="text"
+              id="barcodeInput"
+              placeholder="🔫 Barcode..."
+              autocomplete="off"
+              onkeypress="if (event.key === 'Enter') handleBarcodeInput();"
+              onfocus="this.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.25)'"
+              onblur="this.style.boxShadow = 'none'"
+              style="
+                width: 160px;
+                padding: 10px 12px;
+                border: 2px solid #3b82f6;
+                border-radius: 8px;
+                font-family: monospace;
+                font-weight: 700;
+                font-size: 13px;
+                background: #eff6ff;
+                color: #1e40af;
+              "
+            />
+            <span class="pos-items-count" id="posItemsCount">0 items</span>
+          </div>
+
+          <!-- Category sidebar + Product grid -->
+          <div class="pos-left-body">
+            <!-- Category Sidebar -->
+            <div class="pos-category-sidebar" id="categorySidebar">
+              <div
+                class="pos-category-item active"
+                onclick="filterByCategory(this, 'all')"
+              >
+                <span class="cat-icon">🏪</span>All
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'vegetables')"
+              >
+                <span class="cat-icon">🥦</span>Vegetables
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'grocery')"
+              >
+                <span class="cat-icon">🌾</span>Grocery
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'dairy')"
+              >
+                <span class="cat-icon">🥛</span>Dairy
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'snacks')"
+              >
+                <span class="cat-icon">🍟</span>Snacks
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'beverages')"
+              >
+                <span class="cat-icon">🧃</span>Beverages
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'cleaning')"
+              >
+                <span class="cat-icon">🧴</span>Cleaning
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'personal')"
+              >
+                <span class="cat-icon">🪥</span>Personal
+              </div>
+              <div
+                class="pos-category-item"
+                onclick="filterByCategory(this, 'biscuits')"
+              >
+                <span class="cat-icon">🍪</span>Biscuits
+              </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div class="pos-products">
+              <div id="productGrid" class="product-grid">
+                <div
+                  style="
+                    grid-column: 1/-1;
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: #94a3b8;
+                  "
+                >
+                  <div style="font-size: 48px; margin-bottom: 16px">📦</div>
+                  <div
+                    style="
+                      font-size: 18px;
+                      font-weight: 700;
+                      margin-bottom: 8px;
+                    "
+                  >
+                    Loading products...
                   </div>
+                  <div style="font-size: 14px">Fetching your inventory</div>
                 </div>
               </div>
+            </div>
+          </div>
+          <!-- /pos-left-body -->
+        </div>
+        <!-- /pos-left -->
+
+        <!-- RIGHT: Cart & Checkout -->
+        <div class="pos-right">
+          <!-- Cart Header -->
+          <div class="pos-cart-header">
+            <div class="pos-cart-title">
+              🛒 Order Summary
+              <span
+                id="posCartCount"
+                style="
+                  background: #3b82f6;
+                  color: #fff;
+                  padding: 3px 12px;
+                  border-radius: 20px;
+                  font-size: 13px;
+                "
+                >0 items</span
+              >
+            </div>
+            <!-- Sale / Add Stock toggle -->
+            <div style="display: flex; gap: 8px">
+              <button
+                id="posSaleBtn"
+                onclick="
+                  setScanCartMode('sale');
+                  updatePosModeBtns();
+                "
+                style="
+                  flex: 1;
+                  padding: 9px 12px;
+                  border-radius: 8px;
+                  border: 2px solid #10b981;
+                  background: #10b981;
+                  color: #fff;
+                  font-weight: 700;
+                  cursor: pointer;
+                  font-size: 13px;
+                "
+              >
+                🛒 Sale Mode
+              </button>
+              <button
+                id="posAddBtn"
+                onclick="
+                  setScanCartMode('add');
+                  updatePosModeBtns();
+                "
+                style="
+                  flex: 1;
+                  padding: 9px 12px;
+                  border-radius: 8px;
+                  border: 2px solid #475569;
+                  background: transparent;
+                  color: #94a3b8;
+                  font-weight: 700;
+                  cursor: pointer;
+                  font-size: 13px;
+                "
+              >
+                📦 Add Stock
+              </button>
+            </div>
+            <!-- Column Labels -->
+            <div class="pos-cart-col-header" style="margin-top: 12px">
+              <span>ITEM</span>
+              <span style="text-align: center">PRICE</span>
+              <span style="text-align: center">QTY</span>
+              <span style="text-align: right">TOTAL</span>
+            </div>
+          </div>
+
+          <!-- Cart Items List -->
+          <div class="pos-cart-items" id="posCartItems">
+            <div
+              id="posCartEmpty"
+              style="text-align: center; padding: 60px 20px; color: #94a3b8"
+            >
+              <div style="font-size: 52px; margin-bottom: 14px">🛒</div>
+              <div
+                style="
+                  font-size: 16px;
+                  font-weight: 700;
+                  margin-bottom: 6px;
+                  color: #64748b;
+                "
+              >
+                Cart is empty
+              </div>
+              <div style="font-size: 13px">
+                Click a product or scan a barcode to add items
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtotal / Tax Summary -->
+          <div
+            class="pos-cart-summary"
+            id="posCartSummary"
+            style="display: none"
+          >
+            <div class="pos-cart-summary-row">
+              <span>Subtotal</span>
+              <span id="posSubtotal">€ 0.00</span>
+            </div>
+            <div class="pos-cart-summary-row" id="posTaxRow">
+              <span id="posTaxLabel">Tax (0%)</span>
+              <span id="posTaxAmt">€ 0.00</span>
+            </div>
+            <div class="pos-cart-summary-row total-row">
+              <span>TOTAL</span>
+              <span class="total-amount" id="posCartTotal">€ 0.00</span>
+            </div>
+          </div>
+
+          <!-- Checkout Actions -->
+          <div class="pos-cart-footer">
+            <div class="pos-cart-actions">
+              <button class="pos-cart-btn clear" onclick="clearScanCart()">
+                🗑 Clear
+              </button>
+              <button
+                class="pos-cart-btn checkout"
+                onclick="showPaymentModal()"
+              >
+                💰 Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scanner Overlay (Camera) -->
+      <div class="scanner-overlay" id="scannerOverlay">
+        <div class="scanner-box">
+          <video id="scannerVideo" autoplay playsinline></video>
+          <div class="scanner-controls">
+            <button class="scanner-close-btn" onclick="stopBarcodeScan()">
+              Close
+            </button>
+            <div id="scanCartPanel" class="scan-cart">
+              <div class="scan-cart-header">
+                <div class="scan-cart-header-left">
+                  <span>Scanned items</span>
+                  <span id="scanCartCount">0</span>
+                </div>
+                <div class="scan-cart-header-mode">
+                  <button
+                    id="scanCartModeSale"
+                    class="mode-btn sale-btn active"
+                    onclick="setScanCartMode('sale')"
+                  >
+                    Sale
+                  </button>
+                  <button
+                    id="scanCartModeAdd"
+                    class="mode-btn add-btn"
+                    onclick="setScanCartMode('add')"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+              <div id="scanCartItems" class="scan-cart-items"></div>
+              <div class="scan-cart-actions">
+                <div class="total-display" id="scanCartTotal">
+                  Total: € 0.00
+                </div>
+                <div class="scan-cart-actions-row">
+                  <button class="clear-btn" onclick="clearScanCart()">
+                    Clear
+                  </button>
+                  <button
+                    class="primary"
+                    onclick="showPaymentModal()"
+                    style="
+                      background: linear-gradient(135deg, #10b981, #059669);
+                      font-size: 1.1em;
+                      font-weight: 700;
+                      flex: 1;
+                    "
+                  >
+                    💰 Pay
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden phone input -->
+      <input
+        type="hidden"
+        id="phone"
+        value="{% if user %}{{ user.phone }}{% else %}+919876543210{% endif %}"
+      />
+
+      <!-- ===== TAX SETTINGS MODAL ===== -->
+      <div class="tax-modal-overlay" id="taxModalOverlay">
+        <div class="tax-modal">
+          <div class="tax-modal-header">
+            <div class="tax-modal-header-title">⚙️ Tax / VAT Configuration</div>
+            <button class="tax-modal-close" onclick="closeTaxModal()">✕</button>
+          </div>
+          <div class="tax-modal-body">
+            <!-- Enable toggle -->
+            <div class="tax-toggle-row">
+              <div>
+                <div class="tax-toggle-label">Enable Tax / VAT</div>
+                <div class="tax-toggle-sub">Apply tax to all cart items</div>
+              </div>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  id="taxEnabled"
+                  onchange="refreshTaxPreview()"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Tax name + rate -->
+            <div class="tax-field-row">
+              <div class="tax-field" style="flex: 1.2">
+                <label>Tax Name</label>
+                <select id="taxName" onchange="refreshTaxPreview()">
+                  <option value="VAT">VAT</option>
+                  <option value="GST">GST</option>
+                  <option value="Sales Tax">Sales Tax</option>
+                  <option value="Service Tax">Service Tax</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div class="tax-field" style="flex: 0.8">
+                <label>Rate (%)</label>
+                <input
+                  type="number"
+                  id="taxRate"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  placeholder="e.g. 20"
+                  oninput="
+                    refreshTaxPreview();
+                    syncPresetBtns();
+                  "
+                />
+              </div>
+            </div>
+
+            <!-- Quick presets -->
+            <div class="tax-presets">
+              <div class="tax-presets-label">Quick Presets</div>
+              <div class="tax-preset-btns">
+                <button class="tax-preset-btn" onclick="setTaxPreset(0)">
+                  0%
+                </button>
+                <button class="tax-preset-btn" onclick="setTaxPreset(5)">
+                  5%
+                </button>
+                <button class="tax-preset-btn" onclick="setTaxPreset(10)">
+                  10%
+                </button>
+                <button class="tax-preset-btn" onclick="setTaxPreset(18)">
+                  18%
+                </button>
+                <button class="tax-preset-btn" onclick="setTaxPreset(20)">
+                  20%
+                </button>
+              </div>
+            </div>
+
+            <!-- Tax type: Exclusive / Inclusive -->
+            <div class="tax-presets">
+              <div class="tax-presets-label">Tax Type</div>
+              <div class="tax-type-row">
+                <button
+                  class="tax-type-btn active"
+                  id="taxTypeExclusive"
+                  onclick="setTaxType('exclusive')"
+                >
+                  ➕ Exclusive<br /><span
+                    style="font-size: 10px; font-weight: 500"
+                    >Added on top of price</span
+                  >
+                </button>
+                <button
+                  class="tax-type-btn"
+                  id="taxTypeInclusive"
+                  onclick="setTaxType('inclusive')"
+                >
+                  ✅ Inclusive<br /><span
+                    style="font-size: 10px; font-weight: 500"
+                    >Already included in price</span
+                  >
+                </button>
+              </div>
+            </div>
+
+            <!-- Live preview -->
+            <div class="tax-preview" id="taxPreviewBox">
+              <div style="font-weight: 700; margin-bottom: 8px">
+                📋 Preview (on €100 cart)
+              </div>
+              <div class="tax-preview-row">
+                <span>Subtotal</span><span id="pvSubtotal">€ 100.00</span>
+              </div>
+              <div class="tax-preview-row">
+                <span id="pvTaxLabel">Tax (0%)</span
+                ><span id="pvTaxAmt">€ 0.00</span>
+              </div>
+              <div class="tax-preview-row total">
+                <span>Total</span><span id="pvTotal">€ 100.00</span>
+              </div>
+            </div>
+
+            <!-- Save -->
+            <button class="tax-save-btn" onclick="saveTaxConfig()">
+              💾 Save Tax Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== WEIGHT INPUT MODAL ===== -->
+      <div class="weight-modal-overlay" id="weightModalOverlay">
+        <div class="weight-modal">
+          <div class="weight-modal-header">
+            <div class="weight-modal-icon" id="weightModalEmoji">🥦</div>
+            <div>
+              <div class="weight-modal-product-name" id="weightModalName">
+                Product
+              </div>
+              <div class="weight-modal-per-kg" id="weightModalRate">
+                €0.00 per kg
+              </div>
+            </div>
+          </div>
+          <div class="weight-modal-body">
+            <!-- Quick weight presets -->
+            <div class="weight-quick-btns">
+              <button class="weight-quick-btn" onclick="setQuickWeight(0.25)">
+                250g
+              </button>
+              <button class="weight-quick-btn" onclick="setQuickWeight(0.5)">
+                500g
+              </button>
+              <button class="weight-quick-btn" onclick="setQuickWeight(0.75)">
+                750g
+              </button>
+              <button class="weight-quick-btn" onclick="setQuickWeight(1)">
+                1 kg
+              </button>
+              <button class="weight-quick-btn" onclick="setQuickWeight(2)">
+                2 kg
+              </button>
+            </div>
+            <!-- Weight display -->
+            <div class="weight-display">
+              <div>
+                <span class="weight-display-value" id="weightDisplayVal"
+                  >0.000</span
+                >
+                <span class="weight-display-unit"> kg</span>
+              </div>
+              <div class="weight-display-amount" id="weightDisplayAmt">
+                = € 0.00
+              </div>
+            </div>
+            <!-- Numpad -->
+            <div class="weight-numpad">
+              <button class="weight-numpad-btn" onclick="weightNumpad('1')">
+                1
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('2')">
+                2
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('3')">
+                3
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('4')">
+                4
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('5')">
+                5
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('6')">
+                6
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('7')">
+                7
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('8')">
+                8
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('9')">
+                9
+              </button>
+              <button class="weight-numpad-btn dot" onclick="weightNumpad('.')">
+                .
+              </button>
+              <button class="weight-numpad-btn" onclick="weightNumpad('0')">
+                0
+              </button>
+              <button
+                class="weight-numpad-btn del"
+                onclick="weightNumpad('del')"
+              >
+                ⌫
+              </button>
+            </div>
+            <!-- Actions -->
+            <div class="weight-modal-actions">
+              <button class="weight-modal-cancel" onclick="closeWeightModal()">
+                Cancel
+              </button>
+              <button
+                class="weight-modal-confirm"
+                onclick="confirmWeightEntry()"
+              >
+                ➕ Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CHAT POPUP ===== -->
+      <div class="chat-popup-overlay" id="chatPopupOverlay">
+        <div class="chat-popup">
+          <div class="chat-popup-header">
+            <div class="chat-popup-title">💬 KiranaBuddy AI Assistant</div>
+            <button class="chat-popup-close" onclick="closeChatPopup()">
+              ✕
+            </button>
+          </div>
+          <div class="chat-popup-body">
+            <div class="chat-window" id="chatWindow">
+              <div class="chat-message bot">
+                <div class="message-bubble">
+                  Namaste! Main aapka KiranaBuddy hoon. Yahan aap chat mein
+                  stock | sale | profit | expiry jaan sakte ho. Type kare aur
+                  jane!
+                </div>
+              </div>
+            </div>
+            <div
+              class="chat-input-row"
+              style="padding: 12px; border-top: 2px solid #e2e8f0"
+            >
+              <button
+                class="voice-button"
+                id="voiceButton"
+                onclick="toggleVoiceRecording()"
+              >
+                🎤
+              </button>
+              <input
+                type="text"
+                id="message"
+                class="message-input"
+                placeholder="Type a message..."
+                onkeydown="handleKeyDown(event)"
+                style="
+                  background: #f8fafc;
+                  color: #1e293b;
+                  border: 2px solid #e2e8f0;
+                "
+              />
+              <button
+                class="send-button"
+                onclick="simulateMessage()"
+                style="background: #8b5cf6"
+              >
+                ➤
+              </button>
             </div>
           </div>
         </div>
@@ -1727,7 +3277,7 @@
 
         <div class="payment-total-display">
           <div class="payment-total-label">Total Amount</div>
-          <div class="payment-total-amount" id="paymentTotalAmount">₹ 0.00</div>
+          <div class="payment-total-amount" id="paymentTotalAmount">€ 0.00</div>
         </div>
 
         <div class="payment-method-label">Payment Method</div>
@@ -1774,7 +3324,7 @@
         <div class="payment-change-display" id="paymentChangeDisplay">
           <div class="payment-change-label">Change to Return</div>
           <div class="payment-change-amount" id="paymentChangeAmount">
-            ₹ 0.00
+            € 0.00
           </div>
         </div>
 
@@ -2051,7 +3601,7 @@
           <div class="scan-cart-actions">
             <div class="total-display">
               <div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div>
-              <div style="font-size:24px;font-weight:900">₹ ${grandTotal.toFixed(2)}</div>
+              <div style="font-size:24px;font-weight:900">€ ${grandTotal.toFixed(2)}</div>
             </div>
             <div class="scan-cart-actions-row">
               <button class="clear-btn" onclick="clearScanCart()">Clear</button>
@@ -2078,25 +3628,25 @@
           return;
         }
 
-        // Calculate total
-        let grandTotal = 0;
+        // Calculate subtotal then apply tax
+        let subtotal = 0;
         scanCart.forEach((item) => {
           const absQty = Math.abs(item.delta || 0);
           const price =
             typeof item.price === "number" && !Number.isNaN(item.price)
               ? item.price
               : null;
-          if (price !== null) {
-            grandTotal += price * absQty;
-          }
+          if (price !== null) subtotal += price * absQty;
         });
 
+        const taxResult = calcTax(subtotal);
+        const grandTotal = taxResult.total;
         currentPaymentTotal = grandTotal;
 
         // Update modal display
         const totalEl = document.getElementById("paymentTotalAmount");
         if (totalEl) {
-          totalEl.textContent = "₹ " + grandTotal.toFixed(2);
+          totalEl.textContent = "€ " + grandTotal.toFixed(2);
         }
 
         // Reset payment input
@@ -2177,7 +3727,7 @@
           confirmBtn.disabled = false;
           if (change > 0 && selectedPaymentMethod === "cash") {
             changeDisplay.classList.add("show");
-            changeAmountEl.textContent = "₹ " + change.toFixed(2);
+            changeAmountEl.textContent = "€ " + change.toFixed(2);
           } else {
             changeDisplay.classList.remove("show");
           }
@@ -2201,7 +3751,7 @@
 
         // Show processing message
         appendMessage(
-          "💰 Processing payment of ₹" +
+          "💰 Processing payment of €" +
             currentPaymentTotal.toFixed(2) +
             " via " +
             selectedPaymentMethod.toUpperCase() +
@@ -2337,35 +3887,26 @@
         // Clear input immediately
         input.value = "";
 
-        // Show cart popup if not already visible
-        const overlay = document.getElementById("cartPopupOverlay");
-        if (overlay && !overlay.classList.contains("show")) {
-          showCartPopup();
-        }
-
-        // Process barcode same as camera scan
+        // Add directly to right-side cart (no popup)
         const baseQty = 1;
         const delta = scanCartMode === "add" ? baseQty : -baseQty;
         addToScanCart(barcode, delta);
         playScanBeep();
 
-        // Show visual feedback
-        appendMessage(
-          "🔫 Scanned: " + barcode + " (Qty: " + Math.abs(delta) + ")",
-          "bot",
-        );
-
         // Re-focus input for next scan
         setTimeout(() => input.focus(), 100);
       }
 
-      // Auto-focus barcode input on page load
+      // Auto-focus barcode input and load products on page load
       window.addEventListener("load", () => {
         const barcodeInput = document.getElementById("barcodeInput");
         if (barcodeInput) {
-          // Focus after a short delay to ensure page is fully loaded
           setTimeout(() => barcodeInput.focus(), 500);
         }
+        // Load saved tax config
+        loadTaxConfig();
+        // Load product catalog for POS grid
+        loadProductGrid();
       });
 
       // Keep barcode input focused for scanner to work
@@ -2445,6 +3986,1221 @@
             e,
           );
         }
+      }
+
+      // ===== CHAT POPUP =====
+      function openChatPopup() {
+        document.getElementById("chatPopupOverlay").classList.add("show");
+        setTimeout(() => {
+          const m = document.getElementById("message");
+          if (m) m.focus();
+        }, 300);
+      }
+      function closeChatPopup() {
+        document.getElementById("chatPopupOverlay").classList.remove("show");
+        setTimeout(() => {
+          const b = document.getElementById("barcodeInput");
+          if (b) b.focus();
+        }, 100);
+      }
+
+      // ===== POS MODE BUTTONS =====
+      function updatePosModeBtns() {
+        const saleBtn = document.getElementById("posSaleBtn");
+        const addBtn = document.getElementById("posAddBtn");
+        if (!saleBtn || !addBtn) return;
+        if (scanCartMode === "sale") {
+          saleBtn.style.background = "#10b981";
+          saleBtn.style.color = "#fff";
+          saleBtn.style.borderColor = "#10b981";
+          addBtn.style.background = "#f1f5f9";
+          addBtn.style.color = "#64748b";
+          addBtn.style.borderColor = "#e2e8f0";
+        } else {
+          addBtn.style.background = "#3b82f6";
+          addBtn.style.color = "#fff";
+          addBtn.style.borderColor = "#3b82f6";
+          saleBtn.style.background = "#f1f5f9";
+          saleBtn.style.color = "#64748b";
+          saleBtn.style.borderColor = "#e2e8f0";
+        }
+      }
+
+      // ===== POS CART UI =====
+      function updatePosCartUI() {
+        const cartContainer = document.getElementById("posCartItems");
+        const emptyEl = document.getElementById("posCartEmpty");
+        const totalEl = document.getElementById("posCartTotal");
+        const subtotalEl = document.getElementById("posSubtotal");
+        const countEl = document.getElementById("posCartCount");
+        const summaryEl = document.getElementById("posCartSummary");
+        if (!cartContainer) return;
+
+        const items = scanCart.filter((i) => i.delta !== 0);
+        let grandTotal = 0;
+
+        // Update item count badge
+        if (countEl)
+          countEl.textContent =
+            items.length + (items.length === 1 ? " item" : " items");
+
+        // Remove old rows (keep emptyEl in place)
+        Array.from(cartContainer.querySelectorAll(".pos-cart-item")).forEach(
+          (el) => el.remove(),
+        );
+
+        if (items.length === 0) {
+          if (emptyEl) emptyEl.style.display = "block";
+          if (summaryEl) summaryEl.style.display = "none";
+          if (totalEl) totalEl.textContent = "€ 0.00";
+          return;
+        }
+
+        if (emptyEl) emptyEl.style.display = "none";
+        if (summaryEl) summaryEl.style.display = "block";
+
+        [...items].reverse().forEach((item) => {
+          const qty = Math.abs(item.delta || 0);
+          const price =
+            typeof item.price === "number" && !isNaN(item.price)
+              ? item.price
+              : null;
+          const lineTotal = price !== null ? price * qty : null;
+          if (lineTotal !== null) grandTotal += lineTotal;
+
+          const code = item.code.replace(/'/g, "\\'");
+          const row = document.createElement("div");
+          row.className = "pos-cart-item";
+          row.dataset.code = item.code;
+
+          if (item.isWeight) {
+            const kg = item.weightKg || 0;
+            const perKg = item.pricePerKg || 0;
+            row.innerHTML = `
+              <div class="pos-cart-item-info">
+                <div class="pos-cart-item-name">${item.emoji || "⚖️"} ${item.name}</div>
+                <div class="pos-cart-item-price">⚖️ ${kg.toFixed(3)} kg @ €${perKg.toFixed(2)}/kg</div>
+              </div>
+              <div class="pos-cart-item-unit" style="color:#92400e;">⚖️</div>
+              <div class="pos-cart-item-qty" style="justify-content:center;">
+                <span style="font-size:12px;color:#64748b;font-weight:700;">${kg.toFixed(2)} kg</span>
+              </div>
+              <div class="pos-cart-item-total">${lineTotal !== null ? "€" + lineTotal.toFixed(2) : "—"}</div>
+            `;
+          } else {
+            row.innerHTML = `
+              <div class="pos-cart-item-info">
+                <div class="pos-cart-item-name">${item.name || item.code}</div>
+                <div class="pos-cart-item-price">Barcode: ${item.displayCode || item.code}</div>
+              </div>
+              <div class="pos-cart-item-unit">${price !== null ? "€" + price.toFixed(2) : "—"}</div>
+              <div class="pos-cart-item-qty">
+                <button onclick="adjustScanCartQty('${code}',-1)">−</button>
+                <span>${qty}</span>
+                <button onclick="adjustScanCartQty('${code}',1)">+</button>
+              </div>
+              <div class="pos-cart-item-total">${lineTotal !== null ? "€" + lineTotal.toFixed(2) : "—"}</div>
+            `;
+          }
+          cartContainer.insertBefore(row, emptyEl);
+        });
+
+        const fmt = (v) => "€ " + v.toFixed(2);
+        const tax = calcTax(grandTotal);
+
+        if (subtotalEl) subtotalEl.textContent = fmt(tax.subtotal);
+        if (totalEl) totalEl.textContent = fmt(tax.total);
+
+        // Update dynamic tax row
+        const taxLabel = document.getElementById("posTaxLabel");
+        const taxAmt = document.getElementById("posTaxAmt");
+        const taxRow = document.getElementById("posTaxRow");
+        if (taxLabel)
+          taxLabel.textContent = `${vatConfig.name} (${vatConfig.rate}%)`;
+        if (taxAmt) taxAmt.textContent = fmt(tax.taxAmt);
+        if (taxRow) taxRow.style.color = tax.taxAmt > 0 ? "#f59e0b" : "#64748b";
+      }
+
+      // ===== PRODUCT GRID =====
+      let allProducts = [];
+      // ===== VAT / TAX CONFIG =====
+      let vatConfig = {
+        enabled: false,
+        rate: 0,
+        name: "VAT",
+        type: "exclusive",
+      };
+
+      function loadTaxConfig() {
+        try {
+          const saved = localStorage.getItem("posVatConfig");
+          if (saved) vatConfig = { ...vatConfig, ...JSON.parse(saved) };
+        } catch (e) {}
+        applyTaxToUI();
+      }
+
+      function applyTaxToUI() {
+        // Header badge
+        const badge = document.getElementById("taxHeaderBadge");
+        const btn = document.getElementById("taxHeaderBtn");
+        if (badge)
+          badge.textContent = vatConfig.enabled ? vatConfig.rate + "%" : "Off";
+        if (btn) btn.style.color = vatConfig.enabled ? "#10b981" : "#a855f7";
+        if (btn)
+          btn.style.borderColor = vatConfig.enabled ? "#10b981" : "#a855f7";
+        // Status bar
+        const sb = document.getElementById("posStatusTax");
+        if (sb)
+          sb.textContent = vatConfig.enabled
+            ? `${vatConfig.name}: ${vatConfig.rate}% (${vatConfig.type})`
+            : "Tax: Off";
+        // Refresh cart to recalculate
+        updatePosCartUI();
+      }
+
+      function calcTax(subtotal) {
+        if (!vatConfig.enabled || !vatConfig.rate)
+          return { subtotal, taxAmt: 0, total: subtotal };
+        const rate = vatConfig.rate / 100;
+        if (vatConfig.type === "inclusive") {
+          const taxAmt = subtotal - subtotal / (1 + rate);
+          return { subtotal: subtotal - taxAmt, taxAmt, total: subtotal };
+        } else {
+          const taxAmt = subtotal * rate;
+          return { subtotal, taxAmt, total: subtotal + taxAmt };
+        }
+      }
+
+      function openTaxModal() {
+        // Populate modal from vatConfig
+        document.getElementById("taxEnabled").checked = vatConfig.enabled;
+        document.getElementById("taxName").value = vatConfig.name;
+        document.getElementById("taxRate").value = vatConfig.rate;
+        setTaxType(vatConfig.type, false);
+        syncPresetBtns();
+        refreshTaxPreview();
+        document.getElementById("taxModalOverlay").classList.add("show");
+      }
+
+      function closeTaxModal() {
+        document.getElementById("taxModalOverlay").classList.remove("show");
+      }
+
+      function setTaxPreset(val) {
+        document.getElementById("taxRate").value = val;
+        if (val > 0) document.getElementById("taxEnabled").checked = true;
+        syncPresetBtns();
+        refreshTaxPreview();
+      }
+
+      function syncPresetBtns() {
+        const rate = parseFloat(document.getElementById("taxRate").value) || 0;
+        document.querySelectorAll(".tax-preset-btn").forEach((b) => {
+          b.classList.toggle("active", parseFloat(b.textContent) === rate);
+        });
+      }
+
+      function setTaxType(type, doPreview = true) {
+        document
+          .getElementById("taxTypeExclusive")
+          .classList.toggle("active", type === "exclusive");
+        document
+          .getElementById("taxTypeInclusive")
+          .classList.toggle("active", type === "inclusive");
+        document.getElementById("taxTypeExclusive").dataset.type = "exclusive";
+        document.getElementById("taxTypeInclusive").dataset.type = "inclusive";
+        vatConfig.type = type; // temp update for preview
+        if (doPreview) refreshTaxPreview();
+      }
+
+      function refreshTaxPreview() {
+        const enabled = document.getElementById("taxEnabled").checked;
+        const name = document.getElementById("taxName").value;
+        const rate = parseFloat(document.getElementById("taxRate").value) || 0;
+        const type = document
+          .getElementById("taxTypeExclusive")
+          .classList.contains("active")
+          ? "exclusive"
+          : "inclusive";
+        const tmp = { enabled, rate, name, type };
+
+        const sample = 100;
+        let sub = sample,
+          taxAmt = 0,
+          total = sample;
+        if (enabled && rate) {
+          const r = rate / 100;
+          if (type === "inclusive") {
+            taxAmt = sample - sample / (1 + r);
+            sub = sample - taxAmt;
+            total = sample;
+          } else {
+            taxAmt = sample * r;
+            total = sample + taxAmt;
+          }
+        }
+        document.getElementById("pvSubtotal").textContent =
+          "€ " + sub.toFixed(2);
+        document.getElementById("pvTaxLabel").textContent =
+          `${name} (${rate}%)`;
+        document.getElementById("pvTaxAmt").textContent =
+          "€ " + taxAmt.toFixed(2);
+        document.getElementById("pvTotal").textContent =
+          "€ " + total.toFixed(2);
+      }
+
+      function saveTaxConfig() {
+        vatConfig.enabled = document.getElementById("taxEnabled").checked;
+        vatConfig.name = document.getElementById("taxName").value;
+        vatConfig.rate =
+          parseFloat(document.getElementById("taxRate").value) || 0;
+        vatConfig.type = document
+          .getElementById("taxTypeExclusive")
+          .classList.contains("active")
+          ? "exclusive"
+          : "inclusive";
+        localStorage.setItem("posVatConfig", JSON.stringify(vatConfig));
+        applyTaxToUI();
+        closeTaxModal();
+        // Show quick toast
+        const t = document.createElement("div");
+        t.textContent = `✅ Tax saved: ${vatConfig.enabled ? vatConfig.name + " " + vatConfig.rate + "%" : "Off"}`;
+        Object.assign(t.style, {
+          position: "fixed",
+          bottom: "30px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "#10b981",
+          color: "#fff",
+          padding: "12px 24px",
+          borderRadius: "8px",
+          fontWeight: "700",
+          zIndex: "99999",
+          fontSize: "14px",
+        });
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2500);
+      }
+
+      // ===== LIVE CLOCK =====
+      function updatePosClock() {
+        const now = new Date();
+        const timeEl = document.getElementById("posClockTime");
+        const dateEl = document.getElementById("posClockDate");
+        if (timeEl)
+          timeEl.textContent = now.toLocaleTimeString("en-IN", {
+            hour12: false,
+          });
+        if (dateEl)
+          dateEl.textContent = now.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+      }
+      setInterval(updatePosClock, 1000);
+      updatePosClock();
+
+      // ===== BILL NUMBER =====
+      function generateBillNumber() {
+        const prefix = "KB";
+        const date = new Date();
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const seq = String(Math.floor(Math.random() * 900) + 100);
+        return `${prefix}-${dd}${mm}-${seq}`;
+      }
+      const currentBillNum = generateBillNumber();
+      const billEl = document.getElementById("posBillNum");
+      if (billEl) billEl.textContent = "#" + currentBillNum;
+
+      // ===== CATEGORY FILTER =====
+      let currentCategory = "all";
+      const categoryMap = {
+        vegetables: [
+          "onion",
+          "tomato",
+          "potato",
+          "garlic",
+          "ginger",
+          "carrot",
+          "capsicum",
+          "spinach",
+          "palak",
+          "cauliflower",
+          "gobi",
+          "brinjal",
+          "baingan",
+          "okra",
+          "ladyfinger",
+          "bhindi",
+          "peas",
+          "matar",
+          "cucumber",
+          "kakdi",
+          "cabbage",
+          "patta",
+          "radish",
+          "mooli",
+          "beetroot",
+          "coriander",
+          "dhania",
+          "lemon",
+          "nimbu",
+          "chilli",
+          "mirch",
+          "pumpkin",
+        ],
+        grocery: [
+          "maggi",
+          "atta",
+          "salt",
+          "oil",
+          "rice",
+          "tata",
+          "aashirvaad",
+          "saffola",
+          "rin",
+          "detergent",
+          "wheat",
+          "dal",
+        ],
+        dairy: ["milk", "amul", "butter", "ghee", "paneer", "curd", "dahi"],
+        snacks: [
+          "lays",
+          "chips",
+          "haldiram",
+          "mixture",
+          "biscuit",
+          "namkeen",
+          "kurkure",
+        ],
+        beverages: [
+          "frooti",
+          "juice",
+          "bru",
+          "coffee",
+          "tea",
+          "drink",
+          "mango",
+        ],
+        cleaning: [
+          "surf",
+          "vim",
+          "dettol",
+          "handwash",
+          "phenyl",
+          "harpic",
+          "lizol",
+          "clean",
+        ],
+        personal: [
+          "colgate",
+          "toothpaste",
+          "lifebuoy",
+          "soap",
+          "vaseline",
+          "lotion",
+          "shampoo",
+          "hair",
+        ],
+        biscuits: [
+          "parle",
+          "good day",
+          "oreo",
+          "marie",
+          "britannia",
+          "sunfeast",
+          "bourbon",
+        ],
+      };
+
+      function filterByCategory(el, cat) {
+        currentCategory = cat;
+        document
+          .querySelectorAll(".pos-category-item")
+          .forEach((i) => i.classList.remove("active"));
+        el.classList.add("active");
+        applyFilters();
+      }
+
+      function applyFilters() {
+        const q = (
+          document.getElementById("productSearch")?.value || ""
+        ).toLowerCase();
+        let filtered = allProducts;
+        if (currentCategory !== "all") {
+          const keywords = categoryMap[currentCategory] || [];
+          filtered = filtered.filter((p) => {
+            const name = (p.name || p.product_name || "").toLowerCase();
+            return keywords.some((k) => name.includes(k));
+          });
+        }
+        if (q) {
+          filtered = filtered.filter((p) => {
+            const name = (p.name || p.product_name || "").toLowerCase();
+            const barcode = (p.barcode || p.code || "").toLowerCase();
+            return name.includes(q) || barcode.includes(q);
+          });
+        }
+        const countEl = document.getElementById("posItemsCount");
+        if (countEl) countEl.textContent = filtered.length + " items";
+        renderProductGrid(filtered);
+      }
+
+      let currentTab = "all";
+
+      const dummyIndianProducts = [
+        // ── Vegetables (loose / per kg) ──
+        {
+          name: "Onion",
+          barcode: "VEG-001",
+          price: 30,
+          stock: 50,
+          color: "#fef9c3",
+          emoji: "🧅",
+          per_kg: true,
+        },
+        {
+          name: "Tomato",
+          barcode: "VEG-002",
+          price: 25,
+          stock: 40,
+          color: "#fef2f2",
+          emoji: "🍅",
+          per_kg: true,
+        },
+        {
+          name: "Potato",
+          barcode: "VEG-003",
+          price: 22,
+          stock: 60,
+          color: "#fffbeb",
+          emoji: "🥔",
+          per_kg: true,
+        },
+        {
+          name: "Garlic",
+          barcode: "VEG-004",
+          price: 200,
+          stock: 20,
+          color: "#fdf4ff",
+          emoji: "🧄",
+          per_kg: true,
+        },
+        {
+          name: "Ginger",
+          barcode: "VEG-005",
+          price: 120,
+          stock: 25,
+          color: "#fef9c3",
+          emoji: "🫚",
+          per_kg: true,
+        },
+        {
+          name: "Carrot",
+          barcode: "VEG-006",
+          price: 40,
+          stock: 35,
+          color: "#fff7ed",
+          emoji: "🥕",
+          per_kg: true,
+        },
+        {
+          name: "Capsicum",
+          barcode: "VEG-007",
+          price: 60,
+          stock: 30,
+          color: "#f0fdf4",
+          emoji: "🫑",
+          per_kg: true,
+        },
+        {
+          name: "Cauliflower / Gobi",
+          barcode: "VEG-008",
+          price: 35,
+          stock: 20,
+          color: "#f8fafc",
+          emoji: "🥦",
+          per_kg: true,
+        },
+        {
+          name: "Spinach / Palak",
+          barcode: "VEG-009",
+          price: 20,
+          stock: 15,
+          color: "#f0fdf4",
+          emoji: "🥬",
+          per_kg: true,
+        },
+        {
+          name: "Brinjal / Baingan",
+          barcode: "VEG-010",
+          price: 30,
+          stock: 25,
+          color: "#fdf4ff",
+          emoji: "🍆",
+          per_kg: true,
+        },
+        {
+          name: "Bhindi / Okra",
+          barcode: "VEG-011",
+          price: 45,
+          stock: 20,
+          color: "#f0fdf4",
+          emoji: "🫛",
+          per_kg: true,
+        },
+        {
+          name: "Cucumber / Kakdi",
+          barcode: "VEG-012",
+          price: 25,
+          stock: 30,
+          color: "#ecfdf5",
+          emoji: "🥒",
+          per_kg: true,
+        },
+        {
+          name: "Lemon / Nimbu",
+          barcode: "VEG-013",
+          price: 80,
+          stock: 10,
+          color: "#fefce8",
+          emoji: "🍋",
+          per_kg: true,
+        },
+        {
+          name: "Green Chilli",
+          barcode: "VEG-014",
+          price: 60,
+          stock: 15,
+          color: "#f0fdf4",
+          emoji: "🌶️",
+          per_kg: true,
+        },
+        {
+          name: "Peas / Matar",
+          barcode: "VEG-015",
+          price: 50,
+          stock: 20,
+          color: "#f0fdf4",
+          emoji: "🫘",
+          per_kg: true,
+        },
+        // ── Packaged Products ──
+        {
+          name: "Maggi Noodles",
+          barcode: "8901058001329",
+          price: 14,
+          stock: 120,
+          color: "#fef9c3",
+          emoji: "🍜",
+        },
+        {
+          name: "Amul Butter 500g",
+          barcode: "8901063028481",
+          price: 55,
+          stock: 60,
+          color: "#fef3c7",
+          emoji: "🧈",
+        },
+        {
+          name: "Tata Salt 1kg",
+          barcode: "8901058852017",
+          price: 22,
+          stock: 200,
+          color: "#f0fdf4",
+          emoji: "🧂",
+        },
+        {
+          name: "Parle-G Biscuit",
+          barcode: "8901820000059",
+          price: 10,
+          stock: 300,
+          color: "#fffbeb",
+          emoji: "🍪",
+        },
+        {
+          name: "Aashirvaad Atta 5kg",
+          barcode: "8901725133496",
+          price: 280,
+          stock: 45,
+          color: "#fef9c3",
+          emoji: "🌾",
+        },
+        {
+          name: "Surf Excel 1kg",
+          barcode: "8901030827372",
+          price: 190,
+          stock: 80,
+          color: "#eff6ff",
+          emoji: "🧴",
+        },
+        {
+          name: "Amul Milk 1L",
+          barcode: "8901063013739",
+          price: 60,
+          stock: 150,
+          color: "#f0fdf4",
+          emoji: "🥛",
+        },
+        {
+          name: "Lifebuoy Soap",
+          barcode: "8901030728931",
+          price: 35,
+          stock: 90,
+          color: "#fdf4ff",
+          emoji: "🧼",
+        },
+        {
+          name: "Colgate 200g",
+          barcode: "8901030038591",
+          price: 89,
+          stock: 70,
+          color: "#ecfdf5",
+          emoji: "🪥",
+        },
+        {
+          name: "Dettol Handwash",
+          barcode: "6290255052136",
+          price: 115,
+          stock: 55,
+          color: "#fef2f2",
+          emoji: "🫧",
+        },
+        {
+          name: "Bru Coffee 100g",
+          barcode: "8901030784576",
+          price: 199,
+          stock: 40,
+          color: "#fdf6ec",
+          emoji: "☕",
+        },
+        {
+          name: "Good Day Biscuit",
+          barcode: "8901820007812",
+          price: 30,
+          stock: 180,
+          color: "#fffbeb",
+          emoji: "🍪",
+        },
+        {
+          name: "Haldiram Mixture",
+          barcode: "8906002960019",
+          price: 50,
+          stock: 95,
+          color: "#fef9c3",
+          emoji: "🥜",
+        },
+        {
+          name: "Saffola Oil 1L",
+          barcode: "8901058009622",
+          price: 165,
+          stock: 35,
+          color: "#fefce8",
+          emoji: "🫙",
+        },
+        {
+          name: "Lays Chips",
+          barcode: "8901491502606",
+          price: 20,
+          stock: 200,
+          color: "#fff7ed",
+          emoji: "🍟",
+        },
+        {
+          name: "Dairy Milk 40g",
+          barcode: "8901233051400",
+          price: 40,
+          stock: 110,
+          color: "#fdf4ff",
+          emoji: "🍫",
+        },
+        {
+          name: "Tata Tea Gold 250g",
+          barcode: "8901058003279",
+          price: 165,
+          stock: 60,
+          color: "#fef9c3",
+          emoji: "🍵",
+        },
+        {
+          name: "Vim Dishwash Bar",
+          barcode: "8901030007490",
+          price: 30,
+          stock: 75,
+          color: "#ecfdf5",
+          emoji: "🧽",
+        },
+        {
+          name: "Frooti Mango 200ml",
+          barcode: "8906022302888",
+          price: 15,
+          stock: 250,
+          color: "#f0fdf4",
+          emoji: "🧃",
+        },
+        {
+          name: "Rin Detergent 1kg",
+          barcode: "8901030861278",
+          price: 90,
+          stock: 65,
+          color: "#eff6ff",
+          emoji: "🫧",
+        },
+      ];
+
+      // ===== SEED DEMO PRODUCTS INTO DATABASE =====
+      async function seedDemoProducts() {
+        const btn = document.getElementById("seedBtn");
+        const phone = document.getElementById("phone")?.value || "";
+        if (!phone) {
+          alert("Please log in first.");
+          return;
+        }
+
+        if (
+          !confirm(
+            "This will import all demo products (vegetables + packaged goods) into your database.\n\nProducts already in your database will be skipped.\n\nContinue?",
+          )
+        )
+          return;
+
+        if (btn) {
+          btn.textContent = "⏳ Importing...";
+          btn.disabled = true;
+        }
+
+        try {
+          const res = await fetch("/api/seed-demo-products", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert(`✅ Done!\n\n${data.message}\n\nRefreshing product list...`);
+            await loadProductGrid(); // reload from DB
+          } else {
+            alert("❌ Error: " + data.message);
+          }
+        } catch (e) {
+          alert("❌ Network error: " + e.message);
+        } finally {
+          if (btn) {
+            btn.textContent = "📥 Import Products";
+            btn.disabled = false;
+          }
+        }
+      }
+
+      async function loadProductGrid() {
+        try {
+          const phone =
+            document.getElementById("phone")?.value || "+919876543210";
+          const res = await fetch(
+            "/api/stock/products?phone=" + encodeURIComponent(phone),
+          );
+          if (!res.ok) throw new Error("API error");
+          const data = await res.json();
+          const fetched = data.products || data || [];
+          allProducts = fetched.length > 0 ? fetched : dummyIndianProducts;
+        } catch (e) {
+          console.error("Using demo products:", e);
+          allProducts = dummyIndianProducts;
+        }
+        applyFilters();
+      }
+
+      const fallbackColors = [
+        "#fef9c3",
+        "#eff6ff",
+        "#f0fdf4",
+        "#fdf4ff",
+        "#fff7ed",
+        "#ecfdf5",
+        "#fef3c7",
+        "#fef2f2",
+        "#fefce8",
+        "#fffbeb",
+      ];
+
+      // ===== SMART EMOJI MAP — keyword → emoji =====
+      const EMOJI_MAP = [
+        // Vegetables
+        { k: ["onion", "pyaz"], e: "🧅" },
+        { k: ["tomato", "tamatar"], e: "🍅" },
+        { k: ["potato", "aloo"], e: "🥔" },
+        { k: ["garlic", "lahsun"], e: "🧄" },
+        { k: ["ginger", "adrak"], e: "🫚" },
+        { k: ["carrot", "gajar"], e: "🥕" },
+        { k: ["capsicum", "shimla", "bell pepper"], e: "🫑" },
+        { k: ["cauliflower", "gobi"], e: "🥦" },
+        { k: ["spinach", "palak"], e: "🥬" },
+        { k: ["brinjal", "baingan", "eggplant"], e: "🍆" },
+        { k: ["bhindi", "okra", "ladyfinger"], e: "🫛" },
+        { k: ["cucumber", "kakdi"], e: "🥒" },
+        { k: ["lemon", "nimbu"], e: "🍋" },
+        { k: ["chilli", "chili", "mirch"], e: "🌶️" },
+        { k: ["peas", "matar"], e: "🫘" },
+        { k: ["corn", "maize", "makka"], e: "🌽" },
+        { k: ["mushroom"], e: "🍄" },
+        { k: ["radish", "mooli"], e: "🫒" },
+        { k: ["beetroot", "beet"], e: "🟣" },
+        { k: ["pumpkin", "kaddu"], e: "🎃" },
+        { k: ["cabbage", "patta"], e: "🥬" },
+        // Fruits
+        { k: ["apple", "seb"], e: "🍎" },
+        { k: ["banana", "kela"], e: "🍌" },
+        { k: ["mango", "aam"], e: "🥭" },
+        { k: ["orange", "santra", "narangi"], e: "🍊" },
+        { k: ["grape", "angur"], e: "🍇" },
+        { k: ["watermelon", "tarbuj"], e: "🍉" },
+        { k: ["pineapple", "ananas"], e: "🍍" },
+        { k: ["strawberry"], e: "🍓" },
+        { k: ["papaya", "papita"], e: "🍈" },
+        { k: ["coconut", "nariyal"], e: "🥥" },
+        // Dairy
+        { k: ["milk", "doodh"], e: "🥛" },
+        { k: ["butter", "makhan"], e: "🧈" },
+        { k: ["cheese", "paneer"], e: "🧀" },
+        { k: ["curd", "dahi", "yogurt"], e: "🫙" },
+        { k: ["ghee"], e: "🫙" },
+        { k: ["cream", "malai"], e: "🥛" },
+        // Grains & Flour
+        { k: ["atta", "flour", "wheat"], e: "🌾" },
+        { k: ["rice", "chawal", "basmati"], e: "🍚" },
+        { k: ["dal", "daal", "lentil"], e: "🫘" },
+        { k: ["oats", "quaker"], e: "🥣" },
+        { k: ["cornflake", "cereal", "muesli"], e: "🥣" },
+        { k: ["poha", "flattened rice"], e: "🌾" },
+        { k: ["suji", "rava", "semolina"], e: "🌾" },
+        // Noodles & Instant
+        { k: ["maggi", "noodle", "pasta", "yippee"], e: "🍜" },
+        { k: ["soup"], e: "🍲" },
+        // Spices & Condiments
+        { k: ["salt", "namak"], e: "🧂" },
+        { k: ["sugar", "chini", "shakkar"], e: "🍬" },
+        { k: ["oil", "tel", "saffola", "sunflower"], e: "🫙" },
+        { k: ["masala", "spice"], e: "🌶️" },
+        { k: ["turmeric", "haldi"], e: "🟡" },
+        { k: ["ketchup", "sauce"], e: "🍅" },
+        { k: ["pickle", "achar"], e: "🫙" },
+        { k: ["vinegar", "sirka"], e: "🫙" },
+        // Snacks
+        { k: ["chips", "lays", "crisps", "wafer"], e: "🍟" },
+        { k: ["mixture", "namkeen", "bhujia"], e: "🥜" },
+        { k: ["popcorn"], e: "🍿" },
+        { k: ["peanut", "mungfali"], e: "🥜" },
+        { k: ["cashew", "kaju"], e: "🌰" },
+        { k: ["almond", "badam"], e: "🌰" },
+        { k: ["haldiram"], e: "🥜" },
+        // Biscuits & Bakery
+        {
+          k: [
+            "biscuit",
+            "parle",
+            "good day",
+            "marie",
+            "bourbon",
+            "oreo",
+            "sunfeast",
+            "britannia",
+          ],
+          e: "🍪",
+        },
+        { k: ["bread", "roti", "pav", "bun"], e: "🍞" },
+        { k: ["cake", "pastry", "muffin"], e: "🎂" },
+        { k: ["cookie", "cracker"], e: "🍪" },
+        // Beverages
+        { k: ["tea", "chai", "tata tea", "lipton"], e: "🍵" },
+        { k: ["coffee", "bru", "nescafe"], e: "☕" },
+        { k: ["juice", "frooti", "maaza", "slice"], e: "🧃" },
+        { k: ["water", "kinley", "bisleri"], e: "💧" },
+        {
+          k: [
+            "soda",
+            "pepsi",
+            "cola",
+            "sprite",
+            "limca",
+            "fanta",
+            "cold drink",
+          ],
+          e: "🥤",
+        },
+        { k: ["energy drink", "red bull"], e: "🥤" },
+        // Chocolate & Sweets
+        {
+          k: ["chocolate", "dairy milk", "kitkat", "5 star", "cadbury"],
+          e: "🍫",
+        },
+        { k: ["candy", "toffee", "eclairs", "mango bite"], e: "🍬" },
+        { k: ["ice cream", "kulfi"], e: "🍦" },
+        { k: ["halwa", "barfi", "ladoo", "mithai"], e: "🍮" },
+        // Eggs & Meat
+        { k: ["egg", "anda"], e: "🥚" },
+        { k: ["chicken", "murgi", "poultry"], e: "🍗" },
+        { k: ["fish", "machli", "seafood"], e: "🐟" },
+        // Cleaning
+        {
+          k: ["surf", "ariel", "tide", "rin", "detergent", "washing powder"],
+          e: "🫧",
+        },
+        { k: ["vim", "pril", "dishwash"], e: "🧽" },
+        { k: ["phenyl", "floor cleaner", "harpic", "lizol", "colin"], e: "🧴" },
+        { k: ["broom", "jhadu"], e: "🧹" },
+        // Personal Care
+        { k: ["soap", "lifebuoy", "lux", "dove soap", "dettol soap"], e: "🧼" },
+        { k: ["handwash", "hand wash", "dettol", "savlon"], e: "🫧" },
+        { k: ["shampoo", "pantene", "sunsilk", "clinic plus"], e: "🧴" },
+        { k: ["toothpaste", "colgate", "pepsodent", "closeup"], e: "🪥" },
+        { k: ["toothbrush"], e: "🪥" },
+        { k: ["lotion", "vaseline", "moisturizer"], e: "💆" },
+        { k: ["hair oil", "parachute", "vatika"], e: "💆" },
+        { k: ["deodorant", "deo", "axe", "rexona"], e: "🌸" },
+        { k: ["razor", "shaving", "gillette"], e: "🪒" },
+        { k: ["band aid", "bandage", "cotton"], e: "🩹" },
+        { k: ["sanitary", "pad", "whisper", "stayfree"], e: "🌸" },
+        // Baby & Medicine
+        { k: ["baby", "diaper", "pampers", "huggies", "cerelac"], e: "👶" },
+        {
+          k: [
+            "medicine",
+            "tablet",
+            "syrup",
+            "capsule",
+            "dolo",
+            "crocin",
+            "paracetamol",
+          ],
+          e: "💊",
+        },
+        // Misc
+        { k: ["match", "matchbox", "lighter"], e: "🔥" },
+        { k: ["candle", "agarbatti", "incense"], e: "🕯️" },
+        { k: ["bag", "carry bag", "polythene"], e: "🛍️" },
+        { k: ["pen", "pencil", "notebook"], e: "✏️" },
+        { k: ["amul"], e: "🥛" },
+        { k: ["tata"], e: "🏭" },
+      ];
+
+      function getProductEmoji(name, unit) {
+        const lower = (name || "").toLowerCase();
+        for (const { k, e } of EMOJI_MAP) {
+          if (k.some((kw) => lower.includes(kw))) return e;
+        }
+        // Fallback by unit type
+        if (unit === "kg") return "⚖️";
+        return "📦";
+      }
+
+      function renderProductGrid(products) {
+        const grid = document.getElementById("productGrid");
+        if (!grid) return;
+        grid.innerHTML = "";
+
+        const countEl = document.getElementById("posItemsCount");
+
+        if (!products || products.length === 0) {
+          if (countEl) countEl.textContent = "0 items";
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#94a3b8;">
+            <div style="font-size:52px;margin-bottom:14px">📦</div>
+            <div style="font-size:17px;font-weight:700;margin-bottom:8px;color:#64748b">No products found</div>
+            <div style="font-size:13px">Try a different category or search term</div></div>`;
+          return;
+        }
+
+        if (countEl) countEl.textContent = products.length + " items";
+
+        products.forEach((p, i) => {
+          // Support both DB field names (selling_price, current_stock) and dummy field names
+          const price = parseFloat(p.selling_price ?? p.price ?? p.mrp ?? 0);
+          const name = p.name || p.product_name || "Unknown";
+          const barcode = p.barcode || p.code || p.product_id || name;
+          const stock = p.current_stock ?? p.stock ?? p.quantity ?? null;
+          const unit = p.unit || "pieces";
+          // Smart emoji: use product's own emoji first, then keyword lookup, never random
+          const emoji = p.emoji || getProductEmoji(name, unit);
+          const bgColor = p.color || fallbackColors[i % fallbackColors.length];
+
+          // Stock badge
+          let stockBadge = "";
+          if (stock !== null) {
+            if (stock <= 0)
+              stockBadge = `<span class="product-stock-badge stock-out">Out</span>`;
+            else if (stock <= 5)
+              stockBadge = `<span class="product-stock-badge stock-low">Low: ${stock}</span>`;
+            else
+              stockBadge = `<span class="product-stock-badge stock-ok">✓ ${stock}</span>`;
+          }
+
+          const isWeight = !!(p.per_kg || p.is_weight || p.unit === "kg");
+          const priceLabel = isWeight
+            ? `€${price.toFixed(2)}/kg`
+            : `€${price.toFixed(2)}`;
+          const weightBadge = isWeight
+            ? `<div class="weight-badge">⚖️ per kg</div>`
+            : "";
+
+          const card = document.createElement("div");
+          card.className = "product-card";
+          card.title = isWeight
+            ? `${name} — €${price.toFixed(2)}/kg | Tap to enter weight`
+            : `${name} — €${price.toFixed(2)} | Stock: ${stock ?? "N/A"}`;
+          card.onclick = () =>
+            addProductToCart(barcode, name, price, isWeight, emoji);
+          card.innerHTML = `
+            <div class="add-ripple"></div>
+            ${stockBadge}
+            <div class="product-card-img" style="background:${bgColor};">${emoji}</div>
+            <div class="product-card-body">
+              <div class="product-name">${name}</div>
+              <div class="product-price">${priceLabel}</div>
+            </div>
+            ${weightBadge}
+          `;
+          grid.appendChild(card);
+        });
+      }
+
+      function filterProducts() {
+        applyFilters();
+      }
+
+      function setProductTab(btn, tab) {
+        currentTab = tab;
+        document
+          .querySelectorAll(".pos-tab")
+          .forEach((t) => t.classList.remove("active"));
+        btn.classList.add("active");
+        let filtered = allProducts;
+        if (tab === "top") {
+          // Sort by selling_price desc as proxy for popular/premium if no sold_count
+          filtered = [...allProducts]
+            .sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0))
+            .slice(0, 20);
+        } else if (tab === "low") {
+          // Use current_stock (DB field name) with fallbacks
+          filtered = allProducts.filter(
+            (p) => (p.current_stock ?? p.stock ?? p.quantity ?? 0) <= 5,
+          );
+        }
+        renderProductGrid(filtered);
+      }
+
+      // ===== WEIGHT MODAL STATE =====
+      let weightModalProduct = null; // { code, name, pricePerKg, emoji }
+      let weightInput = "";
+
+      function openWeightModal(code, name, pricePerKg, emoji) {
+        weightModalProduct = {
+          code,
+          name,
+          pricePerKg: parseFloat(pricePerKg) || 0,
+          emoji: emoji || "🥦",
+        };
+        weightInput = "";
+        document.getElementById("weightModalName").textContent = name;
+        document.getElementById("weightModalRate").textContent =
+          "€" + pricePerKg.toFixed(2) + " per kg";
+        document.getElementById("weightModalEmoji").textContent = emoji || "🥦";
+        document
+          .querySelectorAll(".weight-quick-btn")
+          .forEach((b) => b.classList.remove("selected"));
+        refreshWeightDisplay();
+        document.getElementById("weightModalOverlay").classList.add("show");
+      }
+
+      function closeWeightModal() {
+        document.getElementById("weightModalOverlay").classList.remove("show");
+        weightModalProduct = null;
+        weightInput = "";
+      }
+
+      function refreshWeightDisplay() {
+        const kg = parseFloat(weightInput) || 0;
+        const amt = weightModalProduct ? kg * weightModalProduct.pricePerKg : 0;
+        document.getElementById("weightDisplayVal").textContent = kg.toFixed
+          ? kg.toFixed(3)
+          : "0.000";
+        document.getElementById("weightDisplayAmt").textContent =
+          "= € " + amt.toFixed(2);
+      }
+
+      function setQuickWeight(kg) {
+        weightInput = String(kg);
+        document
+          .querySelectorAll(".weight-quick-btn")
+          .forEach((b) => b.classList.remove("selected"));
+        event.target.classList.add("selected");
+        refreshWeightDisplay();
+      }
+
+      function weightNumpad(key) {
+        document
+          .querySelectorAll(".weight-quick-btn")
+          .forEach((b) => b.classList.remove("selected"));
+        if (key === "del") {
+          weightInput = weightInput.slice(0, -1);
+        } else if (key === "." && weightInput.includes(".")) {
+          return; // only one decimal point
+        } else if (weightInput.length < 7) {
+          weightInput += key;
+        }
+        refreshWeightDisplay();
+      }
+
+      function confirmWeightEntry() {
+        if (!weightModalProduct) return;
+        const kg = parseFloat(weightInput) || 0;
+        if (kg <= 0) {
+          alert("Please enter a valid weight!");
+          return;
+        }
+        const totalPrice = kg * weightModalProduct.pricePerKg;
+        const { code, name, pricePerKg, emoji } = weightModalProduct;
+        // Unique key per weight entry (allow multiple weigh entries for same veg)
+        const cartKey = code + "_" + Date.now();
+        const delta = scanCartMode === "add" ? 1 : -1;
+        scanCart.push({
+          code: cartKey,
+          name,
+          price: parseFloat(totalPrice.toFixed(2)),
+          delta,
+          isWeight: true,
+          weightKg: kg,
+          pricePerKg,
+          emoji,
+          displayCode: code,
+        });
+        playScanBeep();
+        closeWeightModal();
+        updateScanCartUI();
+        updatePosCartUI();
+        updateCartPopup();
+      }
+
+      function addProductToCart(code, name, price, isWeight, emoji) {
+        // Weight-based product → open weight modal instead
+        if (isWeight) {
+          openWeightModal(code, name, price, emoji);
+          return;
+        }
+        const delta = scanCartMode === "add" ? 1 : -1;
+        const existing = scanCart.find((i) => i.code === code);
+        if (existing) {
+          existing.delta += delta;
+          if (existing.delta === 0)
+            scanCart = scanCart.filter((i) => i.code !== code);
+        } else {
+          scanCart.push({ code, name, price: parseFloat(price) || 0, delta });
+        }
+        playScanBeep();
+        updateScanCartUI();
+        updatePosCartUI();
+        updateCartPopup();
       }
 
       function updateScanCartUI() {
@@ -2570,12 +5326,12 @@
         if (totalEl) {
           if (grandTotal > 0) {
             totalEl.innerHTML =
-              '<div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div><div style="font-size:24px;font-weight:900">₹ ' +
+              '<div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div><div style="font-size:24px;font-weight:900">€ ' +
               grandTotal.toFixed(2) +
               "</div>";
           } else {
             totalEl.innerHTML =
-              '<div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div><div style="font-size:24px;font-weight:900">₹ 0.00</div>';
+              '<div style="font-size:14px;opacity:0.8;margin-bottom:2px">TOTAL AMOUNT</div><div style="font-size:24px;font-weight:900">€ 0.00</div>';
           }
         }
 
@@ -2587,6 +5343,9 @@
         if (cartPopupOverlay && cartPopupOverlay.classList.contains("show")) {
           updateCartPopup();
         }
+
+        // Always sync the POS right-panel cart
+        updatePosCartUI();
       }
 
       function setScanCartMode(mode) {
@@ -2616,13 +5375,27 @@
         updateScanCartUI();
       }
 
+      function adjustScanCartQty(code, direction) {
+        // direction is always +1 (add) or -1 (remove) from the user's perspective
+        const item = scanCart.find((i) => i.code === code);
+        if (!item) return;
+        const sign = item.delta >= 0 ? 1 : -1; // preserve sale(-) vs add(+) mode
+        const newAbs = Math.abs(item.delta) + direction;
+        if (newAbs <= 0) {
+          scanCart = scanCart.filter((i) => i.code !== code);
+        } else {
+          item.delta = sign * newAbs;
+        }
+        updateScanCartUI();
+        updatePosCartUI();
+      }
+
       function clearScanCart() {
         scanCart = [];
         updateScanCartUI();
-        // updateScanCartUI() will call pushCartToDisplay() automatically
-
-        // Close cart popup when cart is cleared
+        updatePosCartUI();
         closeCartPopup();
+        pushCartToDisplay();
       }
 
       async function sendScanCartToBackend() {

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,7 +7,11 @@
     <style>
       body {
         margin: 0;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
           sans-serif;
         background: #f3f4f6;
       }
@@ -544,7 +548,7 @@
             </div>
 
             <div class="form-field">
-              <label for="newProductSellingPrice">Selling Price (₹)</label>
+              <label for="newProductSellingPrice">Selling Price (€)</label>
               <input
                 id="newProductSellingPrice"
                 type="number"
@@ -555,7 +559,7 @@
             </div>
 
             <div class="form-field">
-              <label for="newProductCostPrice">Cost Price (₹)</label>
+              <label for="newProductCostPrice">Cost Price (€)</label>
               <input
                 id="newProductCostPrice"
                 type="number"
@@ -855,7 +859,7 @@
         if (!items.length) {
           setGlobalStatus(
             "Please fill product and quantity for at least one bill line.",
-            true
+            true,
           );
           return;
         }
@@ -916,7 +920,7 @@
         setGlobalStatus("Loading products...", false);
         try {
           const resp = await fetch(
-            `/api/stock/products?phone=${encodeURIComponent(phone)}`
+            `/api/stock/products?phone=${encodeURIComponent(phone)}`,
           );
           const data = await resp.json();
           if (!resp.ok || !data.success) {
@@ -1182,13 +1186,13 @@
         try {
           const resp = await fetch(
             `/api/stock/products/${encodeURIComponent(
-              productId
+              productId,
             )}?phone=${encodeURIComponent(phone)}`,
             {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
-            }
+            },
           );
           const data = await resp.json();
           if (!resp.ok || !data.success) {
@@ -1252,15 +1256,15 @@
         const name = document.getElementById("newProductName").value.trim();
         const brand = document.getElementById("newProductBrand").value.trim();
         const quantity = parseFloat(
-          document.getElementById("newProductQuantity").value
+          document.getElementById("newProductQuantity").value,
         );
         const unit = document.getElementById("newProductUnit").value;
         const expiryDate = document.getElementById("newProductExpiry").value;
         const sellingPrice = parseFloat(
-          document.getElementById("newProductSellingPrice").value
+          document.getElementById("newProductSellingPrice").value,
         );
         const costPrice = parseFloat(
-          document.getElementById("newProductCostPrice").value
+          document.getElementById("newProductCostPrice").value,
         );
 
         // Validation

@@ -1,163 +1,357 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Customer Display – KiranaBuddy</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:system-ui,sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; display:flex; flex-direction:column; }
-    .hdr { background:linear-gradient(135deg,#16a34a,#064e3b); padding:18px 32px; display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #15803d; }
-    .shop-name { font-size:2rem; font-weight:800; color:#ecfdf5; }
-    .live-badge { display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.35); padding:6px 16px; border-radius:20px; font-size:.9rem; color:#86efac; font-weight:600; }
-    .live-dot { width:9px; height:9px; background:#4ade80; border-radius:50%; animation:pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.75)} }
-    /* idle screen */
-    .idle { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; text-align:center; padding:40px; }
-    .idle-icon { font-size:6rem; opacity:.2; }
-    .idle-title { font-size:2.2rem; color:#64748b; font-weight:700; }
-    .idle-sub { font-size:1.15rem; color:#475569; }
-    /* active screen */
-    .main { flex:1; display:flex; flex-direction:column; padding:24px 32px; gap:16px; overflow:hidden; }
-    .items-wrap { flex:1; overflow-y:auto; }
-    table { width:100%; border-collapse:collapse; }
-    thead th { padding:12px 16px; font-size:.85rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.05em; border-bottom:2px solid #1e293b; text-align:left; }
-    thead th.r { text-align:right; }
-    tbody tr { border-bottom:1px solid #1e293b; transition:background .4s; }
-    tbody tr.hi { background:rgba(34,197,94,.13); }
-    tbody td { padding:14px 16px; }
-    .td-name { color:#f1f5f9; font-weight:700; font-size:1.35rem; }
-    .td-qty  { color:#94a3b8; font-size:1.1rem; }
-    .td-rate { color:#94a3b8; font-size:1rem; }
-    .td-amt  { text-align:right; color:#4ade80; font-weight:800; font-size:1.35rem; }
-    .total-bar { background:linear-gradient(135deg,#14532d,#166534); border:1px solid #16a34a; border-radius:16px; padding:20px 32px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-    .total-label { font-size:1.4rem; color:#86efac; font-weight:600; }
-    .total-amt { font-size:3.2rem; font-weight:900; color:#4ade80; letter-spacing:-1px; }
-    /* thank-you screen */
-    .ty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; text-align:center; }
-    .ty-icon  { font-size:7rem; }
-    .ty-title { font-size:3.2rem; font-weight:900; color:#4ade80; }
-    .ty-hindi { font-size:2rem; color:#86efac; }
-    .ty-total { font-size:1.5rem; color:#94a3b8; margin-top:8px; }
-    /* status bar */
-    .sbar { background:#1e293b; padding:12px 32px; display:flex; align-items:center; justify-content:center; font-size:1rem; color:#64748b; border-top:1px solid #334155; flex-shrink:0; }
-  </style>
-</head>
-<body>
-
-  <div class="hdr">
-    <div class="shop-name" id="shopName">🛒 KiranaBuddy</div>
-    <div class="live-badge"><div class="live-dot"></div><span>LIVE DISPLAY</span></div>
-  </div>
-
-  <!-- Idle / welcome state -->
-  <div class="idle" id="idleScreen">
-    <div class="idle-icon">🛒</div>
-    <div class="idle-title">Welcome! &nbsp;/&nbsp; स्वागत है!</div>
-    <div class="idle-sub">Your items will appear here as they are scanned.</div>
-    <div class="idle-sub" style="color:#334155;margin-top:4px">आपके सामान यहाँ दिखेंगे।</div>
-  </div>
-
-  <!-- Active scanning state -->
-  <div class="main" id="activeScreen" style="display:none">
-    <div class="items-wrap">
-      <table>
-        <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th class="r">Amount</th></tr></thead>
-        <tbody id="itemsBody"></tbody>
-      </table>
-    </div>
-    <div class="total-bar">
-      <div class="total-label">Total Amount &nbsp;/&nbsp; कुल राशि</div>
-      <div class="total-amt" id="grandTotal">₹ 0.00</div>
-    </div>
-  </div>
-
-  <!-- Thank-you / checkout state -->
-  <div class="ty" id="tyScreen" style="display:none">
-    <div class="ty-icon">🙏</div>
-    <div class="ty-title">Thank You!</div>
-    <div class="ty-hindi">धन्यवाद! &nbsp; पधारो फिर।</div>
-    <div class="ty-total" id="tyTotal"></div>
-  </div>
-
-  <div class="sbar" id="sbar">🟢 Ready for scanning…</div>
-
-  <script>
-    const SESSION_ID = "{{ session_id }}";
-    let lastCount = 0;
-
-    async function poll() {
-      if (!SESSION_ID) return;
-      try {
-        const r = await fetch('/api/display-session/' + SESSION_ID);
-        if (!r.ok) return;
-        const d = await r.json();
-        if (d.success && d.session) render(d.session);
-      } catch (e) { /* network hiccup – retry next tick */ }
-    }
-
-    function render(sess) {
-      const items  = sess.items || [];
-      const status = sess.status || 'active';
-      const total  = sess.grand_total || 0;
-
-      const idle   = document.getElementById('idleScreen');
-      const active = document.getElementById('activeScreen');
-      const ty     = document.getElementById('tyScreen');
-      const sbar   = document.getElementById('sbar');
-
-      const sn = document.getElementById('shopName');
-      if (sn && sess.shop_name) sn.textContent = '🛒 ' + sess.shop_name;
-
-      if (status === 'checked_out') {
-        idle.style.display = 'none'; active.style.display = 'none'; ty.style.display = 'flex';
-        const tt = document.getElementById('tyTotal');
-        if (tt) tt.textContent = total > 0 ? 'Total paid: ₹\u00a0' + total.toFixed(2) : '';
-        if (sbar) sbar.textContent = '✅ Payment complete – Thank you!';
-        lastCount = 0;
-        return;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Display – KiranaBuddy</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
-
-      if (items.length === 0) {
-        idle.style.display = 'flex'; active.style.display = 'none'; ty.style.display = 'none';
-        if (sbar) sbar.textContent = '🟢 Ready for scanning…';
-        lastCount = 0;
-        return;
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
       }
-
-      idle.style.display = 'none'; ty.style.display = 'none'; active.style.display = 'flex';
-      const isNew = items.length > lastCount;
-      lastCount = items.length;
-
-      const tbody = document.getElementById('itemsBody');
-      tbody.innerHTML = '';
-      items.forEach((item, i) => {
-        const tr = document.createElement('tr');
-        if (isNew && i === items.length - 1) {
-          tr.className = 'hi';
-          setTimeout(() => tr.classList.remove('hi'), 1600);
+      .hdr {
+        background: linear-gradient(135deg, #16a34a, #064e3b);
+        padding: 18px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #15803d;
+      }
+      .shop-name {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #ecfdf5;
+      }
+      .live-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.35);
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        color: #86efac;
+        font-weight: 600;
+      }
+      .live-dot {
+        width: 9px;
+        height: 9px;
+        background: #4ade80;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
         }
-        const n = esc(item.name || item.code || '?');
-        const q = item.qty || 0;
-        const u = item.unit ? '\u00a0' + esc(item.unit) : '';
-        const p = item.unit_price != null ? '₹\u00a0' + Number(item.unit_price).toFixed(2) : '—';
-        const a = item.line_total != null ? '₹\u00a0' + Number(item.line_total).toFixed(2) : '—';
-        tr.innerHTML = `<td class="td-name">${n}</td><td class="td-qty">${q}${u}</td><td class="td-rate">${p}</td><td class="td-amt">${a}</td>`;
-        tbody.appendChild(tr);
-      });
+        50% {
+          opacity: 0.4;
+          transform: scale(0.75);
+        }
+      }
+      /* idle screen */
+      .idle {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        text-align: center;
+        padding: 40px;
+      }
+      .idle-icon {
+        font-size: 6rem;
+        opacity: 0.2;
+      }
+      .idle-title {
+        font-size: 2.2rem;
+        color: #64748b;
+        font-weight: 700;
+      }
+      .idle-sub {
+        font-size: 1.15rem;
+        color: #475569;
+      }
+      /* active screen */
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 24px 32px;
+        gap: 16px;
+        overflow: hidden;
+      }
+      .items-wrap {
+        flex: 1;
+        overflow-y: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      thead th {
+        padding: 12px 16px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #1e293b;
+        text-align: left;
+      }
+      thead th.r {
+        text-align: right;
+      }
+      tbody tr {
+        border-bottom: 1px solid #1e293b;
+        transition: background 0.4s;
+      }
+      tbody tr.hi {
+        background: rgba(34, 197, 94, 0.13);
+      }
+      tbody td {
+        padding: 14px 16px;
+      }
+      .td-name {
+        color: #f1f5f9;
+        font-weight: 700;
+        font-size: 1.35rem;
+      }
+      .td-qty {
+        color: #94a3b8;
+        font-size: 1.1rem;
+      }
+      .td-rate {
+        color: #94a3b8;
+        font-size: 1rem;
+      }
+      .td-amt {
+        text-align: right;
+        color: #4ade80;
+        font-weight: 800;
+        font-size: 1.35rem;
+      }
+      .total-bar {
+        background: linear-gradient(135deg, #14532d, #166534);
+        border: 1px solid #16a34a;
+        border-radius: 16px;
+        padding: 20px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .total-label {
+        font-size: 1.4rem;
+        color: #86efac;
+        font-weight: 600;
+      }
+      .total-amt {
+        font-size: 3.2rem;
+        font-weight: 900;
+        color: #4ade80;
+        letter-spacing: -1px;
+      }
+      /* thank-you screen */
+      .ty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        text-align: center;
+      }
+      .ty-icon {
+        font-size: 7rem;
+      }
+      .ty-title {
+        font-size: 3.2rem;
+        font-weight: 900;
+        color: #4ade80;
+      }
+      .ty-hindi {
+        font-size: 2rem;
+        color: #86efac;
+      }
+      .ty-total {
+        font-size: 1.5rem;
+        color: #94a3b8;
+        margin-top: 8px;
+      }
+      /* status bar */
+      .sbar {
+        background: #1e293b;
+        padding: 12px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: #64748b;
+        border-top: 1px solid #334155;
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hdr">
+      <div class="shop-name" id="shopName">🛒 KiranaBuddy</div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        <span>LIVE DISPLAY</span>
+      </div>
+    </div>
 
-      const gt = document.getElementById('grandTotal');
-      if (gt) gt.textContent = '₹\u00a0' + total.toFixed(2);
-      if (sbar) sbar.textContent = '🟢 Scanning in progress…';
-    }
+    <!-- Idle / welcome state -->
+    <div class="idle" id="idleScreen">
+      <div class="idle-icon">🛒</div>
+      <div class="idle-title">Welcome! &nbsp;/&nbsp; स्वागत है!</div>
+      <div class="idle-sub">
+        Your items will appear here as they are scanned.
+      </div>
+      <div class="idle-sub" style="color: #334155; margin-top: 4px">
+        आपके सामान यहाँ दिखेंगे।
+      </div>
+    </div>
 
-    function esc(s) {
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+    <!-- Active scanning state -->
+    <div class="main" id="activeScreen" style="display: none">
+      <div class="items-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Rate</th>
+              <th class="r">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+      <div class="total-bar">
+        <div class="total-label">Total Amount &nbsp;/&nbsp; कुल राशि</div>
+        <div class="total-amt" id="grandTotal">€ 0.00</div>
+      </div>
+    </div>
 
-    setInterval(poll, 1500);
-    poll();
-  </script>
-</body>
+    <!-- Thank-you / checkout state -->
+    <div class="ty" id="tyScreen" style="display: none">
+      <div class="ty-icon">🙏</div>
+      <div class="ty-title">Thank You!</div>
+      <div class="ty-hindi">धन्यवाद! &nbsp; पधारो फिर।</div>
+      <div class="ty-total" id="tyTotal"></div>
+    </div>
+
+    <div class="sbar" id="sbar">🟢 Ready for scanning…</div>
+
+    <script>
+      const SESSION_ID = "{{ session_id }}";
+      let lastCount = 0;
+
+      async function poll() {
+        if (!SESSION_ID) return;
+        try {
+          const r = await fetch("/api/display-session/" + SESSION_ID);
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d.success && d.session) render(d.session);
+        } catch (e) {
+          /* network hiccup – retry next tick */
+        }
+      }
+
+      function render(sess) {
+        const items = sess.items || [];
+        const status = sess.status || "active";
+        const total = sess.grand_total || 0;
+
+        const idle = document.getElementById("idleScreen");
+        const active = document.getElementById("activeScreen");
+        const ty = document.getElementById("tyScreen");
+        const sbar = document.getElementById("sbar");
+
+        const sn = document.getElementById("shopName");
+        if (sn && sess.shop_name) sn.textContent = "🛒 " + sess.shop_name;
+
+        if (status === "checked_out") {
+          idle.style.display = "none";
+          active.style.display = "none";
+          ty.style.display = "flex";
+          const tt = document.getElementById("tyTotal");
+          if (tt)
+            tt.textContent =
+              total > 0 ? "Total paid: €\u00a0" + total.toFixed(2) : "";
+          if (sbar) sbar.textContent = "✅ Payment complete – Thank you!";
+          lastCount = 0;
+          return;
+        }
+
+        if (items.length === 0) {
+          idle.style.display = "flex";
+          active.style.display = "none";
+          ty.style.display = "none";
+          if (sbar) sbar.textContent = "🟢 Ready for scanning…";
+          lastCount = 0;
+          return;
+        }
+
+        idle.style.display = "none";
+        ty.style.display = "none";
+        active.style.display = "flex";
+        const isNew = items.length > lastCount;
+        lastCount = items.length;
+
+        const tbody = document.getElementById("itemsBody");
+        tbody.innerHTML = "";
+        items.forEach((item, i) => {
+          const tr = document.createElement("tr");
+          if (isNew && i === items.length - 1) {
+            tr.className = "hi";
+            setTimeout(() => tr.classList.remove("hi"), 1600);
+          }
+          const n = esc(item.name || item.code || "?");
+          const q = item.qty || 0;
+          const u = item.unit ? "\u00a0" + esc(item.unit) : "";
+          const p =
+            item.unit_price != null
+              ? "€\u00a0" + Number(item.unit_price).toFixed(2)
+              : "—";
+          const a =
+            item.line_total != null
+              ? "€\u00a0" + Number(item.line_total).toFixed(2)
+              : "—";
+          tr.innerHTML = `<td class="td-name">${n}</td><td class="td-qty">${q}${u}</td><td class="td-rate">${p}</td><td class="td-amt">${a}</td>`;
+          tbody.appendChild(tr);
+        });
+
+        const gt = document.getElementById("grandTotal");
+        if (gt) gt.textContent = "€\u00a0" + total.toFixed(2);
+        if (sbar) sbar.textContent = "🟢 Scanning in progress…";
+      }
+
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      setInterval(poll, 1500);
+      poll();
+    </script>
+  </body>
 </html>
-

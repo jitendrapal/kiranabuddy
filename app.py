@@ -1010,6 +1010,107 @@ def create_new_product():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+DEMO_PRODUCTS = [
+    # Vegetables (loose / per kg)
+    {"name":"Onion",              "barcode":"VEG-001", "selling_price":30,  "stock":50,  "unit":"kg"},
+    {"name":"Tomato",             "barcode":"VEG-002", "selling_price":25,  "stock":40,  "unit":"kg"},
+    {"name":"Potato",             "barcode":"VEG-003", "selling_price":22,  "stock":60,  "unit":"kg"},
+    {"name":"Garlic",             "barcode":"VEG-004", "selling_price":200, "stock":20,  "unit":"kg"},
+    {"name":"Ginger",             "barcode":"VEG-005", "selling_price":120, "stock":25,  "unit":"kg"},
+    {"name":"Carrot",             "barcode":"VEG-006", "selling_price":40,  "stock":35,  "unit":"kg"},
+    {"name":"Capsicum",           "barcode":"VEG-007", "selling_price":60,  "stock":30,  "unit":"kg"},
+    {"name":"Cauliflower",        "barcode":"VEG-008", "selling_price":35,  "stock":20,  "unit":"kg"},
+    {"name":"Spinach",            "barcode":"VEG-009", "selling_price":20,  "stock":15,  "unit":"kg"},
+    {"name":"Brinjal",            "barcode":"VEG-010", "selling_price":30,  "stock":25,  "unit":"kg"},
+    {"name":"Bhindi",             "barcode":"VEG-011", "selling_price":45,  "stock":20,  "unit":"kg"},
+    {"name":"Cucumber",           "barcode":"VEG-012", "selling_price":25,  "stock":30,  "unit":"kg"},
+    {"name":"Lemon",              "barcode":"VEG-013", "selling_price":80,  "stock":10,  "unit":"kg"},
+    {"name":"Green Chilli",       "barcode":"VEG-014", "selling_price":60,  "stock":15,  "unit":"kg"},
+    {"name":"Peas",               "barcode":"VEG-015", "selling_price":50,  "stock":20,  "unit":"kg"},
+    # Packaged goods
+    {"name":"Maggi Noodles",      "barcode":"8901058001329", "selling_price":14,  "stock":120, "unit":"pieces"},
+    {"name":"Amul Butter 500g",   "barcode":"8901063028481", "selling_price":55,  "stock":60,  "unit":"pieces"},
+    {"name":"Tata Salt 1kg",      "barcode":"8901058852017", "selling_price":22,  "stock":200, "unit":"pieces"},
+    {"name":"Parle-G Biscuit",    "barcode":"8901820000059", "selling_price":10,  "stock":300, "unit":"pieces"},
+    {"name":"Aashirvaad Atta 5kg","barcode":"8901725133496", "selling_price":280, "stock":45,  "unit":"pieces"},
+    {"name":"Surf Excel 1kg",     "barcode":"8901030827372", "selling_price":190, "stock":80,  "unit":"pieces"},
+    {"name":"Amul Milk 1L",       "barcode":"8901063013739", "selling_price":60,  "stock":150, "unit":"pieces"},
+    {"name":"Lifebuoy Soap",      "barcode":"8901030728931", "selling_price":35,  "stock":90,  "unit":"pieces"},
+    {"name":"Colgate 200g",       "barcode":"8901030038591", "selling_price":89,  "stock":70,  "unit":"pieces"},
+    {"name":"Dettol Handwash",    "barcode":"6290255052136", "selling_price":115, "stock":55,  "unit":"pieces"},
+    {"name":"Bru Coffee 100g",    "barcode":"8901030784576", "selling_price":199, "stock":40,  "unit":"pieces"},
+    {"name":"Good Day Biscuit",   "barcode":"8901820007812", "selling_price":30,  "stock":180, "unit":"pieces"},
+    {"name":"Haldiram Mixture",   "barcode":"8906002960019", "selling_price":50,  "stock":95,  "unit":"pieces"},
+    {"name":"Saffola Oil 1L",     "barcode":"8901058009622", "selling_price":165, "stock":35,  "unit":"pieces"},
+    {"name":"Lays Chips",         "barcode":"8901491502606", "selling_price":20,  "stock":200, "unit":"pieces"},
+    {"name":"Dairy Milk 40g",     "barcode":"8901233051400", "selling_price":40,  "stock":110, "unit":"pieces"},
+    {"name":"Tata Tea Gold 250g", "barcode":"8901058003279", "selling_price":165, "stock":60,  "unit":"pieces"},
+    {"name":"Vim Dishwash Bar",   "barcode":"8901030007490", "selling_price":30,  "stock":75,  "unit":"pieces"},
+    {"name":"Frooti Mango 200ml", "barcode":"8906022302888", "selling_price":15,  "stock":250, "unit":"pieces"},
+    {"name":"Rin Detergent 1kg",  "barcode":"8901030861278", "selling_price":90,  "stock":65,  "unit":"pieces"},
+]
+
+
+@app.route('/api/seed-demo-products', methods=['POST'])
+def seed_demo_products():
+    """Seed demo Indian products into Firestore for the logged-in shop."""
+    try:
+        import uuid as _uuid
+        from datetime import datetime as _dt
+        from models import Product as _Product
+
+        phone = (request.get_json() or {}).get('phone', '').strip()
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop not found'}), 404
+            shop_id = shop.shop_id
+
+        # Get existing products to avoid duplicates (match by barcode)
+        existing = db.get_products_by_shop(shop_id)
+        existing_barcodes = {p.barcode for p in existing if p.barcode}
+
+        created, skipped = 0, 0
+        for item in DEMO_PRODUCTS:
+            barcode = item['barcode']
+            if barcode in existing_barcodes:
+                skipped += 1
+                continue
+
+            product_id = str(_uuid.uuid4())
+            product = _Product(
+                product_id=product_id,
+                shop_id=shop_id,
+                name=item['name'],
+                normalized_name=item['name'].lower().strip(),
+                current_stock=float(item['stock']),
+                unit=item['unit'],
+                barcode=barcode,
+                selling_price=float(item['selling_price']),
+                created_at=_dt.utcnow(),
+                updated_at=_dt.utcnow(),
+            )
+            db.db.collection('products').document(product_id).set(product.to_dict())
+            created += 1
+
+        return jsonify({
+            'success': True,
+            'message': f'{created} products added, {skipped} already existed.',
+            'created': created,
+            'skipped': skipped,
+        }), 200
+
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/product-by-barcode', methods=['GET'])
 def get_product_by_barcode():
     """Lookup a product by barcode for the test interface.
