@@ -43,6 +43,12 @@ export default function POSPage() {
   const [showChat, setShowChat] = useState(false);
 
   function handleProductClick(product) {
+    if (
+      product.stock !== null &&
+      product.stock !== undefined &&
+      product.stock <= 0
+    )
+      return; // block out-of-stock
     if (product.isWeight) {
       setWeightProduct(product);
       return;
@@ -52,6 +58,7 @@ export default function POSPage() {
       code: product.barcode,
       name: product.name,
       price: product.price,
+      stock: product.stock,
     });
     playScanBeep();
   }

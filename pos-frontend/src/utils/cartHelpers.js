@@ -1,5 +1,5 @@
 /** Add or increment a regular (non-weight) item in cart */
-export function addRegularItem(cart, code, name, price) {
+export function addRegularItem(cart, code, name, price, stock) {
   const delta = -1; // always sale mode
   const idx = cart.findIndex((i) => i.code === code && !i.isWeight);
   if (idx >= 0) {
@@ -9,7 +9,14 @@ export function addRegularItem(cart, code, name, price) {
     return updated;
   }
   return [
-    { code, name, price: parseFloat(price) || 0, delta, isWeight: false },
+    {
+      code,
+      name,
+      price: parseFloat(price) || 0,
+      delta,
+      isWeight: false,
+      stock: stock ?? null,
+    },
     ...cart,
   ];
 }

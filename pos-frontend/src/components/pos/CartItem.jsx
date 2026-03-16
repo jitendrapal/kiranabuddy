@@ -5,8 +5,11 @@ export default function CartItem({ item }) {
   const { dispatch } = useCart();
   const qty = Math.abs(item.delta || 0);
   const total = item.price * qty;
+  const hasStock = item.stock !== null && item.stock !== undefined;
+  const atLimit = hasStock && qty >= item.stock;
+
   return (
-    <div className="cart-item">
+    <div className={`cart-item${atLimit ? " cart-item-warn" : ""}`}>
       <button
         className="cart-item-remove"
         onClick={() => dispatch({ type: "REMOVE_ITEM", code: item.code })}
@@ -23,10 +26,12 @@ export default function CartItem({ item }) {
           <div className="cart-item-sub">
             ⚖️ {item.weightKg?.toFixed(3)} kg @ {fmt(item.pricePerKg)}/kg
           </div>
-        ) : (
-          <div className="cart-item-sub">
-            Barcode: {item.displayCode || item.code}
+        ) : atLimit ? (
+          <div className="cart-item-sub stock-warn">
+            ⚠️ Only {item.stock} in stock
           </div>
+        ) : (
+          <div className="cart-item-sub">{item.displayCode || item.code}</div>
         )}
       </div>
       <div className="cart-item-unit">{fmt(item.price)}</div>
@@ -47,6 +52,8 @@ export default function CartItem({ item }) {
               onClick={() =>
                 dispatch({ type: "ADJUST_QTY", code: item.code, direction: 1 })
               }
+              disabled={atLimit}
+              title={atLimit ? `Max stock: ${item.stock}` : undefined}
             >
               +
             </button>

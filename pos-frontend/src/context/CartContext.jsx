@@ -15,6 +15,7 @@ function cartReducer(state, action) {
           action.code,
           action.name,
           action.price,
+          action.stock,
         ),
       };
     case "ADD_WEIGHT":
