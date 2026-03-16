@@ -2,12 +2,14 @@ import { useState } from "react";
 import { fmt } from "../../utils/currency";
 import { calcTax } from "../../utils/taxCalculator";
 import { useTax } from "../../context/TaxContext";
+import { useCurrency } from "../../context/CurrencyContext";
 import { cartSubtotal } from "../../utils/cartHelpers";
 import { useCart } from "../../context/CartContext";
 
 export default function CartSummary({ onCheckout }) {
   const { cart, dispatch } = useCart();
   const { vatConfig } = useTax();
+  const { currency } = useCurrency();
 
   const [discountValue, setDiscountValue] = useState("");
   const [discountType, setDiscountType] = useState("flat"); // "flat" | "pct"
@@ -45,7 +47,7 @@ export default function CartSummary({ onCheckout }) {
             className={`disc-type-btn${discountType === "flat" ? " active" : ""}`}
             onClick={() => setDiscountType("flat")}
           >
-            ₹
+            {currency.symbol}
           </button>
           <button
             className={`disc-type-btn${discountType === "pct" ? " active" : ""}`}

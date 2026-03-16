@@ -320,6 +320,23 @@
       let lastCount = 0;
       let lastBroadcastAt = 0; // timestamp of last BroadcastChannel message
 
+      // Read currency from localStorage (same domain as POS frontend)
+      // Falls back to ₹ if nothing saved yet
+      let PAGE_CUR = "₹";
+      try {
+        PAGE_CUR = localStorage.getItem("posCurrencySymbol") || "₹";
+      } catch {}
+
+      // Apply currency to static HTML placeholders immediately on load
+      function applyInitialCurrency() {
+        const els = ["grandTotal", "subtotalAmt", "taxAmt"];
+        els.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = PAGE_CUR + "\u00a0" + "0.00";
+        });
+      }
+      applyInitialCurrency();
+
       async function poll() {
         if (!SESSION_ID) return;
         // If BroadcastChannel delivered data recently, skip poll — it's more up-to-date
@@ -352,7 +369,7 @@
           active.style.display = "none";
           ty.style.display = "flex";
           const tt = document.getElementById("tyTotal");
-          const paidCur = (sess && sess.currency) || "₹";
+          const paidCur = (sess && sess.currency) || PAGE_CUR;
           if (tt)
             tt.textContent =
               total > 0
@@ -376,7 +393,14 @@
         ty.style.display = "none";
         active.style.display = "flex";
         const isNew = items.length > lastCount;
-        const cur = sess.currency || "₹";
+        // Update PAGE_CUR if server/broadcast sends a currency
+        if (sess.currency) {
+          PAGE_CUR = sess.currency;
+          try {
+            localStorage.setItem("posCurrencySymbol", PAGE_CUR);
+          } catch {}
+        }
+        const cur = PAGE_CUR;
         lastCount = items.length;
 
         const tbody = document.getElementById("itemsBody");
