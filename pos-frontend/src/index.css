@@ -404,8 +404,8 @@ select {
 
 /* Cart Panel */
 .pos-right {
-  width: 400px;
-  min-width: 360px;
+  width: 480px;
+  min-width: 440px;
   background: #f8fafc;
   display: flex;
   flex-direction: column;
@@ -436,7 +436,7 @@ select {
 }
 .cart-col-header {
   display: grid;
-  grid-template-columns: 28px 1fr 72px 70px 82px;
+  grid-template-columns: 28px 1fr 80px 76px 88px;
   gap: 6px;
   padding: 0 4px;
   font-size: 11px;
@@ -478,7 +478,7 @@ select {
   padding: 10px 14px;
   margin-bottom: 8px;
   display: grid;
-  grid-template-columns: 28px 1fr 72px 70px 82px;
+  grid-template-columns: 28px 1fr 80px 76px 88px;
   gap: 8px;
   align-items: center;
   transition: box-shadow 0.2s;
