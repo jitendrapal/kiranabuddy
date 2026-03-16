@@ -260,9 +260,12 @@
     <script>
       const SESSION_ID = "{{ session_id }}";
       let lastCount = 0;
+      let lastBroadcastAt = 0; // timestamp of last BroadcastChannel message
 
       async function poll() {
         if (!SESSION_ID) return;
+        // If BroadcastChannel delivered data recently, skip poll — it's more up-to-date
+        if (Date.now() - lastBroadcastAt < 1500) return;
         try {
           const r = await fetch("/api/display-session/" + SESSION_ID);
           if (!r.ok) return;
@@ -354,7 +357,10 @@
       try {
         const bc = new BroadcastChannel("kirana-display");
         bc.onmessage = (e) => {
-          if (e.data) render(e.data);
+          if (e.data) {
+            lastBroadcastAt = Date.now(); // suppress poll for 1.5s after this
+            render(e.data);
+          }
         };
       } catch (err) {
         // BroadcastChannel not supported — fall through to polling only
