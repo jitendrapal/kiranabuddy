@@ -352,9 +352,12 @@
           active.style.display = "none";
           ty.style.display = "flex";
           const tt = document.getElementById("tyTotal");
+          const paidCur = (sess && sess.currency) || "₹";
           if (tt)
             tt.textContent =
-              total > 0 ? "Total paid: ₹\u00a0" + total.toFixed(2) : "";
+              total > 0
+                ? "Total paid: " + paidCur + "\u00a0" + total.toFixed(2)
+                : "";
           if (sbar) sbar.textContent = "✅ Payment complete – Thank you!";
           lastCount = 0;
           return;
@@ -373,6 +376,7 @@
         ty.style.display = "none";
         active.style.display = "flex";
         const isNew = items.length > lastCount;
+        const cur = sess.currency || "₹";
         lastCount = items.length;
 
         const tbody = document.getElementById("itemsBody");
@@ -389,18 +393,18 @@
           const u = item.unit ? "\u00a0" + esc(item.unit) : "";
           const p =
             item.unit_price != null
-              ? "₹\u00a0" + Number(item.unit_price).toFixed(2)
+              ? cur + "\u00a0" + Number(item.unit_price).toFixed(2)
               : "—";
           const a =
             item.line_total != null
-              ? "₹\u00a0" + Number(item.line_total).toFixed(2)
+              ? cur + "\u00a0" + Number(item.line_total).toFixed(2)
               : "—";
           tr.innerHTML = `<td class="td-name">${n}</td><td class="td-qty">${q}${u}</td><td class="td-rate">${p}</td><td class="td-amt">${a}</td>`;
           tbody.appendChild(tr);
         });
 
         const gt = document.getElementById("grandTotal");
-        if (gt) gt.textContent = "₹\u00a0" + total.toFixed(2);
+        if (gt) gt.textContent = cur + "\u00a0" + total.toFixed(2);
 
         // Subtotal row — show only if tax is applied (otherwise redundant)
         const taxAmt = sess.tax_amt || 0;
@@ -419,12 +423,13 @@
             subtotalRow.style.display = "flex";
           }
           if (subtotalAmt)
-            subtotalAmt.textContent = "₹\u00a0" + subtotal.toFixed(2);
+            subtotalAmt.textContent = cur + "\u00a0" + subtotal.toFixed(2);
           if (taxRow) {
             taxRow.style.display = "flex";
           }
           if (taxLabel) taxLabel.textContent = taxName + " (" + taxRate + "%)";
-          if (taxAmtEl) taxAmtEl.textContent = "+ ₹\u00a0" + taxAmt.toFixed(2);
+          if (taxAmtEl)
+            taxAmtEl.textContent = "+ " + cur + "\u00a0" + taxAmt.toFixed(2);
         } else {
           if (subtotalRow) subtotalRow.style.display = "none";
           if (taxRow) taxRow.style.display = "none";

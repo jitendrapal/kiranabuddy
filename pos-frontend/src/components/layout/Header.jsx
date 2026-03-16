@@ -1,5 +1,6 @@
 import { useClock } from "../../hooks/useClock";
 import { useTax } from "../../context/TaxContext";
+import { useCurrency } from "../../context/CurrencyContext";
 import { useUser } from "../../context/UserContext";
 import { generateBillNumber } from "../../utils/currency";
 import { useState } from "react";
@@ -9,6 +10,7 @@ const billNum = generateBillNumber();
 export default function Header({
   onOpenChat,
   onOpenTax,
+  onOpenCurrency,
   onOpenCamera,
   onOpenDisplay,
   onOpenStock,
@@ -20,6 +22,7 @@ export default function Header({
 }) {
   const { time, date } = useClock();
   const { vatConfig } = useTax();
+  const { currency } = useCurrency();
   const { user } = useUser();
 
   return (
@@ -86,6 +89,13 @@ export default function Header({
         </button>
         <button className="header-btn chat-btn" onClick={onOpenChat}>
           💬 AI Chat
+        </button>
+        <button
+          className="header-btn"
+          onClick={onOpenCurrency}
+          style={{ borderColor: "#38bdf8", color: "#38bdf8" }}
+        >
+          💱 {currency.symbol} {currency.code}
         </button>
         <button
           className="header-btn tax-btn"

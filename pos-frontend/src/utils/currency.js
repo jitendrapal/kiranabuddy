@@ -1,5 +1,15 @@
-export const CURRENCY = "₹";
-export const fmt = (v) => `${CURRENCY} ${Number(v).toFixed(2)}`;
+// Reads the symbol that CurrencyContext writes to localStorage.
+// All components using fmt() automatically pick up the new symbol on next render.
+export function getCurrencySymbol() {
+  try {
+    return localStorage.getItem("posCurrencySymbol") || "₹";
+  } catch {
+    return "₹";
+  }
+}
+
+export const CURRENCY = "₹"; // kept for backward compat
+export const fmt = (v) => `${getCurrencySymbol()} ${Number(v).toFixed(2)}`;
 
 export function generateBillNumber() {
   const d = new Date();

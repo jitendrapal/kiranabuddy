@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { useCart } from "../context/CartContext";
 import { useTax } from "../context/TaxContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { calcTax } from "../utils/taxCalculator";
 import { cartSubtotal } from "../utils/cartHelpers";
 import { useProducts } from "../hooks/useProducts";
@@ -25,6 +26,7 @@ import ReceiptModal from "../components/modals/ReceiptModal";
 import EODReportModal from "../components/modals/EODReportModal";
 import ReturnModal from "../components/modals/ReturnModal";
 import TaxModal from "../components/modals/TaxModal";
+import CurrencyModal from "../components/modals/CurrencyModal";
 import ChatPopup from "../components/modals/ChatPopup";
 
 export default function POSPage() {
@@ -46,6 +48,7 @@ export default function POSPage() {
     applyStockReductions,
   } = useProducts(user?.phone);
   const { vatConfig } = useTax();
+  const { currency } = useCurrency();
 
   const [weightProduct, setWeightProduct] = useState(null);
   const [checkoutData, setCheckoutData] = useState(null);
@@ -54,6 +57,7 @@ export default function POSPage() {
   const [showChat, setShowChat] = useState(false);
   const [showEOD, setShowEOD] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
+  const [showCurrency, setShowCurrency] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [scanToast, setScanToast] = useState(null); // { name, barcode }
   const displaySessionId = useRef(null); // customer display session ID
@@ -77,6 +81,7 @@ export default function POSPage() {
     showTax ||
     showChat ||
     showEOD ||
+    showCurrency ||
     showQuickSearch ||
     showReturn;
 
@@ -124,6 +129,7 @@ export default function POSPage() {
       tax_name: vatConfig.enabled ? vatConfig.name : null,
       tax_rate: vatConfig.enabled ? vatConfig.rate : 0,
       grand_total: total,
+      currency: currency.symbol,
       status: "active",
     };
 
@@ -131,7 +137,7 @@ export default function POSPage() {
     if (displaySessionId.current) {
       updateDisplaySession(displaySessionId.current, payload).catch(() => {});
     }
-  }, [cart, vatConfig]);
+  }, [cart, vatConfig, currency]);
 
   // Global barcode scanner — fires when USB scanner sends barcode+Enter
   useBarcodeScanner(
@@ -262,6 +268,7 @@ export default function POSPage() {
       <Header
         onOpenChat={() => setShowChat(true)}
         onOpenTax={() => setShowTax(true)}
+        onOpenCurrency={() => setShowCurrency(true)}
         onOpenCamera={() => alert("Camera scan coming soon")}
         onOpenDisplay={async () => {
           try {
@@ -362,6 +369,7 @@ export default function POSPage() {
         <ReceiptModal receipt={receipt} onClose={() => setReceipt(null)} />
       )}
       {showTax && <TaxModal onClose={() => setShowTax(false)} />}
+      {showCurrency && <CurrencyModal onClose={() => setShowCurrency(false)} />}
       {showChat && <ChatPopup onClose={() => setShowChat(false)} />}
       {showEOD && <EODReportModal onClose={() => setShowEOD(false)} />}
       {showReturn && <ReturnModal onClose={() => setShowReturn(false)} />}
