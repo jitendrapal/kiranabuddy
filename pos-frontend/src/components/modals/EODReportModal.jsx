@@ -70,8 +70,9 @@ export default function EODReportModal({ onClose }) {
           color: "#f1f5f9",
         }}
       >
-        {/* Header */}
+        {/* Header — hidden on print */}
         <div
+          className="no-print"
           style={{
             padding: "20px 24px 16px",
             borderBottom: "1px solid #334155",
@@ -108,8 +109,8 @@ export default function EODReportModal({ onClose }) {
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: "20px 24px" }}>
+        {/* Body — printable */}
+        <div className="printable-area" style={{ padding: "20px 24px" }}>
           {loading && (
             <p
               style={{

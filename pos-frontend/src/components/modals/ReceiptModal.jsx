@@ -17,8 +17,11 @@ export default function ReceiptModal({ receipt, onClose }) {
 
   const dateStr = timestamp
     ? new Date(timestamp).toLocaleString("en-GB", {
-        day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
     : "";
 
@@ -31,21 +34,25 @@ export default function ReceiptModal({ receipt, onClose }) {
       {/* Overlay — hidden on print */}
       <div className="modal-overlay receipt-overlay" onClick={onClose}>
         <div className="receipt-modal" onClick={(e) => e.stopPropagation()}>
-
           {/* Actions — hidden on print */}
           <div className="receipt-actions no-print">
-            <button className="receipt-btn print" onClick={handlePrint}>🖨️ Print</button>
-            <button className="receipt-btn close" onClick={onClose}>✕ Close</button>
+            <button className="receipt-btn print" onClick={handlePrint}>
+              🖨️ Print
+            </button>
+            <button className="receipt-btn close" onClick={onClose}>
+              ✕ Close
+            </button>
           </div>
 
           {/* ---- PRINTABLE RECEIPT ---- */}
-          <div className="receipt-body" id="receipt-print">
-
+          <div className="receipt-body printable-area" id="receipt-print">
             {/* Header */}
             <div className="receipt-header">
               <div className="receipt-shop">🛒 KiranaBuddy</div>
               <div className="receipt-date">{dateStr}</div>
-              <div className="receipt-divider">- - - - - - - - - - - - - - -</div>
+              <div className="receipt-divider">
+                - - - - - - - - - - - - - - -
+              </div>
             </div>
 
             {/* Items */}
@@ -64,7 +71,9 @@ export default function ReceiptModal({ receipt, onClose }) {
                     <td>{item.name}</td>
                     <td className="receipt-center">{item.quantity}</td>
                     <td className="receipt-right">{fmt(item.price)}</td>
-                    <td className="receipt-right">{fmt(item.price * item.quantity)}</td>
+                    <td className="receipt-right">
+                      {fmt(item.price * item.quantity)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -86,7 +95,9 @@ export default function ReceiptModal({ receipt, onClose }) {
               )}
               {taxAmt > 0 && (
                 <div className="receipt-row">
-                  <span>{vatConfig.name} ({vatConfig.rate}%)</span>
+                  <span>
+                    {vatConfig.name} ({vatConfig.rate}%)
+                  </span>
                   <span>{fmt(taxAmt)}</span>
                 </div>
               )}
@@ -126,4 +137,3 @@ export default function ReceiptModal({ receipt, onClose }) {
     </>
   );
 }
-
