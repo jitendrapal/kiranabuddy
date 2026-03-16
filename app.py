@@ -1024,6 +1024,86 @@ def record_sale():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/sales/return', methods=['POST'])
+def process_return():
+    """Process a product return.
+
+    Increases stock for each returned item and records a RETURN transaction.
+    Body: { phone, items: [{ name, barcode, quantity }] }
+    """
+    try:
+        data  = request.get_json() or {}
+        phone = (data.get('phone') or '').strip()
+        items = data.get('items', [])
+
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+        if not items:
+            return jsonify({'success': False, 'message': 'items is required'}), 400
+
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop not found'}), 404
+            shop_id = shop.shop_id
+
+        results = []
+        for item in items:
+            name    = (item.get('name')    or '').strip()
+            barcode = (item.get('barcode') or '').strip()
+            qty     = float(item.get('quantity') or 0)
+
+            if qty <= 0:
+                continue
+
+            # Find the product
+            product = None
+            if barcode:
+                product = db.find_product_by_barcode(shop_id, barcode)
+            if not product and name:
+                product = db.find_existing_product_by_name(shop_id, name)
+            if not product:
+                results.append({'name': name or barcode, 'error': 'product not found'})
+                continue
+
+            previous_stock = product.current_stock
+            new_stock      = previous_stock + qty
+            db.update_product_stock(product.product_id, new_stock)
+
+            unit_price   = float(product.selling_price) if product.selling_price else None
+            total_amount = unit_price * qty if unit_price else None
+
+            db.create_transaction(
+                shop_id          = shop_id,
+                product_id       = product.product_id,
+                product_name     = product.name,
+                transaction_type = TransactionType.RETURN,
+                quantity         = qty,
+                previous_stock   = previous_stock,
+                new_stock        = new_stock,
+                user_phone       = phone,
+                unit_price       = unit_price,
+                total_amount     = total_amount,
+                notes            = 'POS return',
+            )
+
+            results.append({
+                'name':       product.name,
+                'quantity':   qty,
+                'new_stock':  new_stock,
+                'refund':     total_amount,
+                'unit_price': unit_price,
+            })
+
+        return jsonify({'success': True, 'items': results}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/stock/bill', methods=['POST'])
 def add_stock_bill():
     """Fast bill entry: add stock for multiple products in one go.

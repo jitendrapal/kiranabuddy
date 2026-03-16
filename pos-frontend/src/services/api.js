@@ -26,6 +26,10 @@ export const getSession = () => api.get("/api/auth/check");
 export const sendChat = (phone, message) =>
   api.post("/api/chat", { phone, message });
 
+// Product return — increases stock, records RETURN transaction
+export const processReturn = (phone, items) =>
+  api.post("/api/sales/return", { phone, items });
+
 // End of day report
 export const fetchEODReport = (phone) =>
   api.get(`/api/reports/eod?phone=${encodeURIComponent(phone)}`);

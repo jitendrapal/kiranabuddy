@@ -17,6 +17,7 @@ import WeightModal from "../components/modals/WeightModal";
 import PaymentModal from "../components/modals/PaymentModal";
 import ReceiptModal from "../components/modals/ReceiptModal";
 import EODReportModal from "../components/modals/EODReportModal";
+import ReturnModal from "../components/modals/ReturnModal";
 import TaxModal from "../components/modals/TaxModal";
 import ChatPopup from "../components/modals/ChatPopup";
 
@@ -44,6 +45,7 @@ export default function POSPage() {
   const [showTax, setShowTax] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showEOD, setShowEOD] = useState(false);
+  const [showReturn, setShowReturn] = useState(false);
   const [scanToast, setScanToast] = useState(null); // { name, barcode }
   const toastTimer = useRef(null);
 
@@ -163,6 +165,7 @@ export default function POSPage() {
         onOpenStock={() => navigate("/stock")}
         onOpenTransactions={() => navigate("/transactions")}
         onOpenEOD={() => setShowEOD(true)}
+        onOpenReturn={() => setShowReturn(true)}
         onSeedProducts={handleSeedProducts}
         onLogout={handleLogout}
       />
@@ -214,6 +217,7 @@ export default function POSPage() {
       {showTax && <TaxModal onClose={() => setShowTax(false)} />}
       {showChat && <ChatPopup onClose={() => setShowChat(false)} />}
       {showEOD && <EODReportModal onClose={() => setShowEOD(false)} />}
+      {showReturn && <ReturnModal onClose={() => setShowReturn(false)} />}
 
       {/* Scan toast — bottom-right notification when barcode is scanned */}
       {scanToast && (

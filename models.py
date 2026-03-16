@@ -19,6 +19,7 @@ class TransactionType(Enum):
     REDUCE_STOCK = "reduce_stock"
     SALE = "sale"
     ADJUSTMENT = "adjustment"
+    RETURN = "return"
 
 
 class CommandAction(Enum):
