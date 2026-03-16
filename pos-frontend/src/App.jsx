@@ -3,6 +3,7 @@ import { UserProvider, useUser } from "./context/UserContext";
 import { CartProvider } from "./context/CartContext";
 import { TaxProvider } from "./context/TaxContext";
 import POSPage from "./pages/POSPage";
+import StockPage from "./pages/StockPage";
 import LoginPage from "./pages/LoginPage";
 
 function ProtectedRoute({ children }) {
@@ -24,6 +25,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <POSPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/stock"
+                element={
+                  <ProtectedRoute>
+                    <StockPage />
                   </ProtectedRoute>
                 }
               />

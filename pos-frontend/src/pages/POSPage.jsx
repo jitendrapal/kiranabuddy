@@ -123,6 +123,7 @@ export default function POSPage() {
         onOpenTax={() => setShowTax(true)}
         onOpenCamera={() => alert("Camera scan coming soon")}
         onOpenDisplay={() => window.open("/customer-display", "_blank")}
+        onOpenStock={() => navigate("/stock")}
         onSeedProducts={handleSeedProducts}
         onLogout={handleLogout}
       />

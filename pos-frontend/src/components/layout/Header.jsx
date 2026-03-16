@@ -11,6 +11,7 @@ export default function Header({
   onOpenTax,
   onOpenCamera,
   onOpenDisplay,
+  onOpenStock,
   onSeedProducts,
   onLogout,
 }) {
@@ -48,6 +49,13 @@ export default function Header({
       <div className="header-right">
         <button className="header-btn" onClick={onOpenDisplay}>
           📺 Display
+        </button>
+        <button
+          className="header-btn"
+          onClick={onOpenStock}
+          style={{ borderColor: "#10b981", color: "#10b981" }}
+        >
+          📦 Stock
         </button>
         <button className="header-btn" onClick={onOpenCamera}>
           📷 Scan

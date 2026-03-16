@@ -39,7 +39,15 @@ export const clearDisplay = (phone) =>
 // Stock management
 export const createProduct = (data) =>
   api.post("/api/stock/create-product", data);
-export const updateProduct = (data) =>
-  api.post("/api/stock/update-product", data);
-export const deleteProduct = (data) =>
-  api.post("/api/stock/delete-product", data);
+
+// Add stock to one or more existing products (quantity increase)
+// items: [{ product_id, name, quantity, cost_price? }]
+export const addStockBill = (phone, items) =>
+  api.post("/api/stock/bill", { phone, items });
+
+// Update arbitrary product fields (PATCH by product_id)
+export const patchProduct = (product_id, phone, updates) =>
+  api.patch(
+    `/api/stock/products/${product_id}?phone=${encodeURIComponent(phone)}`,
+    updates,
+  );
