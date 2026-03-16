@@ -3,6 +3,9 @@ import { useBarcodeScanner } from "../hooks/useBarcodeScanner";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { useCart } from "../context/CartContext";
+import { useTax } from "../context/TaxContext";
+import { calcTax } from "../utils/taxCalculator";
+import { cartSubtotal } from "../utils/cartHelpers";
 import { useProducts } from "../hooks/useProducts";
 import {
   fetchProductByBarcode,
@@ -42,6 +45,7 @@ export default function POSPage() {
     reload,
     applyStockReductions,
   } = useProducts(user?.phone);
+  const { vatConfig } = useTax();
 
   const [weightProduct, setWeightProduct] = useState(null);
   const [checkoutData, setCheckoutData] = useState(null);
@@ -91,9 +95,8 @@ export default function POSPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, [anyModalOpen]);
 
-  // Push cart to customer display whenever cart changes
+  // Push cart to customer display whenever cart or tax config changes
   useEffect(() => {
-    // If name looks like a raw barcode (all digits, 6+ chars), show friendly label
     const friendlyName = (name) =>
       /^[0-9]{6,}$/.test(name) ? "Item (barcode: " + name + ")" : name;
     const items = cart
@@ -109,17 +112,26 @@ export default function POSPage() {
           line_total: price != null ? price * qty : null,
         };
       });
-    const grand_total = items.reduce((s, i) => s + (i.line_total || 0), 0);
-    const payload = { items, grand_total, status: "active" };
 
-    // ① Instant: BroadcastChannel (same computer, zero network delay)
+    // Compute the same subtotal → tax → total that CartSummary shows
+    const raw = cartSubtotal(cart);
+    const { taxAmt, total } = calcTax(raw, vatConfig);
+
+    const payload = {
+      items,
+      subtotal: raw,
+      tax_amt: taxAmt,
+      tax_name: vatConfig.enabled ? vatConfig.name : null,
+      tax_rate: vatConfig.enabled ? vatConfig.rate : 0,
+      grand_total: total,
+      status: "active",
+    };
+
     displayBroadcast.current?.postMessage(payload);
-
-    // ② Fallback: server PATCH (for customer display on a different device)
     if (displaySessionId.current) {
       updateDisplaySession(displaySessionId.current, payload).catch(() => {});
     }
-  }, [cart]);
+  }, [cart, vatConfig]);
 
   // Global barcode scanner — fires when USB scanner sends barcode+Enter
   useBarcodeScanner(

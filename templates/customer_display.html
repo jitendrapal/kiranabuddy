@@ -166,16 +166,37 @@
         font-weight: 800;
         font-size: 1.3rem;
       }
-      /* ── Total bar — always pinned at bottom ── */
+      /* ── Summary panel (subtotal + tax + total) — pinned at bottom ── */
+      .summary-panel {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        flex-shrink: 0;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 24px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 1rem;
+        color: #64748b;
+        font-weight: 600;
+      }
+      .summary-row.tax-row {
+        color: #d97706;
+      }
+      .summary-row:last-child {
+        border-bottom: none;
+      }
       .total-bar {
         background: linear-gradient(135deg, #15803d, #166534);
-        border-radius: 14px;
-        padding: 20px 32px;
+        padding: 18px 28px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        flex-shrink: 0; /* never shrinks — stays visible at all times */
-        box-shadow: 0 4px 16px rgba(21, 128, 61, 0.25);
       }
       .total-label {
         font-size: 1.2rem;
@@ -183,7 +204,7 @@
         font-weight: 600;
       }
       .total-amt {
-        font-size: 3.2rem;
+        font-size: 3rem;
         font-weight: 900;
         color: #fff;
         letter-spacing: -1px;
@@ -267,9 +288,20 @@
           <tbody id="itemsBody"></tbody>
         </table>
       </div>
-      <div class="total-bar">
-        <div class="total-label">Total Amount &nbsp;/&nbsp; कुल राशि</div>
-        <div class="total-amt" id="grandTotal">₹ 0.00</div>
+      <!-- Subtotal + tax rows -->
+      <div class="summary-panel" id="summaryPanel">
+        <div class="summary-row" id="subtotalRow" style="display: none">
+          <span>Subtotal</span>
+          <span id="subtotalAmt">₹ 0.00</span>
+        </div>
+        <div class="summary-row tax-row" id="taxRow" style="display: none">
+          <span id="taxLabel">GST (0%)</span>
+          <span id="taxAmt">₹ 0.00</span>
+        </div>
+        <div class="total-bar">
+          <div class="total-label">Total &nbsp;/&nbsp; कुल राशि</div>
+          <div class="total-amt" id="grandTotal">₹ 0.00</div>
+        </div>
       </div>
     </div>
 
@@ -369,6 +401,35 @@
 
         const gt = document.getElementById("grandTotal");
         if (gt) gt.textContent = "₹\u00a0" + total.toFixed(2);
+
+        // Subtotal row — show only if tax is applied (otherwise redundant)
+        const taxAmt = sess.tax_amt || 0;
+        const taxRate = sess.tax_rate || 0;
+        const taxName = sess.tax_name || "Tax";
+        const subtotal = sess.subtotal != null ? sess.subtotal : total;
+
+        const subtotalRow = document.getElementById("subtotalRow");
+        const taxRow = document.getElementById("taxRow");
+        const subtotalAmt = document.getElementById("subtotalAmt");
+        const taxAmtEl = document.getElementById("taxAmt");
+        const taxLabel = document.getElementById("taxLabel");
+
+        if (taxAmt > 0) {
+          if (subtotalRow) {
+            subtotalRow.style.display = "flex";
+          }
+          if (subtotalAmt)
+            subtotalAmt.textContent = "₹\u00a0" + subtotal.toFixed(2);
+          if (taxRow) {
+            taxRow.style.display = "flex";
+          }
+          if (taxLabel) taxLabel.textContent = taxName + " (" + taxRate + "%)";
+          if (taxAmtEl) taxAmtEl.textContent = "+ ₹\u00a0" + taxAmt.toFixed(2);
+        } else {
+          if (subtotalRow) subtotalRow.style.display = "none";
+          if (taxRow) taxRow.style.display = "none";
+        }
+
         if (sbar) sbar.textContent = "🟢 Scanning in progress…";
       }
 

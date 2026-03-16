@@ -45,7 +45,7 @@ export default function CartSummary({ onCheckout }) {
             className={`disc-type-btn${discountType === "flat" ? " active" : ""}`}
             onClick={() => setDiscountType("flat")}
           >
-            €
+            ₹
           </button>
           <button
             className={`disc-type-btn${discountType === "pct" ? " active" : ""}`}
