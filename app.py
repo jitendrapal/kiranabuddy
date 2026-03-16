@@ -825,14 +825,26 @@ def record_sale():
         for item in items:
             if not isinstance(item, dict):
                 continue
-            name = (item.get('name') or '').strip()
-            qty  = abs(float(item.get('quantity') or item.get('delta') or 1))
+            name    = (item.get('name') or '').strip()
+            barcode = (item.get('barcode') or '').strip()
+            qty     = abs(float(item.get('quantity') or item.get('delta') or 1))
             if not name or qty <= 0:
                 continue
             try:
-                res = db.reduce_stock(shop_id, name, qty, phone)
+                # Resolve the REAL product so reduce_stock hits the correct document.
+                # Try barcode first (most reliable), then name.
+                real_product = None
+                if barcode:
+                    real_product = db.find_existing_product_by_name(shop_id, barcode)
+                if not real_product:
+                    real_product = db.find_existing_product_by_name(shop_id, name)
+
+                # Use the product's canonical name so get_or_create_product finds it
+                canonical_name = real_product.name if real_product else name
+
+                res = db.reduce_stock(shop_id, canonical_name, qty, phone)
                 results.append({
-                    'name': name,
+                    'name': canonical_name,
                     'quantity': qty,
                     'new_stock': res.get('new_stock'),
                 })
