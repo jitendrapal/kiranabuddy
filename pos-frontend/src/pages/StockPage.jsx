@@ -6,6 +6,7 @@ import {
   fetchProductByBarcode,
   createProduct,
   addStockBill,
+  patchProduct,
 } from "../services/api";
 import { fmt } from "../utils/currency";
 
@@ -97,6 +98,10 @@ export default function StockPage() {
     cost_price: "",
   });
 
+  // Edit product modal state
+  const [editModal, setEditModal] = useState(null); // product object
+  const [editForm, setEditForm] = useState({});
+
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -175,6 +180,43 @@ export default function StockPage() {
       loadProducts();
     } catch (e) {
       setMsg(e.response?.data?.message || "Error adding stock");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openEditForm(p) {
+    setEditForm({
+      name: p.name || "",
+      barcode: p.barcode || "",
+      selling_price: p.selling_price != null ? String(p.selling_price) : "",
+      cost_price: p.cost_price != null ? String(p.cost_price) : "",
+      unit: p.unit || "pieces",
+    });
+    setMsg("");
+    setEditModal(p);
+  }
+
+  async function handleEditProduct() {
+    if (!editForm.name.trim()) {
+      setMsg("Product name is required");
+      return;
+    }
+    setSaving(true);
+    setMsg("");
+    try {
+      const updates = {
+        name: editForm.name.trim(),
+        barcode: editForm.barcode.trim() || null,
+        selling_price: parseFloat(editForm.selling_price) || null,
+        cost_price: parseFloat(editForm.cost_price) || null,
+        unit: editForm.unit,
+      };
+      await patchProduct(editModal.product_id, user.phone, updates);
+      setEditModal(null);
+      loadProducts();
+    } catch (e) {
+      setMsg(e.response?.data?.message || "Error saving changes");
     } finally {
       setSaving(false);
     }
@@ -333,7 +375,8 @@ export default function StockPage() {
                     "Stock",
                     "Unit",
                     "Sell Price",
-                    "Action",
+                    "Cost Price",
+                    "Actions",
                   ].map((h) => (
                     <th
                       key={h}
@@ -388,18 +431,29 @@ export default function StockPage() {
                     <td style={{ padding: "10px 14px" }}>
                       {p.selling_price != null ? fmt(p.selling_price) : "—"}
                     </td>
+                    <td style={{ padding: "10px 14px", color: "#64748b" }}>
+                      {p.cost_price != null ? fmt(p.cost_price) : "—"}
+                    </td>
                     <td style={{ padding: "10px 14px" }}>
-                      <button
-                        onClick={() => {
-                          setStockModal(p);
-                          setStockQty("");
-                          setStockCost("");
-                          setMsg("");
-                        }}
-                        style={btn("#3b82f6", true)}
-                      >
-                        + Add Stock
-                      </button>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          onClick={() => {
+                            setStockModal(p);
+                            setStockQty("");
+                            setStockCost("");
+                            setMsg("");
+                          }}
+                          style={btn("#3b82f6", true)}
+                        >
+                          + Stock
+                        </button>
+                        <button
+                          onClick={() => openEditForm(p)}
+                          style={btn("#a78bfa", true)}
+                        >
+                          ✏️ Edit
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -528,6 +582,63 @@ export default function StockPage() {
               {saving ? "Saving…" : "✅ Create Product"}
             </button>
             <button onClick={() => setNewModal(false)} style={btn("#64748b")}>
+              Cancel
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Product Modal */}
+      {editModal && (
+        <Modal onClose={() => setEditModal(null)}>
+          <h3 style={{ margin: "0 0 16px", fontSize: 18 }}>✏️ Edit Product</h3>
+          {[
+            ["Product Name *", "name", "text", "e.g. Maggi Noodles 70g"],
+            ["Barcode", "barcode", "text", "e.g. 8901234567890"],
+            ["Selling Price", "selling_price", "number", "e.g. 14.00"],
+            ["Cost Price", "cost_price", "number", "e.g. 10.50"],
+          ].map(([label, field, type, placeholder]) => (
+            <div key={field}>
+              <label style={labelStyle}>{label}</label>
+              <input
+                type={type}
+                value={editForm[field]}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, [field]: e.target.value }))
+                }
+                placeholder={placeholder}
+                style={inputStyle}
+              />
+            </div>
+          ))}
+          <label style={labelStyle}>Unit</label>
+          <select
+            value={editForm.unit}
+            onChange={(e) =>
+              setEditForm((f) => ({ ...f, unit: e.target.value }))
+            }
+            style={inputStyle}
+          >
+            {["pieces", "kg", "gram", "litre", "packet", "box"].map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </select>
+          {msg && (
+            <p style={{ color: "#ef4444", margin: "0 0 12px", fontSize: 13 }}>
+              {msg}
+            </p>
+          )}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={handleEditProduct}
+              disabled={saving}
+              style={btn("#a78bfa")}
+            >
+              {saving ? "Saving…" : "💾 Save Changes"}
+            </button>
+            <button onClick={() => setEditModal(null)} style={btn("#64748b")}>
               Cancel
             </button>
           </div>
