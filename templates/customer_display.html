@@ -11,40 +11,43 @@
         box-sizing: border-box;
       }
       body {
-        font-family: system-ui, sans-serif;
-        background: #0f172a;
-        color: #e2e8f0;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: #f1f5f9;
+        color: #1e293b;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
       }
+      /* ── Header ── */
       .hdr {
-        background: linear-gradient(135deg, #16a34a, #064e3b);
-        padding: 18px 32px;
+        background: linear-gradient(135deg, #166534, #15803d);
+        padding: 16px 32px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 2px solid #15803d;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
       }
       .shop-name {
-        font-size: 2rem;
+        font-size: 1.9rem;
         font-weight: 800;
-        color: #ecfdf5;
+        color: #fff;
+        letter-spacing: -0.5px;
       }
       .live-badge {
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(0, 0, 0, 0.35);
-        padding: 6px 16px;
+        background: rgba(255, 255, 255, 0.18);
+        padding: 6px 18px;
         border-radius: 20px;
-        font-size: 0.9rem;
-        color: #86efac;
-        font-weight: 600;
+        font-size: 0.82rem;
+        color: #dcfce7;
+        font-weight: 700;
+        letter-spacing: 0.06em;
       }
       .live-dot {
-        width: 9px;
-        height: 9px;
+        width: 8px;
+        height: 8px;
         background: #4ade80;
         border-radius: 50%;
         animation: pulse 1.5s infinite;
@@ -57,151 +60,169 @@
         }
         50% {
           opacity: 0.4;
-          transform: scale(0.75);
+          transform: scale(0.7);
         }
       }
-      /* idle screen */
+      /* ── Idle ── */
       .idle {
         flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 20px;
+        gap: 18px;
         text-align: center;
         padding: 40px;
+        background: #f8fafc;
       }
       .idle-icon {
         font-size: 6rem;
-        opacity: 0.2;
+        opacity: 0.25;
       }
       .idle-title {
-        font-size: 2.2rem;
-        color: #64748b;
+        font-size: 2.1rem;
+        color: #94a3b8;
         font-weight: 700;
       }
       .idle-sub {
-        font-size: 1.15rem;
-        color: #475569;
+        font-size: 1.1rem;
+        color: #cbd5e1;
       }
-      /* active screen */
+      /* ── Active ── */
       .main {
         flex: 1;
         display: flex;
         flex-direction: column;
-        padding: 24px 32px;
-        gap: 16px;
+        padding: 20px 28px;
+        gap: 14px;
         overflow: hidden;
+        background: #f1f5f9;
       }
       .items-wrap {
         flex: 1;
         overflow-y: auto;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+        border: 1px solid #e2e8f0;
       }
       table {
         width: 100%;
         border-collapse: collapse;
       }
       thead th {
-        padding: 12px 16px;
-        font-size: 0.85rem;
+        padding: 13px 20px;
+        font-size: 0.78rem;
         font-weight: 700;
-        color: #64748b;
+        color: #94a3b8;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border-bottom: 2px solid #1e293b;
+        letter-spacing: 0.07em;
+        border-bottom: 2px solid #f1f5f9;
+        background: #fff;
         text-align: left;
+        position: sticky;
+        top: 0;
       }
       thead th.r {
         text-align: right;
       }
       tbody tr {
-        border-bottom: 1px solid #1e293b;
-        transition: background 0.4s;
+        border-bottom: 1px solid #f8fafc;
+        transition: background 0.5s;
       }
       tbody tr.hi {
-        background: rgba(34, 197, 94, 0.13);
+        background: #f0fdf4;
+      }
+      tbody tr:last-child {
+        border-bottom: none;
       }
       tbody td {
-        padding: 14px 16px;
+        padding: 15px 20px;
       }
       .td-name {
-        color: #f1f5f9;
+        color: #0f172a;
         font-weight: 700;
-        font-size: 1.35rem;
+        font-size: 1.25rem;
       }
       .td-qty {
-        color: #94a3b8;
-        font-size: 1.1rem;
+        color: #64748b;
+        font-size: 1rem;
+        font-weight: 600;
       }
       .td-rate {
         color: #94a3b8;
-        font-size: 1rem;
+        font-size: 0.95rem;
       }
       .td-amt {
         text-align: right;
-        color: #4ade80;
+        color: #16a34a;
         font-weight: 800;
-        font-size: 1.35rem;
+        font-size: 1.3rem;
       }
+      /* ── Total bar ── */
       .total-bar {
-        background: linear-gradient(135deg, #14532d, #166534);
-        border: 1px solid #16a34a;
-        border-radius: 16px;
-        padding: 20px 32px;
+        background: #fff;
+        border: 2px solid #bbf7d0;
+        border-radius: 14px;
+        padding: 18px 28px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-shrink: 0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
       }
       .total-label {
-        font-size: 1.4rem;
-        color: #86efac;
+        font-size: 1.2rem;
+        color: #64748b;
         font-weight: 600;
       }
       .total-amt {
-        font-size: 3.2rem;
+        font-size: 3rem;
         font-weight: 900;
-        color: #4ade80;
+        color: #15803d;
         letter-spacing: -1px;
       }
-      /* thank-you screen */
+      /* ── Thank-you ── */
       .ty {
         flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 20px;
+        gap: 18px;
         text-align: center;
+        background: #f0fdf4;
       }
       .ty-icon {
-        font-size: 7rem;
+        font-size: 6rem;
       }
       .ty-title {
-        font-size: 3.2rem;
+        font-size: 3rem;
         font-weight: 900;
-        color: #4ade80;
+        color: #15803d;
       }
       .ty-hindi {
-        font-size: 2rem;
-        color: #86efac;
+        font-size: 1.8rem;
+        color: #16a34a;
       }
       .ty-total {
-        font-size: 1.5rem;
-        color: #94a3b8;
+        font-size: 1.4rem;
+        color: #64748b;
         margin-top: 8px;
       }
-      /* status bar */
+      /* ── Status bar ── */
       .sbar {
-        background: #1e293b;
-        padding: 12px 32px;
+        background: #fff;
+        padding: 10px 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1rem;
-        color: #64748b;
-        border-top: 1px solid #334155;
+        font-size: 0.9rem;
+        color: #94a3b8;
+        border-top: 1px solid #e2e8f0;
         flex-shrink: 0;
+        font-weight: 500;
+        letter-spacing: 0.02em;
       }
     </style>
   </head>
@@ -321,9 +342,10 @@
         tbody.innerHTML = "";
         items.forEach((item, i) => {
           const tr = document.createElement("tr");
-          if (isNew && i === items.length - 1) {
+          // Newest item is at index 0 (top) — highlight it when a new item was added
+          if (isNew && i === 0) {
             tr.className = "hi";
-            setTimeout(() => tr.classList.remove("hi"), 1600);
+            setTimeout(() => tr.classList.remove("hi"), 1800);
           }
           const n = esc(item.name || item.code || "?");
           const q = item.qty || 0;
