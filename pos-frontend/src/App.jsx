@@ -4,6 +4,7 @@ import { CartProvider } from "./context/CartContext";
 import { TaxProvider } from "./context/TaxContext";
 import POSPage from "./pages/POSPage";
 import StockPage from "./pages/StockPage";
+import TransactionsPage from "./pages/TransactionsPage";
 import LoginPage from "./pages/LoginPage";
 
 function ProtectedRoute({ children }) {
@@ -33,6 +34,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <StockPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/transactions"
+                element={
+                  <ProtectedRoute>
+                    <TransactionsPage />
                   </ProtectedRoute>
                 }
               />

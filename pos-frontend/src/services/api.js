@@ -26,6 +26,12 @@ export const getSession = () => api.get("/api/auth/check");
 export const sendChat = (phone, message) =>
   api.post("/api/chat", { phone, message });
 
+// Transaction history
+export const fetchTransactions = (phone, filter = "all", limit = 200) =>
+  api.get(
+    `/api/transactions?phone=${encodeURIComponent(phone)}&filter=${filter}&limit=${limit}`,
+  );
+
 // Payment / Checkout — deducts stock for each sold item
 export const processPayment = (payload) =>
   api.post("/api/sales/record", payload);

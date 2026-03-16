@@ -691,6 +691,69 @@ def get_transactions(shop_id):
 
 
 
+@app.route('/api/transactions', methods=['GET'])
+def get_transactions_by_phone():
+    """Get recent transactions for the shop identified by phone number.
+
+    Query params:
+      phone  – required
+      limit  – max rows to return (default 200)
+      filter – 'today' | 'week' | 'all'  (default 'all')
+    """
+    try:
+        phone  = (request.args.get('phone')  or '').strip()
+        limit  = int(request.args.get('limit', 200))
+        filt   = (request.args.get('filter') or 'all').lower()
+
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop not found'}), 404
+            shop_id = shop.shop_id
+
+        txns = db.get_transactions_by_shop(shop_id, limit=limit)
+
+        # Apply date filter in Python (avoids extra Firestore index)
+        if filt in ('today', 'week'):
+            from datetime import datetime, timedelta, timezone
+            now = datetime.now(timezone.utc)
+            if filt == 'today':
+                cutoff = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            else:
+                cutoff = now - timedelta(days=7)
+
+            filtered = []
+            for t in txns:
+                ts = t.timestamp
+                if ts is None:
+                    continue
+                if isinstance(ts, str):
+                    try:
+                        ts = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                    except Exception:
+                        continue
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                if ts >= cutoff:
+                    filtered.append(t)
+            txns = filtered
+
+        return jsonify({
+            'success': True,
+            'transactions': [t.to_dict() for t in txns],
+            'count': len(txns),
+        }), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/stock/products', methods=['GET'])
 def get_stock_products():
     """Get all products for the shop identified by phone (for stock UI)."""

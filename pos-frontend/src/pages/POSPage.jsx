@@ -126,6 +126,7 @@ export default function POSPage() {
         onOpenCamera={() => alert("Camera scan coming soon")}
         onOpenDisplay={() => window.open("/customer-display", "_blank")}
         onOpenStock={() => navigate("/stock")}
+        onOpenTransactions={() => navigate("/transactions")}
         onSeedProducts={handleSeedProducts}
         onLogout={handleLogout}
       />
