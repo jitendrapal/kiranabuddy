@@ -3,7 +3,7 @@ import { addRegularItem, addWeightItem, adjustQty } from "../utils/cartHelpers";
 
 const CartContext = createContext(null);
 
-const initialState = { cart: [] };
+const initialState = { cart: [], heldBills: [] };
 
 function cartReducer(state, action) {
   switch (action.type) {
@@ -32,6 +32,46 @@ function cartReducer(state, action) {
       };
     case "CLEAR":
       return { ...state, cart: [] };
+    case "HOLD_BILL": {
+      if (state.cart.length === 0) return state;
+      const held = {
+        id: Date.now().toString(),
+        items: state.cart,
+        heldAt: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        itemCount: state.cart.filter((i) => i.delta !== 0).length,
+        total: action.total,
+      };
+      return { cart: [], heldBills: [held, ...state.heldBills] };
+    }
+    case "RECALL_BILL": {
+      const bill = state.heldBills.find((b) => b.id === action.id);
+      if (!bill) return state;
+      // If current cart has items, push it back to held first
+      const remaining = state.heldBills.filter((b) => b.id !== action.id);
+      if (state.cart.length > 0) {
+        const reHeld = {
+          id: Date.now().toString(),
+          items: state.cart,
+          heldAt: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          itemCount: state.cart.filter((i) => i.delta !== 0).length,
+          total: action.currentTotal,
+        };
+        return { cart: bill.items, heldBills: [reHeld, ...remaining] };
+      }
+      return { cart: bill.items, heldBills: remaining };
+    }
+    case "DISCARD_HELD": {
+      return {
+        ...state,
+        heldBills: state.heldBills.filter((b) => b.id !== action.id),
+      };
+    }
     default:
       return state;
   }

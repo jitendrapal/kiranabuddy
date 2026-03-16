@@ -697,6 +697,112 @@ select {
   font-weight: 700;
   transition: all 0.2s;
 }
+/* Hold bill button */
+.held-badge {
+  background: #f59e0b;
+  color: #1e293b;
+  border: none;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.held-badge:hover {
+  background: #d97706;
+}
+
+/* Held bills panel */
+.held-bills-panel {
+  background: #1e3a5f;
+  border-bottom: 2px solid #3b82f6;
+  padding: 10px 14px;
+  flex-shrink: 0;
+}
+.held-bills-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #93c5fd;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.held-bill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+.held-bill-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.held-bill-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.held-bill-items {
+  font-size: 12px;
+  color: #f1f5f9;
+}
+.held-bill-total {
+  font-size: 14px;
+  font-weight: 800;
+  color: #10b981;
+  margin-left: auto;
+}
+.held-bill-actions {
+  display: flex;
+  gap: 6px;
+}
+.held-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.held-btn.recall {
+  background: #3b82f6;
+  color: #fff;
+}
+.held-btn.recall:hover {
+  background: #2563eb;
+}
+.held-btn.discard {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #475569;
+  font-size: 16px;
+  line-height: 1;
+  padding: 3px 8px;
+}
+.held-btn.discard:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Hold button in cart actions */
+.cart-btn.hold {
+  background: #f59e0b;
+  color: #1e293b;
+  border-color: #f59e0b;
+}
+.cart-btn.hold:hover {
+  background: #d97706;
+  border-color: #d97706;
+}
+
 .cart-btn.clear {
   flex: 0 0 110px;
   background: #f1f5f9;

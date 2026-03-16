@@ -89,12 +89,19 @@ export default function CartSummary({ onCheckout }) {
           🗑 Clear
         </button>
         <button
+          className="cart-btn hold"
+          onClick={() => dispatch({ type: "HOLD_BILL", total })}
+          title="Park this bill and start a new one"
+        >
+          ⏸ Hold
+        </button>
+        <button
           className="cart-btn checkout"
           onClick={() =>
             onCheckout({ total, rawSubtotal: raw, discountAmt, taxAmt })
           }
         >
-          💰 Checkout
+          💰 Pay
         </button>
       </div>
     </div>
