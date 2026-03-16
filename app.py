@@ -785,6 +785,67 @@ def update_stock_product(product_id):
 
 
 
+@app.route('/api/sales/record', methods=['POST'])
+def record_sale():
+    """Record a POS sale — deducts stock for each item in the cart.
+
+    Expects JSON:
+    {
+        "phone": "+91...",
+        "items": [
+            {"name": "Maggi", "barcode": "...", "quantity": 2, "price": 14.0},
+            ...
+        ],
+        "total": 120.0,
+        "payment_mode": "Cash",
+        "cash_given": 150.0
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        phone = (data.get('phone') or '').strip()
+        items = data.get('items') or []
+
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+        if not items:
+            return jsonify({'success': False, 'message': 'items is required'}), 400
+
+        # Resolve shop
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop not found'}), 404
+            shop_id = shop.shop_id
+
+        results = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = (item.get('name') or '').strip()
+            qty  = abs(float(item.get('quantity') or item.get('delta') or 1))
+            if not name or qty <= 0:
+                continue
+            try:
+                res = db.reduce_stock(shop_id, name, qty, phone)
+                results.append({
+                    'name': name,
+                    'quantity': qty,
+                    'new_stock': res.get('new_stock'),
+                })
+            except Exception as item_err:
+                results.append({'name': name, 'error': str(item_err)})
+
+        return jsonify({'success': True, 'items': results,
+                        'total': data.get('total', 0),
+                        'payment_mode': data.get('payment_mode', 'Cash')}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/stock/bill', methods=['POST'])
 def add_stock_bill():
     """Fast bill entry: add stock for multiple products in one go.

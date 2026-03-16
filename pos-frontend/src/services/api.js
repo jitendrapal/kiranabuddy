@@ -26,9 +26,9 @@ export const getSession = () => api.get("/api/auth/check");
 export const sendChat = (phone, message) =>
   api.post("/api/chat", { phone, message });
 
-// Payment / Checkout
+// Payment / Checkout — deducts stock for each sold item
 export const processPayment = (payload) =>
-  api.post("/api/process-payment", payload);
+  api.post("/api/sales/record", payload);
 
 // Customer display
 export const pushCartToDisplay = (payload) =>
