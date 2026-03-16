@@ -1291,6 +1291,36 @@ def test_parse():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """AI chat endpoint for the React POS frontend.
+
+    Accepts { phone, message } and processes the message through the
+    command_processor (same pipeline as WhatsApp), returning the AI reply.
+    """
+    try:
+        data = request.get_json() or {}
+        phone   = (data.get('phone')   or '').strip()
+        message = (data.get('message') or '').strip()
+
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+        if not message:
+            return jsonify({'success': False, 'message': 'message is required'}), 400
+
+        result = command_processor.process_message(
+            from_phone=phone,
+            message_type='text',
+            text=message,
+        )
+
+        reply = result.get('message') or result.get('reply') or '🤔 No response generated.'
+        return jsonify({'success': True, 'reply': reply}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'reply': f'❌ Server error: {str(e)}'}), 500
+
+
 # ==================== BUG TRACKING ROUTES ====================
 
 @app.route('/bug')
