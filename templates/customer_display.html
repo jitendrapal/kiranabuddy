@@ -10,15 +10,20 @@
         padding: 0;
         box-sizing: border-box;
       }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden; /* prevent page-level scroll */
+      }
       body {
         font-family: "Segoe UI", system-ui, sans-serif;
         background: #f1f5f9;
         color: #1e293b;
-        min-height: 100vh;
+        height: 100vh; /* fixed viewport height — same as cart panel */
         display: flex;
         flex-direction: column;
       }
-      /* ── Header ── */
+      /* ── Header — fixed, never shrinks ── */
       .hdr {
         background: linear-gradient(135deg, #166534, #15803d);
         padding: 16px 32px;
@@ -26,6 +31,7 @@
         align-items: center;
         justify-content: space-between;
         box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+        flex-shrink: 0;
       }
       .shop-name {
         font-size: 1.9rem;
@@ -88,7 +94,7 @@
         font-size: 1.1rem;
         color: #cbd5e1;
       }
-      /* ── Active ── */
+      /* ── Active — mirrors .pos-right cart layout ── */
       .main {
         flex: 1;
         display: flex;
@@ -97,11 +103,10 @@
         gap: 14px;
         overflow: hidden;
         background: #f1f5f9;
-        min-height: 0; /* lets flex children shrink below content size */
       }
+      /* Only this scrolls — same as .pos-cart-items */
       .items-wrap {
         flex: 1;
-        min-height: 0; /* critical: allows overflow-y to work in flex */
         overflow-y: auto;
         background: #fff;
         border-radius: 14px;
@@ -211,19 +216,18 @@
         color: #64748b;
         margin-top: 8px;
       }
-      /* ── Status bar ── */
+      /* ── Status bar — fixed at very bottom ── */
       .sbar {
         background: #fff;
-        padding: 10px 28px;
+        padding: 8px 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         color: #94a3b8;
         border-top: 1px solid #e2e8f0;
         flex-shrink: 0;
         font-weight: 500;
-        letter-spacing: 0.02em;
       }
     </style>
   </head>
