@@ -82,18 +82,27 @@ export default function POSPage() {
   // Push cart to customer display whenever cart changes
   useEffect(() => {
     if (!displaySessionId.current) return;
-    const items = cart.map((i) => ({
-      name: i.name,
-      qty: Math.abs(i.delta || 0),
-      unit: i.unit || "",
-      unit_price: i.price ?? null,
-      line_total: i.price != null ? i.price * Math.abs(i.delta || 0) : null,
-    }));
+    // If name looks like a raw barcode (all digits, 6+ chars), show friendly label
+    const friendlyName = (name) =>
+      /^[0-9]{6,}$/.test(name) ? "Item (barcode: " + name + ")" : name;
+    const items = cart
+      .filter((i) => Math.abs(i.delta || 0) > 0)
+      .map((i) => {
+        const qty = Math.abs(i.delta || 0);
+        const price = i.price ?? null;
+        return {
+          name: friendlyName(i.name),
+          qty,
+          unit: i.unit || "",
+          unit_price: price,
+          line_total: price != null ? price * qty : null,
+        };
+      });
     const grand_total = items.reduce((s, i) => s + (i.line_total || 0), 0);
     updateDisplaySession(displaySessionId.current, {
       items,
       grand_total,
-      status: cart.length === 0 ? "active" : "active",
+      status: "active",
     }).catch(() => {});
   }, [cart]);
 
