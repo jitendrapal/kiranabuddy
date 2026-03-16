@@ -111,13 +111,17 @@ export default function POSPage() {
   useBarcodeScanner(
     async (code) => {
       await handleBarcodeSubmit(code);
-      // Show a brief toast so the cashier sees what was scanned
+      // Show a brief toast — use allProducts (full list, ignores active filters)
       clearTimeout(toastTimer.current);
-      const matched = products.find(
+      const matched = allProducts.find(
         (p) => (p.barcode || "").toLowerCase() === code.toLowerCase(),
       );
-      setScanToast({ name: matched?.name || code, barcode: code });
-      toastTimer.current = setTimeout(() => setScanToast(null), 2000);
+      setScanToast({
+        name: matched?.name || null, // null = not registered
+        barcode: code,
+        notRegistered: !matched,
+      });
+      toastTimer.current = setTimeout(() => setScanToast(null), 3000);
     },
     { disabled: anyModalOpen },
   );
@@ -344,7 +348,7 @@ export default function POSPage() {
             right: 24,
             zIndex: 2000,
             background: "#0f172a",
-            border: "2px solid #10b981",
+            border: `2px solid ${scanToast.notRegistered ? "#f59e0b" : "#10b981"}`,
             borderRadius: 12,
             padding: "12px 20px",
             display: "flex",
@@ -352,15 +356,28 @@ export default function POSPage() {
             gap: 12,
             boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
             animation: "slideInRight 0.2s ease",
+            maxWidth: 300,
           }}
         >
-          <span style={{ fontSize: 22 }}>📷</span>
+          <span style={{ fontSize: 22 }}>
+            {scanToast.notRegistered ? "⚠️" : "📷"}
+          </span>
           <div>
-            <div style={{ fontSize: 13, color: "#10b981", fontWeight: 700 }}>
-              Barcode Scanned
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: scanToast.notRegistered ? "#f59e0b" : "#10b981",
+              }}
+            >
+              {scanToast.notRegistered
+                ? "Barcode not registered"
+                : "Barcode Scanned"}
             </div>
-            <div style={{ fontSize: 15, color: "#f1f5f9", fontWeight: 600 }}>
-              {scanToast.name}
+            <div style={{ fontSize: 14, color: "#f1f5f9", fontWeight: 600 }}>
+              {scanToast.notRegistered
+                ? `${scanToast.barcode} — Go to Stock → Edit product → Add barcode`
+                : scanToast.name}
             </div>
           </div>
         </div>
