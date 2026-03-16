@@ -677,9 +677,21 @@ class FirestoreDB:
         return transaction
 
     def get_transactions_by_shop(self, shop_id: str, limit: int = 100) -> List[Transaction]:
-        """Get recent transactions for a shop"""
-        docs = self.db.collection('transactions').where('shop_id', '==', shop_id).order_by('timestamp', direction=firestore.Query.DESCENDING).limit(limit).stream()
-        return [Transaction.from_dict(doc.to_dict()) for doc in docs]
+        """Get recent transactions for a shop, sorted newest-first.
+
+        We intentionally avoid order_by('timestamp') in the Firestore query
+        because combining where() + order_by() requires a composite index that
+        may not exist. Sorting in Python is equivalent and index-free.
+        """
+        docs = (
+            self.db.collection('transactions')
+            .where('shop_id', '==', shop_id)
+            .limit(limit * 3)   # fetch more to compensate for Python-side sort
+            .stream()
+        )
+        txns = [Transaction.from_dict(doc.to_dict()) for doc in docs]
+        txns.sort(key=lambda t: t.timestamp, reverse=True)
+        return txns[:limit]
 
 
     def undo_last_transaction_for_shop(self, shop_id: str, user_phone: str) -> Dict[str, Any]:
