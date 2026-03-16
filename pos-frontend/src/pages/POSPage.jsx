@@ -14,6 +14,7 @@ import ProductGrid from "../components/pos/ProductGrid";
 import CartPanel from "../components/pos/CartPanel";
 import WeightModal from "../components/modals/WeightModal";
 import PaymentModal from "../components/modals/PaymentModal";
+import ReceiptModal from "../components/modals/ReceiptModal";
 import TaxModal from "../components/modals/TaxModal";
 import ChatPopup from "../components/modals/ChatPopup";
 
@@ -36,7 +37,8 @@ export default function POSPage() {
   } = useProducts(user?.phone);
 
   const [weightProduct, setWeightProduct] = useState(null);
-  const [checkoutTotal, setCheckoutTotal] = useState(null);
+  const [checkoutData, setCheckoutData] = useState(null);
+  const [receipt, setReceipt] = useState(null);
   const [showTax, setShowTax] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
@@ -141,7 +143,7 @@ export default function POSPage() {
           onBarcodeSubmit={handleBarcodeSubmit}
           onProductClick={handleProductClick}
         />
-        <CartPanel onCheckout={(total) => setCheckoutTotal(total)} />
+        <CartPanel onCheckout={(data) => setCheckoutData(data)} />
       </div>
 
       {weightProduct && (
@@ -150,12 +152,11 @@ export default function POSPage() {
           onClose={() => setWeightProduct(null)}
         />
       )}
-      {checkoutTotal !== null && (
+      {checkoutData !== null && (
         <PaymentModal
-          total={checkoutTotal}
-          onClose={() => setCheckoutTotal(null)}
-          onSuccess={() => {
-            // 1. Instantly reduce stock in the UI (covers both DB & DEMO products)
+          checkoutData={checkoutData}
+          onClose={() => setCheckoutData(null)}
+          onSuccess={(receiptData) => {
             const soldItems = cart
               .filter((i) => i.delta !== 0)
               .map((i) => ({
@@ -164,11 +165,14 @@ export default function POSPage() {
                 quantity: Math.abs(i.delta || 0),
               }));
             applyStockReductions(soldItems);
-            setCheckoutTotal(null);
-            // 2. Refresh from DB in the background to sync real Firestore values
+            setCheckoutData(null);
+            setReceipt(receiptData);
             reload();
           }}
         />
+      )}
+      {receipt && (
+        <ReceiptModal receipt={receipt} onClose={() => setReceipt(null)} />
       )}
       {showTax && <TaxModal onClose={() => setShowTax(false)} />}
       {showChat && <ChatPopup onClose={() => setShowChat(false)} />}

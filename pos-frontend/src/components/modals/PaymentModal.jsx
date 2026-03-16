@@ -6,7 +6,13 @@ import { useUser } from "../../context/UserContext";
 
 const MODES = ["Cash", "UPI", "Card", "Credit"];
 
-export default function PaymentModal({ total, onClose, onSuccess }) {
+export default function PaymentModal({ checkoutData, onClose, onSuccess }) {
+  const {
+    total = 0,
+    rawSubtotal = 0,
+    discountAmt = 0,
+    taxAmt = 0,
+  } = checkoutData || {};
   const { cart, dispatch } = useCart();
   const { user } = useUser();
   const [mode, setMode] = useState("Cash");
@@ -17,7 +23,6 @@ export default function PaymentModal({ total, onClose, onSuccess }) {
   const cashGiven = parseFloat(cash) || 0;
   const isCash = mode === "Cash";
   const change = isCash ? cashGiven - total : 0;
-  const shortfall = isCash && cashGiven > 0 ? total - cashGiven : 0;
 
   // Confirm is blocked for Cash if no amount entered or not enough
   const canConfirm = !isCash || (cashGiven >= total && cashGiven > 0);
@@ -60,7 +65,17 @@ export default function PaymentModal({ total, onClose, onSuccess }) {
       });
 
       dispatch({ type: "CLEAR" });
-      onSuccess?.();
+      onSuccess?.({
+        items,
+        rawSubtotal,
+        discountAmt,
+        taxAmt,
+        total,
+        paymentMode: mode,
+        cashGiven: isCash ? cashGiven : null,
+        change: isCash ? Math.max(0, change) : null,
+        timestamp: new Date(),
+      });
       onClose();
     } catch (e) {
       const msg = e.response?.data?.message || e.message || "Unknown error";

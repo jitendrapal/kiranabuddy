@@ -696,6 +696,149 @@ select {
   box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
 }
 
+/* Receipt Modal */
+.receipt-overlay {
+  align-items: flex-start;
+  padding: 20px 0;
+  overflow-y: auto;
+}
+.receipt-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 360px;
+  max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.receipt-actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+.receipt-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.receipt-btn.print {
+  background: #3b82f6;
+  color: #fff;
+}
+.receipt-btn.print:hover {
+  background: #2563eb;
+}
+.receipt-btn.close {
+  background: #475569;
+  color: #fff;
+}
+.receipt-btn.close:hover {
+  background: #334155;
+}
+.receipt-body {
+  padding: 20px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  color: #1e293b;
+}
+.receipt-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.receipt-shop {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+.receipt-date {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+.receipt-divider {
+  color: #94a3b8;
+  text-align: center;
+  margin: 10px 0;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 4px;
+}
+.receipt-table th {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  padding: 4px 2px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.receipt-table td {
+  padding: 5px 2px;
+  vertical-align: top;
+}
+.receipt-center {
+  text-align: center;
+}
+.receipt-right {
+  text-align: right;
+}
+.receipt-totals,
+.receipt-payment {
+  margin: 4px 0;
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 13px;
+}
+.receipt-row.discount {
+  color: #6366f1;
+  font-weight: 700;
+}
+.receipt-row.total {
+  font-size: 17px;
+  font-weight: 900;
+  color: #10b981;
+  padding: 6px 0;
+}
+.receipt-row.change {
+  font-weight: 700;
+  color: #16a34a;
+}
+.receipt-footer {
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  padding-top: 4px;
+}
+
+/* Print styles */
+@media print {
+  body > * {
+    display: none !important;
+  }
+  .receipt-modal {
+    display: block !important;
+    box-shadow: none;
+    border-radius: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .receipt-body {
+    padding: 0;
+  }
+}
+
 /* Modal overlay */
 .modal-overlay {
   position: fixed;

@@ -88,7 +88,12 @@ export default function CartSummary({ onCheckout }) {
         <button className="cart-btn clear" onClick={handleClear}>
           🗑 Clear
         </button>
-        <button className="cart-btn checkout" onClick={() => onCheckout(total)}>
+        <button
+          className="cart-btn checkout"
+          onClick={() =>
+            onCheckout({ total, rawSubtotal: raw, discountAmt, taxAmt })
+          }
+        >
           💰 Checkout
         </button>
       </div>
