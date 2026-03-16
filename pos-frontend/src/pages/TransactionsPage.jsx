@@ -99,10 +99,13 @@ export default function TransactionsPage() {
   const s = {
     /* shared inline style helpers */
     page: {
-      minHeight: "100vh",
+      height: "100vh",
+      display: "flex",
+      flexDirection: "column",
       background: "#0f172a",
       color: "#f1f5f9",
       fontFamily: "sans-serif",
+      overflow: "hidden",
     },
     bar: {
       padding: "14px 24px",
@@ -155,7 +158,11 @@ export default function TransactionsPage() {
       fontWeight: 700,
       textAlign: "left",
       textTransform: "uppercase",
-      borderBottom: "1px solid #1e293b",
+      borderBottom: "1px solid #334155",
+      position: "sticky",
+      top: 0,
+      background: "#0f172a",
+      zIndex: 1,
     },
     td: {
       padding: "10px 14px",
@@ -234,8 +241,8 @@ export default function TransactionsPage() {
         />
       </div>
 
-      {/* Table */}
-      <div style={{ padding: "0 24px 24px", overflowX: "auto" }}>
+      {/* Table — scrollable, takes all remaining height */}
+      <div style={{ flex: 1, overflow: "auto", padding: "0 24px 24px" }}>
         {loading ? (
           <p style={{ color: "#94a3b8", padding: "40px 0" }}>
             ⏳ Loading transactions...
