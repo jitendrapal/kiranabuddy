@@ -44,11 +44,11 @@ export const fetchTransactions = (phone, filter = "all", limit = 200) =>
 export const processPayment = (payload) =>
   api.post("/api/sales/record", payload);
 
-// Customer display
-export const pushCartToDisplay = (payload) =>
-  api.post("/api/customer-display/update", payload);
-export const clearDisplay = (phone) =>
-  api.post("/api/customer-display/clear", { phone });
+// Customer display session
+export const createDisplaySession = (shopName) =>
+  api.post("/api/display-session", { shop_name: shopName });
+export const updateDisplaySession = (sessionId, payload) =>
+  api.patch(`/api/display-session/${sessionId}`, payload);
 
 // Stock management
 export const createProduct = (data) =>

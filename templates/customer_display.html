@@ -243,7 +243,7 @@
       </div>
       <div class="total-bar">
         <div class="total-label">Total Amount &nbsp;/&nbsp; कुल राशि</div>
-        <div class="total-amt" id="grandTotal">€ 0.00</div>
+        <div class="total-amt" id="grandTotal">₹ 0.00</div>
       </div>
     </div>
 
@@ -293,7 +293,7 @@
           const tt = document.getElementById("tyTotal");
           if (tt)
             tt.textContent =
-              total > 0 ? "Total paid: €\u00a0" + total.toFixed(2) : "";
+              total > 0 ? "Total paid: ₹\u00a0" + total.toFixed(2) : "";
           if (sbar) sbar.textContent = "✅ Payment complete – Thank you!";
           lastCount = 0;
           return;
@@ -327,18 +327,18 @@
           const u = item.unit ? "\u00a0" + esc(item.unit) : "";
           const p =
             item.unit_price != null
-              ? "€\u00a0" + Number(item.unit_price).toFixed(2)
+              ? "₹\u00a0" + Number(item.unit_price).toFixed(2)
               : "—";
           const a =
             item.line_total != null
-              ? "€\u00a0" + Number(item.line_total).toFixed(2)
+              ? "₹\u00a0" + Number(item.line_total).toFixed(2)
               : "—";
           tr.innerHTML = `<td class="td-name">${n}</td><td class="td-qty">${q}${u}</td><td class="td-rate">${p}</td><td class="td-amt">${a}</td>`;
           tbody.appendChild(tr);
         });
 
         const gt = document.getElementById("grandTotal");
-        if (gt) gt.textContent = "€\u00a0" + total.toFixed(2);
+        if (gt) gt.textContent = "₹\u00a0" + total.toFixed(2);
         if (sbar) sbar.textContent = "🟢 Scanning in progress…";
       }
 

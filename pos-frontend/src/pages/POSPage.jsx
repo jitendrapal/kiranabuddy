@@ -8,6 +8,8 @@ import {
   fetchProductByBarcode,
   seedDemoProducts,
   logout as apiLogout,
+  createDisplaySession,
+  updateDisplaySession,
 } from "../services/api";
 import Header from "../components/layout/Header";
 import StatusBar from "../components/layout/StatusBar";
@@ -49,6 +51,7 @@ export default function POSPage() {
   const [showReturn, setShowReturn] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [scanToast, setScanToast] = useState(null); // { name, barcode }
+  const displaySessionId = useRef(null); // customer display session ID
   const toastTimer = useRef(null);
 
   const anyModalOpen =
@@ -75,6 +78,24 @@ export default function POSPage() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [anyModalOpen]);
+
+  // Push cart to customer display whenever cart changes
+  useEffect(() => {
+    if (!displaySessionId.current) return;
+    const items = cart.map((i) => ({
+      name: i.name,
+      qty: Math.abs(i.delta || 0),
+      unit: i.unit || "",
+      unit_price: i.price ?? null,
+      line_total: i.price != null ? i.price * Math.abs(i.delta || 0) : null,
+    }));
+    const grand_total = items.reduce((s, i) => s + (i.line_total || 0), 0);
+    updateDisplaySession(displaySessionId.current, {
+      items,
+      grand_total,
+      status: cart.length === 0 ? "active" : "active",
+    }).catch(() => {});
+  }, [cart]);
 
   // Global barcode scanner — fires when USB scanner sends barcode+Enter
   useBarcodeScanner(
@@ -180,7 +201,23 @@ export default function POSPage() {
         onOpenChat={() => setShowChat(true)}
         onOpenTax={() => setShowTax(true)}
         onOpenCamera={() => alert("Camera scan coming soon")}
-        onOpenDisplay={() => window.open("/customer-display", "_blank")}
+        onOpenDisplay={async () => {
+          try {
+            const res = await createDisplaySession(
+              user?.shop_name || "KiranaBuddy",
+            );
+            if (res.data?.success) {
+              displaySessionId.current = res.data.session_id;
+              window.open(
+                `/customer-display?session=${res.data.session_id}`,
+                "CustomerDisplay",
+                "width=1280,height=720",
+              );
+            }
+          } catch (e) {
+            console.error("Failed to open customer display", e);
+          }
+        }}
         onOpenStock={() => navigate("/stock")}
         onOpenTransactions={() => navigate("/transactions")}
         onOpenEOD={() => setShowEOD(true)}
@@ -224,6 +261,24 @@ export default function POSPage() {
                 quantity: Math.abs(i.delta || 0),
               }));
             applyStockReductions(soldItems);
+            // Tell customer display: payment done → show "Thank You" screen
+            if (displaySessionId.current) {
+              updateDisplaySession(displaySessionId.current, {
+                status: "checked_out",
+                grand_total: receiptData?.total || 0,
+              }).catch(() => {});
+              // After 4 seconds reset display back to idle
+              setTimeout(() => {
+                if (displaySessionId.current) {
+                  updateDisplaySession(displaySessionId.current, {
+                    items: [],
+                    grand_total: 0,
+                    status: "active",
+                  }).catch(() => {});
+                }
+              }, 4000);
+            }
+            dispatch({ type: "CLEAR" });
             setCheckoutData(null);
             setReceipt(receiptData);
             reload();
