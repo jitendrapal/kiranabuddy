@@ -15,6 +15,7 @@ import CartPanel from "../components/pos/CartPanel";
 import WeightModal from "../components/modals/WeightModal";
 import PaymentModal from "../components/modals/PaymentModal";
 import ReceiptModal from "../components/modals/ReceiptModal";
+import EODReportModal from "../components/modals/EODReportModal";
 import TaxModal from "../components/modals/TaxModal";
 import ChatPopup from "../components/modals/ChatPopup";
 
@@ -41,6 +42,7 @@ export default function POSPage() {
   const [receipt, setReceipt] = useState(null);
   const [showTax, setShowTax] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showEOD, setShowEOD] = useState(false);
 
   function handleProductClick(product) {
     if (
@@ -134,6 +136,7 @@ export default function POSPage() {
         onOpenDisplay={() => window.open("/customer-display", "_blank")}
         onOpenStock={() => navigate("/stock")}
         onOpenTransactions={() => navigate("/transactions")}
+        onOpenEOD={() => setShowEOD(true)}
         onSeedProducts={handleSeedProducts}
         onLogout={handleLogout}
       />
@@ -184,6 +187,7 @@ export default function POSPage() {
       )}
       {showTax && <TaxModal onClose={() => setShowTax(false)} />}
       {showChat && <ChatPopup onClose={() => setShowChat(false)} />}
+      {showEOD && <EODReportModal onClose={() => setShowEOD(false)} />}
     </div>
   );
 }

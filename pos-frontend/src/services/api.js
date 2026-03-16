@@ -26,6 +26,10 @@ export const getSession = () => api.get("/api/auth/check");
 export const sendChat = (phone, message) =>
   api.post("/api/chat", { phone, message });
 
+// End of day report
+export const fetchEODReport = (phone) =>
+  api.get(`/api/reports/eod?phone=${encodeURIComponent(phone)}`);
+
 // Transaction history
 export const fetchTransactions = (phone, filter = "all", limit = 200) =>
   api.get(

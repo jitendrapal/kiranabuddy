@@ -691,6 +691,71 @@ def get_transactions(shop_id):
 
 
 
+@app.route('/api/reports/eod', methods=['GET'])
+def end_of_day_report():
+    """End-of-day sales report for the shop identified by phone.
+
+    Returns today's revenue, items sold, profit, and top products.
+    Query param: phone (required)
+    """
+    try:
+        phone = (request.args.get('phone') or '').strip()
+        if not phone:
+            return jsonify({'success': False, 'message': 'phone is required'}), 400
+
+        user = db.get_user_by_phone(phone)
+        if user:
+            shop_id = user.shop_id
+        else:
+            shop = db.get_shop_by_phone(phone)
+            if not shop:
+                return jsonify({'success': False, 'message': 'Shop not found'}), 404
+            shop_id = shop.shop_id
+
+        data = db.get_total_sales_today(shop_id)
+        if not data.get('success'):
+            return jsonify(data), 500
+
+        # Build top-5 by revenue and by quantity
+        revenue_by  = data.get('revenue_by_product') or {}
+        qty_by      = data.get('products_sold') or {}
+
+        top_revenue = sorted(revenue_by.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_qty     = sorted(qty_by.items(),     key=lambda x: x[1], reverse=True)[:5]
+
+        # Count today's sale transactions
+        from datetime import datetime, timezone
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0)
+
+        all_txns = db.get_transactions_by_shop(shop_id, limit=500)
+        sale_txns_today = [
+            t for t in all_txns
+            if t.transaction_type in ('sale', 'reduce_stock')
+            and (
+                t.timestamp.replace(tzinfo=timezone.utc)
+                if t.timestamp and t.timestamp.tzinfo is None
+                else t.timestamp or datetime.min.replace(tzinfo=timezone.utc)
+            ) >= today_start
+        ]
+
+        return jsonify({
+            'success': True,
+            'date': datetime.now().strftime('%d %b %Y'),
+            'generated_at': datetime.now().strftime('%H:%M'),
+            'total_revenue': round(data.get('total_revenue', 0), 2),
+            'total_cost':    round(data.get('total_cost',    0), 2),
+            'total_profit':  round(data.get('total_profit',  0), 2),
+            'total_items':   round(data.get('total_items_sold', 0), 2),
+            'total_txns':    len(sale_txns_today),
+            'top_by_revenue': [{'name': n, 'revenue': round(v, 2)} for n, v in top_revenue],
+            'top_by_qty':     [{'name': n, 'qty': round(v, 2)}     for n, v in top_qty],
+        }), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions_by_phone():
     """Get recent transactions for the shop identified by phone number.
