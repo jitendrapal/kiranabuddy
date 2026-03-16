@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useBarcodeScanner } from "../hooks/useBarcodeScanner";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
@@ -13,6 +13,7 @@ import Header from "../components/layout/Header";
 import StatusBar from "../components/layout/StatusBar";
 import ProductGrid from "../components/pos/ProductGrid";
 import CartPanel from "../components/pos/CartPanel";
+import QuickSearch from "../components/pos/QuickSearch";
 import WeightModal from "../components/modals/WeightModal";
 import PaymentModal from "../components/modals/PaymentModal";
 import ReceiptModal from "../components/modals/ReceiptModal";
@@ -46,6 +47,7 @@ export default function POSPage() {
   const [showChat, setShowChat] = useState(false);
   const [showEOD, setShowEOD] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
+  const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [scanToast, setScanToast] = useState(null); // { name, barcode }
   const toastTimer = useRef(null);
 
@@ -55,7 +57,24 @@ export default function POSPage() {
     !!receipt ||
     showTax ||
     showChat ||
-    showEOD;
+    showEOD ||
+    showQuickSearch ||
+    showReturn;
+
+  // Open QuickSearch with "/" key when no input is focused and no modal open
+  useEffect(() => {
+    function onKey(e) {
+      if (anyModalOpen) return;
+      const tag = document.activeElement?.tagName ?? "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "/") {
+        e.preventDefault();
+        setShowQuickSearch(true);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [anyModalOpen]);
 
   // Global barcode scanner — fires when USB scanner sends barcode+Enter
   useBarcodeScanner(
@@ -218,6 +237,16 @@ export default function POSPage() {
       {showChat && <ChatPopup onClose={() => setShowChat(false)} />}
       {showEOD && <EODReportModal onClose={() => setShowEOD(false)} />}
       {showReturn && <ReturnModal onClose={() => setShowReturn(false)} />}
+
+      {showQuickSearch && (
+        <QuickSearch
+          products={products}
+          onAdd={(product) => {
+            handleProductClick(product);
+          }}
+          onClose={() => setShowQuickSearch(false)}
+        />
+      )}
 
       {/* Scan toast — bottom-right notification when barcode is scanned */}
       {scanToast && (
