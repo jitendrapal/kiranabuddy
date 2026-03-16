@@ -350,8 +350,21 @@
           .replace(/"/g, "&quot;");
       }
 
-      setInterval(poll, 400);
-      poll();
+      // ① Primary: BroadcastChannel — instant updates when display is on same computer
+      try {
+        const bc = new BroadcastChannel("kirana-display");
+        bc.onmessage = (e) => {
+          if (e.data) render(e.data);
+        };
+      } catch (err) {
+        // BroadcastChannel not supported — fall through to polling only
+      }
+
+      // ② Fallback: polling — works when display is on a separate device
+      if (SESSION_ID) {
+        setInterval(poll, 400);
+        poll();
+      }
     </script>
   </body>
 </html>

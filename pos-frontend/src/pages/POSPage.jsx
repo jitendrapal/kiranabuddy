@@ -53,7 +53,18 @@ export default function POSPage() {
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [scanToast, setScanToast] = useState(null); // { name, barcode }
   const displaySessionId = useRef(null); // customer display session ID
+  const displayBroadcast = useRef(null); // BroadcastChannel for same-device instant push
   const toastTimer = useRef(null);
+
+  // Open BroadcastChannel once on mount, close on unmount
+  useEffect(() => {
+    try {
+      displayBroadcast.current = new BroadcastChannel("kirana-display");
+    } catch {
+      displayBroadcast.current = null; // not supported in older browsers
+    }
+    return () => displayBroadcast.current?.close();
+  }, []);
 
   const anyModalOpen =
     !!checkoutData ||
@@ -82,7 +93,6 @@ export default function POSPage() {
 
   // Push cart to customer display whenever cart changes
   useEffect(() => {
-    if (!displaySessionId.current) return;
     // If name looks like a raw barcode (all digits, 6+ chars), show friendly label
     const friendlyName = (name) =>
       /^[0-9]{6,}$/.test(name) ? "Item (barcode: " + name + ")" : name;
@@ -100,11 +110,15 @@ export default function POSPage() {
         };
       });
     const grand_total = items.reduce((s, i) => s + (i.line_total || 0), 0);
-    updateDisplaySession(displaySessionId.current, {
-      items,
-      grand_total,
-      status: "active",
-    }).catch(() => {});
+    const payload = { items, grand_total, status: "active" };
+
+    // ① Instant: BroadcastChannel (same computer, zero network delay)
+    displayBroadcast.current?.postMessage(payload);
+
+    // ② Fallback: server PATCH (for customer display on a different device)
+    if (displaySessionId.current) {
+      updateDisplaySession(displaySessionId.current, payload).catch(() => {});
+    }
   }, [cart]);
 
   // Global barcode scanner — fires when USB scanner sends barcode+Enter
@@ -298,22 +312,33 @@ export default function POSPage() {
               }));
             applyStockReductions(soldItems);
             // Tell customer display: payment done → show "Thank You" screen
+            const checkoutPayload = {
+              status: "checked_out",
+              grand_total: receiptData?.total || 0,
+              items: [],
+            };
+            displayBroadcast.current?.postMessage(checkoutPayload);
             if (displaySessionId.current) {
-              updateDisplaySession(displaySessionId.current, {
-                status: "checked_out",
-                grand_total: receiptData?.total || 0,
-              }).catch(() => {});
-              // After 4 seconds reset display back to idle
-              setTimeout(() => {
-                if (displaySessionId.current) {
-                  updateDisplaySession(displaySessionId.current, {
-                    items: [],
-                    grand_total: 0,
-                    status: "active",
-                  }).catch(() => {});
-                }
-              }, 4000);
+              updateDisplaySession(
+                displaySessionId.current,
+                checkoutPayload,
+              ).catch(() => {});
             }
+            // After 4 seconds reset display back to idle
+            setTimeout(() => {
+              const idlePayload = {
+                items: [],
+                grand_total: 0,
+                status: "active",
+              };
+              displayBroadcast.current?.postMessage(idlePayload);
+              if (displaySessionId.current) {
+                updateDisplaySession(
+                  displaySessionId.current,
+                  idlePayload,
+                ).catch(() => {});
+              }
+            }, 4000);
             dispatch({ type: "CLEAR" });
             setCheckoutData(null);
             setReceipt(receiptData);
