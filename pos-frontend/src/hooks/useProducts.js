@@ -147,6 +147,7 @@ export function useProducts(phone) {
 
   return {
     products: filtered,
+    allProducts: all, // full unfiltered list — used for barcode fast-path
     totalCount: all.length,
     loading,
     category,

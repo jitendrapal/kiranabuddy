@@ -32,6 +32,7 @@ export default function POSPage() {
 
   const {
     products,
+    allProducts,
     totalCount,
     loading,
     category,
@@ -145,6 +146,28 @@ export default function POSPage() {
   async function handleBarcodeSubmit(value) {
     const v = value.trim();
     if (!v) return;
+
+    // ── Fast path: product already loaded in memory ──────────────────────────
+    const local = allProducts.find(
+      (p) => (p.barcode || "").toLowerCase() === v.toLowerCase(),
+    );
+    if (local) {
+      if (local.isWeight) {
+        setWeightProduct({ ...local, barcode: v });
+      } else {
+        dispatch({
+          type: "ADD_REGULAR",
+          code: v,
+          name: local.name,
+          price: local.price,
+          stock: local.stock,
+        });
+        playScanBeep();
+      }
+      return; // done — no network call needed
+    }
+
+    // ── Slow path: not in local list, ask the server ──────────────────────────
     try {
       const res = await fetchProductByBarcode(v, user?.phone);
       const p = res.data?.product;
