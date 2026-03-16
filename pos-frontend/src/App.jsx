@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { UserProvider, useUser } from './context/UserContext';
-import { CartProvider } from './context/CartContext';
-import { TaxProvider } from './context/TaxContext';
-import POSPage from './pages/POSPage';
-import LoginPage from './pages/LoginPage';
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { UserProvider, useUser } from "./context/UserContext";
+import { CartProvider } from "./context/CartContext";
+import { TaxProvider } from "./context/TaxContext";
+import POSPage from "./pages/POSPage";
+import LoginPage from "./pages/LoginPage";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useUser();
@@ -13,19 +13,25 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <UserProvider>
         <TaxProvider>
           <CartProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
+              <Route
+                path="/pos"
+                element={
+                  <ProtectedRoute>
+                    <POSPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/pos" replace />} />
             </Routes>
           </CartProvider>
         </TaxProvider>
       </UserProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
-

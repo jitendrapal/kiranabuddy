@@ -1366,6 +1366,18 @@ def update_display_session(session_id):
     return jsonify({'success': True}), 200
 
 
+# ── Serve React app ────────────────────────────────────────────────────────
+REACT_DIR = os.path.join(os.path.dirname(__file__), 'static', 'react')
+
+@app.route('/react/', defaults={'path': ''})
+@app.route('/react/<path:path>')
+def serve_react(path):
+    """Serve the built React app (HashRouter so Flask only needs one catch-all)."""
+    if path and os.path.exists(os.path.join(REACT_DIR, path)):
+        return send_from_directory(REACT_DIR, path)
+    return send_from_directory(REACT_DIR, 'index.html')
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
