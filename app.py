@@ -11,7 +11,7 @@ from database import FirestoreDB
 from ai_service import AIService
 from whatsapp_service import WhatsAppService
 from command_processor import CommandProcessor
-from models import UserRole
+from models import UserRole, TransactionType
 from otp_service import OTPService
 
 # Initialize Flask app
@@ -855,11 +855,36 @@ def record_sale():
                     })
                     continue
 
-                res = db.reduce_stock(shop_id, real_product.name, qty, phone)
+                # ---- Direct stock update using product_id ----
+                # Bypass reduce_stock / get_or_create_product entirely to prevent
+                # ghost products being created when the normalized_name differs.
+                previous_stock = real_product.current_stock
+                new_stock = max(0.0, previous_stock - qty)
+
+                db.update_product_stock(real_product.product_id, new_stock)
+
+                # Compute sale price if available
+                unit_price = getattr(real_product, 'selling_price', None)
+                total_amount = (float(unit_price) * qty) if unit_price is not None else None
+
+                db.create_transaction(
+                    shop_id=shop_id,
+                    product_id=real_product.product_id,
+                    product_name=real_product.name,
+                    transaction_type=TransactionType.SALE,
+                    quantity=qty,
+                    previous_stock=previous_stock,
+                    new_stock=new_stock,
+                    user_phone=phone,
+                    unit_price=float(unit_price) if unit_price is not None else None,
+                    total_amount=total_amount,
+                    notes='React POS checkout',
+                )
+
                 results.append({
                     'name': real_product.name,
                     'quantity': qty,
-                    'new_stock': res.get('new_stock'),
+                    'new_stock': new_stock,
                 })
             except Exception as item_err:
                 results.append({'name': name, 'error': str(item_err)})
