@@ -273,12 +273,11 @@ def check_auth():
 
 @app.route('/')
 def index():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'ok',
-        'service': 'Kirana Shop Management API',
-        'version': '1.0.0'
-    })
+    """Serve the React POS app at root. Falls back to health check JSON if not built yet."""
+    react_index = os.path.join(os.path.dirname(__file__), 'static', 'react', 'index.html')
+    if os.path.exists(react_index):
+        return send_from_directory(os.path.join(os.path.dirname(__file__), 'static', 'react'), 'index.html')
+    return jsonify({'status': 'ok', 'service': 'KiranaBuddy API', 'version': '1.0.0'})
 
 
 @app.route('/test')
@@ -1371,10 +1370,15 @@ REACT_DIR = os.path.join(os.path.dirname(__file__), 'static', 'react')
 
 @app.route('/react/', defaults={'path': ''})
 @app.route('/react/<path:path>')
+@app.route('/assets/<path:path>')
 def serve_react(path):
-    """Serve the built React app (HashRouter so Flask only needs one catch-all)."""
+    """Serve the built React app and its assets."""
     if path and os.path.exists(os.path.join(REACT_DIR, path)):
         return send_from_directory(REACT_DIR, path)
+    # Also check assets folder for JS/CSS chunks
+    assets_dir = os.path.join(REACT_DIR, 'assets')
+    if path and os.path.exists(os.path.join(assets_dir, path)):
+        return send_from_directory(assets_dir, path)
     return send_from_directory(REACT_DIR, 'index.html')
 
 
