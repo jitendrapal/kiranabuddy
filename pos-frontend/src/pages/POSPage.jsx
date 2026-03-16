@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useBarcodeScanner } from "../hooks/useBarcodeScanner";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { useCart } from "../context/CartContext";
@@ -43,6 +44,31 @@ export default function POSPage() {
   const [showTax, setShowTax] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showEOD, setShowEOD] = useState(false);
+  const [scanToast, setScanToast] = useState(null); // { name, barcode }
+  const toastTimer = useRef(null);
+
+  const anyModalOpen =
+    !!checkoutData ||
+    !!weightProduct ||
+    !!receipt ||
+    showTax ||
+    showChat ||
+    showEOD;
+
+  // Global barcode scanner — fires when USB scanner sends barcode+Enter
+  useBarcodeScanner(
+    async (code) => {
+      await handleBarcodeSubmit(code);
+      // Show a brief toast so the cashier sees what was scanned
+      clearTimeout(toastTimer.current);
+      const matched = products.find(
+        (p) => (p.barcode || "").toLowerCase() === code.toLowerCase(),
+      );
+      setScanToast({ name: matched?.name || code, barcode: code });
+      toastTimer.current = setTimeout(() => setScanToast(null), 2000);
+    },
+    { disabled: anyModalOpen },
+  );
 
   function handleProductClick(product) {
     if (
@@ -188,6 +214,37 @@ export default function POSPage() {
       {showTax && <TaxModal onClose={() => setShowTax(false)} />}
       {showChat && <ChatPopup onClose={() => setShowChat(false)} />}
       {showEOD && <EODReportModal onClose={() => setShowEOD(false)} />}
+
+      {/* Scan toast — bottom-right notification when barcode is scanned */}
+      {scanToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 2000,
+            background: "#0f172a",
+            border: "2px solid #10b981",
+            borderRadius: 12,
+            padding: "12px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            animation: "slideInRight 0.2s ease",
+          }}
+        >
+          <span style={{ fontSize: 22 }}>📷</span>
+          <div>
+            <div style={{ fontSize: 13, color: "#10b981", fontWeight: 700 }}>
+              Barcode Scanned
+            </div>
+            <div style={{ fontSize: 15, color: "#f1f5f9", fontWeight: 600 }}>
+              {scanToast.name}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
