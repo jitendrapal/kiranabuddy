@@ -24,6 +24,11 @@ function cartReducer(state, action) {
         ...state,
         cart: adjustQty(state.cart, action.code, action.direction),
       };
+    case "REMOVE_ITEM":
+      return {
+        ...state,
+        cart: state.cart.filter((i) => i.code !== action.code),
+      };
     case "CLEAR":
       return { ...state, cart: [] };
     default:

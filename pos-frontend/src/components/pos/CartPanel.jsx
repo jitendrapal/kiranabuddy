@@ -16,6 +16,7 @@ export default function CartPanel({ onCheckout }) {
           </span>
         </div>
         <div className="cart-col-header">
+          <span></span>
           <span>ITEM</span>
           <span>PRICE</span>
           <span>QTY</span>

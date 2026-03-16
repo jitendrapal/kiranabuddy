@@ -7,6 +7,13 @@ export default function CartItem({ item }) {
   const total = item.price * qty;
   return (
     <div className="cart-item">
+      <button
+        className="cart-item-remove"
+        onClick={() => dispatch({ type: "REMOVE_ITEM", code: item.code })}
+        title="Remove item"
+      >
+        ×
+      </button>
       <div className="cart-item-info">
         <div className="cart-item-name">
           {item.isWeight ? `${item.emoji} ` : ""}
