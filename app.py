@@ -831,20 +831,33 @@ def record_sale():
             if not name or qty <= 0:
                 continue
             try:
-                # Resolve the REAL product so reduce_stock hits the correct document.
-                # Try barcode first (most reliable), then name.
+                # Resolve the REAL product.
+                # Try numeric barcode first (most reliable), then product name.
+                # NEVER fall back to create_or_get (prevents ghost products).
                 real_product = None
-                if barcode:
-                    real_product = db.find_existing_product_by_name(shop_id, barcode)
+
+                # Barcode lookup only works for numeric barcodes (EAN-8/13 etc.)
+                numeric_barcode = barcode.replace(' ', '')
+                if numeric_barcode.isdigit() and 4 <= len(numeric_barcode) <= 16:
+                    real_product = db.find_existing_product_by_name(shop_id, numeric_barcode)
+
+                # Fall back to name lookup
                 if not real_product:
                     real_product = db.find_existing_product_by_name(shop_id, name)
 
-                # Use the product's canonical name so get_or_create_product finds it
-                canonical_name = real_product.name if real_product else name
+                if not real_product:
+                    # Product not in this shop's DB — skip stock deduction.
+                    # This prevents ghost product creation for DEMO/unregistered items.
+                    results.append({
+                        'name': name,
+                        'quantity': qty,
+                        'note': 'product not in shop database — stock unchanged'
+                    })
+                    continue
 
-                res = db.reduce_stock(shop_id, canonical_name, qty, phone)
+                res = db.reduce_stock(shop_id, real_product.name, qty, phone)
                 results.append({
-                    'name': canonical_name,
+                    'name': real_product.name,
                     'quantity': qty,
                     'new_stock': res.get('new_stock'),
                 })
