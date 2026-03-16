@@ -140,6 +140,25 @@ export function useProducts(phone) {
     setFiltered(result);
   }, [all, category, search]);
 
+  // Immediately reduce stock in local state for sold items.
+  // Called right after a successful payment so the UI updates instantly,
+  // even for DEMO products that aren't stored in Firestore.
+  function applyStockReductions(soldItems) {
+    setAll((prev) =>
+      prev.map((p) => {
+        const sold = soldItems.find(
+          (s) =>
+            (s.name || "").toLowerCase() === (p.name || "").toLowerCase() ||
+            (s.barcode && s.barcode === p.barcode),
+        );
+        if (!sold) return p;
+        const qty = parseFloat(sold.quantity) || 0;
+        const currentStock = parseFloat(p.stock ?? p.current_stock ?? 0);
+        return { ...p, stock: Math.max(0, currentStock - qty) };
+      }),
+    );
+  }
+
   return {
     products: filtered,
     totalCount: all.length,
@@ -149,6 +168,7 @@ export function useProducts(phone) {
     search,
     setSearch,
     reload: load,
+    applyStockReductions,
   };
 }
 

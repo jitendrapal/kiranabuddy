@@ -19,7 +19,7 @@ import ChatPopup from "../components/modals/ChatPopup";
 
 export default function POSPage() {
   const { user, setUser } = useUser();
-  const { dispatch } = useCart();
+  const { cart, dispatch } = useCart();
   const navigate = useNavigate();
   const barcodeRef = useRef(null);
 
@@ -32,6 +32,7 @@ export default function POSPage() {
     search,
     setSearch,
     reload,
+    applyStockReductions,
   } = useProducts(user?.phone);
 
   const [weightProduct, setWeightProduct] = useState(null);
@@ -153,7 +154,17 @@ export default function POSPage() {
           total={checkoutTotal}
           onClose={() => setCheckoutTotal(null)}
           onSuccess={() => {
+            // 1. Instantly reduce stock in the UI (covers both DB & DEMO products)
+            const soldItems = cart
+              .filter((i) => i.delta !== 0)
+              .map((i) => ({
+                name: i.name,
+                barcode: i.displayCode || i.code,
+                quantity: Math.abs(i.delta || 0),
+              }));
+            applyStockReductions(soldItems);
             setCheckoutTotal(null);
+            // 2. Refresh from DB in the background to sync real Firestore values
             reload();
           }}
         />
