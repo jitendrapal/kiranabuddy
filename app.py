@@ -1657,7 +1657,8 @@ def delete_bug():
 
 # ==================== CUSTOMER DISPLAY ROUTES ====================
 # In-memory store for live customer display sessions.
-# Each entry: { session_id, shop_name, items, grand_total, status, updated_at }
+# Each entry: { session_id, shop_name, items, grand_total, subtotal,
+#               tax_amt, tax_name, tax_rate, currency, status, updated_at }
 # 'status' is 'active' while scanning, 'checked_out' after payment.
 _display_sessions: dict = {}
 
@@ -1680,6 +1681,11 @@ def create_display_session():
             'shop_name': data.get('shop_name', 'Kirana Shop'),
             'items': [],
             'grand_total': 0,
+            'subtotal': 0,
+            'tax_amt': 0,
+            'tax_name': None,
+            'tax_rate': 0,
+            'currency': '₹',
             'status': 'active',
             'updated_at': datetime.utcnow().isoformat(),
         }
@@ -1704,12 +1710,10 @@ def update_display_session(session_id):
     if not sess:
         return jsonify({'success': False, 'message': 'Session not found'}), 404
     data = request.get_json() or {}
-    if 'items' in data:
-        sess['items'] = data['items']
-    if 'grand_total' in data:
-        sess['grand_total'] = data['grand_total']
-    if 'status' in data:
-        sess['status'] = data['status']
+    for field in ('items', 'grand_total', 'status',
+                  'subtotal', 'tax_amt', 'tax_name', 'tax_rate', 'currency'):
+        if field in data:
+            sess[field] = data[field]
     sess['updated_at'] = datetime.utcnow().isoformat()
     return jsonify({'success': True}), 200
 
