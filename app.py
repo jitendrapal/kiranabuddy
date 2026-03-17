@@ -881,7 +881,31 @@ def update_stock_product(product_id):
             barcode_val = (data.get('barcode') or '').strip()
             updates['barcode'] = barcode_val or None
 
-        # Optional simple expiry_date override (rarely used if batches exist)
+        if 'name' in data:
+            name_val = (data.get('name') or '').strip()
+            if name_val:
+                updates['name'] = name_val
+                from database import canonical_product_key
+                updates['normalized_name'] = canonical_product_key(name_val)
+
+        if 'selling_price' in data:
+            try:
+                updates['selling_price'] = float(data['selling_price']) if data['selling_price'] not in (None, '') else None
+            except (ValueError, TypeError):
+                pass
+
+        if 'cost_price' in data:
+            try:
+                updates['cost_price'] = float(data['cost_price']) if data['cost_price'] not in (None, '') else None
+            except (ValueError, TypeError):
+                pass
+
+        if 'unit' in data:
+            unit_val = (data.get('unit') or '').strip()
+            if unit_val:
+                updates['unit'] = unit_val
+
+        # Optional simple expiry_date override
         if 'expiry_date' in data:
             expiry_val = (data.get('expiry_date') or '').strip() or None
             updates['expiry_date'] = expiry_val

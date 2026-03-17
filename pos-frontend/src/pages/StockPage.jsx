@@ -71,6 +71,32 @@ function Modal({ children, onClose }) {
   );
 }
 
+// Returns expiry status info for color-coding
+function expiryStatus(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const exp = new Date(dateStr);
+  const diffDays = Math.floor((exp - today) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0)
+    return { label: "Expired", color: "#ef4444", bg: "#450a0a", icon: "⛔" };
+  if (diffDays === 0)
+    return {
+      label: "Expires today",
+      color: "#f97316",
+      bg: "#431407",
+      icon: "⚠️",
+    };
+  if (diffDays <= 30)
+    return {
+      label: `${diffDays}d left`,
+      color: "#f59e0b",
+      bg: "#451a03",
+      icon: "⚠️",
+    };
+  return { label: dateStr, color: "#10b981", bg: "transparent", icon: null };
+}
+
 export default function StockPage() {
   const { user } = useUser();
   const navigate = useNavigate();
@@ -96,6 +122,7 @@ export default function StockPage() {
     unit: "pieces",
     selling_price: "",
     cost_price: "",
+    expiry_date: "",
   });
 
   // Edit product modal state
@@ -192,6 +219,7 @@ export default function StockPage() {
       selling_price: p.selling_price != null ? String(p.selling_price) : "",
       cost_price: p.cost_price != null ? String(p.cost_price) : "",
       unit: p.unit || "pieces",
+      expiry_date: p.expiry_date || "",
     });
     setMsg("");
     setEditModal(p);
@@ -211,6 +239,7 @@ export default function StockPage() {
         selling_price: parseFloat(editForm.selling_price) || null,
         cost_price: parseFloat(editForm.cost_price) || null,
         unit: editForm.unit,
+        expiry_date: editForm.expiry_date || null,
       };
       await patchProduct(editModal.product_id, user.phone, updates);
       setEditModal(null);
@@ -231,6 +260,7 @@ export default function StockPage() {
       selling_price,
       cost_price,
       brand,
+      expiry_date,
     } = newForm;
     if (!name.trim() || !quantity) {
       setMsg("Name and quantity are required");
@@ -248,6 +278,7 @@ export default function StockPage() {
         unit,
         selling_price: parseFloat(selling_price) || null,
         cost_price: parseFloat(cost_price) || null,
+        expiry_date: expiry_date || null,
       });
       setNewModal(false);
       loadProducts();
@@ -376,6 +407,7 @@ export default function StockPage() {
                     "Unit",
                     "Sell Price",
                     "Cost Price",
+                    "Expiry",
                     "Actions",
                   ].map((h) => (
                     <th
@@ -433,6 +465,35 @@ export default function StockPage() {
                     </td>
                     <td style={{ padding: "10px 14px", color: "#64748b" }}>
                       {p.cost_price != null ? fmt(p.cost_price) : "—"}
+                    </td>
+                    <td style={{ padding: "10px 14px" }}>
+                      {(() => {
+                        const s = expiryStatus(p.expiry_date);
+                        if (!s)
+                          return (
+                            <span style={{ color: "#475569", fontSize: 12 }}>
+                              —
+                            </span>
+                          );
+                        return (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              background: s.bg,
+                              color: s.color,
+                              border: `1px solid ${s.color}40`,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {s.icon ? s.icon + " " : ""}
+                            {s.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td style={{ padding: "10px 14px" }}>
                       <div style={{ display: "flex", gap: 6 }}>
@@ -568,6 +629,15 @@ export default function StockPage() {
               </option>
             ))}
           </select>
+          <label style={labelStyle}>Expiry Date (optional)</label>
+          <input
+            type="date"
+            value={newForm.expiry_date}
+            onChange={(e) =>
+              setNewForm((f) => ({ ...f, expiry_date: e.target.value }))
+            }
+            style={inputStyle}
+          />
           {msg && (
             <p style={{ color: "#ef4444", margin: "0 0 12px", fontSize: 13 }}>
               {msg}
@@ -625,6 +695,15 @@ export default function StockPage() {
               </option>
             ))}
           </select>
+          <label style={labelStyle}>Expiry Date (optional)</label>
+          <input
+            type="date"
+            value={editForm.expiry_date || ""}
+            onChange={(e) =>
+              setEditForm((f) => ({ ...f, expiry_date: e.target.value }))
+            }
+            style={inputStyle}
+          />
           {msg && (
             <p style={{ color: "#ef4444", margin: "0 0 12px", fontSize: 13 }}>
               {msg}
