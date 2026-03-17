@@ -19,6 +19,7 @@ export default function Header({
   onOpenReturn,
   onSeedProducts,
   onLogout,
+  lowStockCount = 0,
 }) {
   const { time, date } = useClock();
   const { vatConfig } = useTax();
@@ -59,9 +60,37 @@ export default function Header({
         <button
           className="header-btn"
           onClick={onOpenStock}
-          style={{ borderColor: "#10b981", color: "#10b981" }}
+          style={{
+            borderColor: lowStockCount > 0 ? "#f59e0b" : "#10b981",
+            color: lowStockCount > 0 ? "#f59e0b" : "#10b981",
+            position: "relative",
+          }}
         >
           📦 Stock
+          {lowStockCount > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: -7,
+                right: -7,
+                background: "#ef4444",
+                color: "#fff",
+                borderRadius: "50%",
+                fontSize: 10,
+                fontWeight: 700,
+                minWidth: 17,
+                height: 17,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1,
+                padding: "0 3px",
+                boxShadow: "0 0 0 2px #0f172a",
+              }}
+            >
+              {lowStockCount}
+            </span>
+          )}
         </button>
         <button
           className="header-btn"

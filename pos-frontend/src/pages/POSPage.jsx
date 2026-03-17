@@ -46,6 +46,7 @@ export default function POSPage() {
     setSearch,
     reload,
     applyStockReductions,
+    lowStockCount,
   } = useProducts(user?.phone);
   const { vatConfig } = useTax();
   const { currency } = useCurrency();
@@ -352,6 +353,7 @@ export default function POSPage() {
         onOpenReturn={() => setShowReturn(true)}
         onSeedProducts={handleSeedProducts}
         onLogout={handleLogout}
+        lowStockCount={lowStockCount}
       />
       <StatusBar />
       <div className="pos-content">

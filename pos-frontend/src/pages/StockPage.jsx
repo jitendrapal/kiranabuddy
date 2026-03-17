@@ -131,6 +131,9 @@ export default function StockPage() {
 
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [stockFilter, setStockFilter] = useState("all"); // "all" | "low" | "out"
+
+  const LOW_STOCK_THRESHOLD = 5;
 
   useEffect(() => {
     loadProducts();
@@ -289,11 +292,30 @@ export default function StockPage() {
     }
   }
 
-  const filtered = products.filter(
+  const lowStockCount = products.filter(
     (p) =>
-      (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.barcode || "").toLowerCase().includes(search.toLowerCase()),
-  );
+      (p.current_stock ?? 0) > 0 &&
+      (p.current_stock ?? 0) <= LOW_STOCK_THRESHOLD,
+  ).length;
+  const outOfStockCount = products.filter(
+    (p) => (p.current_stock ?? 0) <= 0,
+  ).length;
+
+  const filtered = products
+    .filter(
+      (p) =>
+        (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (p.barcode || "").toLowerCase().includes(search.toLowerCase()),
+    )
+    .filter((p) => {
+      if (stockFilter === "low")
+        return (
+          (p.current_stock ?? 0) > 0 &&
+          (p.current_stock ?? 0) <= LOW_STOCK_THRESHOLD
+        );
+      if (stockFilter === "out") return (p.current_stock ?? 0) <= 0;
+      return true;
+    });
 
   return (
     <div
@@ -355,6 +377,55 @@ export default function StockPage() {
         </p>
       </div>
 
+      {/* Low-stock alert banner */}
+      {(lowStockCount > 0 || outOfStockCount > 0) && (
+        <div
+          style={{
+            margin: "16px 24px 0",
+            padding: "12px 18px",
+            borderRadius: 10,
+            background: outOfStockCount > 0 ? "#450a0a" : "#451a03",
+            border: `1px solid ${outOfStockCount > 0 ? "#ef4444" : "#f59e0b"}`,
+            display: "flex",
+            gap: 24,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>
+            ⚠️ Stock Alerts
+          </span>
+          {outOfStockCount > 0 && (
+            <span
+              style={{ color: "#ef4444", fontSize: 13, cursor: "pointer" }}
+              onClick={() => setStockFilter("out")}
+            >
+              ⛔ <strong>{outOfStockCount}</strong> out of stock
+            </span>
+          )}
+          {lowStockCount > 0 && (
+            <span
+              style={{ color: "#f59e0b", fontSize: 13, cursor: "pointer" }}
+              onClick={() => setStockFilter("low")}
+            >
+              ⚠️ <strong>{lowStockCount}</strong> low stock (≤
+              {LOW_STOCK_THRESHOLD})
+            </span>
+          )}
+          <span
+            style={{
+              marginLeft: "auto",
+              color: "#64748b",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+            onClick={() => setStockFilter("all")}
+          >
+            Click to filter →
+          </span>
+        </div>
+      )}
+
       {/* Product table */}
       <div style={{ padding: "20px 24px" }}>
         <div
@@ -363,15 +434,47 @@ export default function StockPage() {
             gap: 12,
             marginBottom: 16,
             alignItems: "center",
+            flexWrap: "wrap",
           }}
         >
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="🔎 Search by name or barcode..."
-            style={{ ...inputStyle, marginBottom: 0, maxWidth: 320 }}
+            style={{ ...inputStyle, marginBottom: 0, maxWidth: 280 }}
           />
-          <span style={{ color: "#64748b", fontSize: 13 }}>
+          {/* Stock filter tabs */}
+          {[
+            { key: "all", label: "All", color: "#94a3b8" },
+            {
+              key: "low",
+              label: `⚠️ Low Stock (${lowStockCount})`,
+              color: "#f59e0b",
+            },
+            {
+              key: "out",
+              label: `⛔ Out of Stock (${outOfStockCount})`,
+              color: "#ef4444",
+            },
+          ].map(({ key, label, color }) => (
+            <button
+              key={key}
+              onClick={() => setStockFilter(key)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 8,
+                border: `1.5px solid ${stockFilter === key ? color : "#334155"}`,
+                background: stockFilter === key ? color + "22" : "transparent",
+                color: stockFilter === key ? color : "#64748b",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+          <span style={{ color: "#64748b", fontSize: 13, marginLeft: "auto" }}>
             {filtered.length} products
           </span>
         </div>
@@ -426,98 +529,115 @@ export default function StockPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p, i) => (
-                  <tr
-                    key={p.product_id || i}
-                    style={{
-                      background: i % 2 === 0 ? "#0f172a" : "#111827",
-                      borderBottom: "1px solid #1e293b",
-                    }}
-                  >
-                    <td style={{ padding: "10px 14px", fontWeight: 500 }}>
-                      {p.name}
-                    </td>
-                    <td
+                {filtered.map((p, i) => {
+                  const stock = p.current_stock ?? 0;
+                  const isOut = stock <= 0;
+                  const isLow = !isOut && stock <= LOW_STOCK_THRESHOLD;
+                  const rowBg = isOut
+                    ? "#2d0a0a"
+                    : isLow
+                      ? "#2d1a00"
+                      : i % 2 === 0
+                        ? "#0f172a"
+                        : "#111827";
+                  return (
+                    <tr
+                      key={p.product_id || i}
                       style={{
-                        padding: "10px 14px",
-                        color: "#64748b",
-                        fontFamily: "monospace",
-                        fontSize: 12,
+                        background: rowBg,
+                        borderBottom: "1px solid #1e293b",
+                        borderLeft: isOut
+                          ? "3px solid #ef4444"
+                          : isLow
+                            ? "3px solid #f59e0b"
+                            : "3px solid transparent",
                       }}
                     >
-                      {p.barcode || "—"}
-                    </td>
-                    <td
-                      style={{
-                        padding: "10px 14px",
-                        fontWeight: 700,
-                        color:
-                          (p.current_stock ?? 0) > 0 ? "#10b981" : "#ef4444",
-                      }}
-                    >
-                      {p.current_stock ?? 0}
-                    </td>
-                    <td style={{ padding: "10px 14px", color: "#94a3b8" }}>
-                      {p.unit || "—"}
-                    </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      {p.selling_price != null ? fmt(p.selling_price) : "—"}
-                    </td>
-                    <td style={{ padding: "10px 14px", color: "#64748b" }}>
-                      {p.cost_price != null ? fmt(p.cost_price) : "—"}
-                    </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      {(() => {
-                        const s = expiryStatus(p.expiry_date);
-                        if (!s)
+                      <td style={{ padding: "10px 14px", fontWeight: 500 }}>
+                        {p.name}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 14px",
+                          color: "#64748b",
+                          fontFamily: "monospace",
+                          fontSize: 12,
+                        }}
+                      >
+                        {p.barcode || "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 14px",
+                          fontWeight: 700,
+                          color:
+                            (p.current_stock ?? 0) > 0 ? "#10b981" : "#ef4444",
+                        }}
+                      >
+                        {p.current_stock ?? 0}
+                      </td>
+                      <td style={{ padding: "10px 14px", color: "#94a3b8" }}>
+                        {p.unit || "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        {p.selling_price != null ? fmt(p.selling_price) : "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px", color: "#64748b" }}>
+                        {p.cost_price != null ? fmt(p.cost_price) : "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        {(() => {
+                          const s = expiryStatus(p.expiry_date);
+                          if (!s)
+                            return (
+                              <span style={{ color: "#475569", fontSize: 12 }}>
+                                —
+                              </span>
+                            );
                           return (
-                            <span style={{ color: "#475569", fontSize: 12 }}>
-                              —
+                            <span
+                              style={{
+                                display: "inline-block",
+                                padding: "2px 8px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                background: s.bg,
+                                color: s.color,
+                                border: `1px solid ${s.color}40`,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {s.icon ? s.icon + " " : ""}
+                              {s.label}
                             </span>
                           );
-                        return (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "2px 8px",
-                              borderRadius: 6,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              background: s.bg,
-                              color: s.color,
-                              border: `1px solid ${s.color}40`,
-                              whiteSpace: "nowrap",
+                        })()}
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            onClick={() => {
+                              setStockModal(p);
+                              setStockQty("");
+                              setStockCost("");
+                              setMsg("");
                             }}
+                            style={btn("#3b82f6", true)}
                           >
-                            {s.icon ? s.icon + " " : ""}
-                            {s.label}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button
-                          onClick={() => {
-                            setStockModal(p);
-                            setStockQty("");
-                            setStockCost("");
-                            setMsg("");
-                          }}
-                          style={btn("#3b82f6", true)}
-                        >
-                          + Stock
-                        </button>
-                        <button
-                          onClick={() => openEditForm(p)}
-                          style={btn("#a78bfa", true)}
-                        >
-                          ✏️ Edit
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            + Stock
+                          </button>
+                          <button
+                            onClick={() => openEditForm(p)}
+                            style={btn("#a78bfa", true)}
+                          >
+                            ✏️ Edit
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

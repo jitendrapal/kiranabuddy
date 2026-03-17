@@ -145,6 +145,11 @@ export function useProducts(phone) {
     );
   }
 
+  // Count items needing attention — used for the header badge
+  const lowStockCount = all.filter(
+    (p) => p.stock != null && p.stock <= 5,
+  ).length;
+
   return {
     products: filtered,
     allProducts: all, // full unfiltered list — used for barcode fast-path
@@ -156,5 +161,6 @@ export function useProducts(phone) {
     setSearch,
     reload: load,
     applyStockReductions,
+    lowStockCount, // items with stock <= 5 (including out-of-stock)
   };
 }
