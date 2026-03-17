@@ -104,10 +104,6 @@ export default function POSPage() {
 
   // Push cart to customer display whenever cart or tax config changes
   useEffect(() => {
-    // While the "Thank You" screen is showing after checkout, suppress the
-    // empty-cart broadcast that dispatch(CLEAR) would otherwise trigger.
-    if (checkingOut.current) return;
-
     const friendlyName = (name) =>
       /^[0-9]{6,}$/.test(name) ? "Item (barcode: " + name + ")" : name;
     const items = cart
@@ -124,11 +120,19 @@ export default function POSPage() {
         };
       });
 
-    // If a new customer starts scanning, cancel any pending post-checkout reset timer
-    if (items.length > 0 && displayResetTimer.current) {
-      clearTimeout(displayResetTimer.current);
-      displayResetTimer.current = null;
+    if (items.length > 0 && checkingOut.current) {
+      // New customer started scanning before the post-checkout 4s window expired.
+      // Unlock immediately so their items broadcast right away.
+      checkingOut.current = false;
+      if (displayResetTimer.current) {
+        clearTimeout(displayResetTimer.current);
+        displayResetTimer.current = null;
+      }
     }
+
+    // Still suppress if locked AND cart is empty — that's the CLEAR dispatch
+    // fired right after checkout; we don't want it to overwrite "Thank You".
+    if (checkingOut.current) return;
 
     // Compute the same subtotal → tax → total that CartSummary shows
     const raw = cartSubtotal(cart);
