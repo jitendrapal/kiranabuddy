@@ -63,6 +63,8 @@ export default function POSPage() {
   const displaySessionId = useRef(null); // customer display session ID
   const displayBroadcast = useRef(null); // BroadcastChannel for same-device instant push
   const toastTimer = useRef(null);
+  const checkingOut = useRef(false); // true while Thank You screen is showing — suppresses empty-cart broadcast
+  const displayResetTimer = useRef(null); // holds the 4-s post-checkout reset timer so we can cancel it
 
   // Open BroadcastChannel once on mount, close on unmount
   useEffect(() => {
@@ -102,6 +104,10 @@ export default function POSPage() {
 
   // Push cart to customer display whenever cart or tax config changes
   useEffect(() => {
+    // While the "Thank You" screen is showing after checkout, suppress the
+    // empty-cart broadcast that dispatch(CLEAR) would otherwise trigger.
+    if (checkingOut.current) return;
+
     const friendlyName = (name) =>
       /^[0-9]{6,}$/.test(name) ? "Item (barcode: " + name + ")" : name;
     const items = cart
@@ -117,6 +123,12 @@ export default function POSPage() {
           line_total: price != null ? price * qty : null,
         };
       });
+
+    // If a new customer starts scanning, cancel any pending post-checkout reset timer
+    if (items.length > 0 && displayResetTimer.current) {
+      clearTimeout(displayResetTimer.current);
+      displayResetTimer.current = null;
+    }
 
     // Compute the same subtotal → tax → total that CartSummary shows
     const raw = cartSubtotal(cart);
@@ -336,6 +348,10 @@ export default function POSPage() {
               grand_total: receiptData?.total || 0,
               items: [],
             };
+
+            // Lock broadcasting BEFORE clearing the cart so the empty-cart
+            // useEffect doesn't overwrite the "Thank You" message.
+            checkingOut.current = true;
             displayBroadcast.current?.postMessage(checkoutPayload);
             if (displaySessionId.current) {
               updateDisplaySession(
@@ -343,8 +359,13 @@ export default function POSPage() {
                 checkoutPayload,
               ).catch(() => {});
             }
-            // After 4 seconds reset display back to idle
-            setTimeout(() => {
+
+            // After 4 s reset display to idle and re-enable broadcasting.
+            // Store the timer ID so it can be cancelled if a new customer
+            // starts scanning before the 4 s window expires.
+            displayResetTimer.current = setTimeout(() => {
+              checkingOut.current = false;
+              displayResetTimer.current = null;
               const idlePayload = {
                 items: [],
                 grand_total: 0,

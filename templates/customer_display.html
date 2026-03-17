@@ -339,8 +339,9 @@
 
       async function poll() {
         if (!SESSION_ID) return;
-        // If BroadcastChannel delivered data recently, skip poll — it's more up-to-date
-        if (Date.now() - lastBroadcastAt < 1500) return;
+        // If BroadcastChannel delivered data recently, skip poll — it's more up-to-date.
+        // 3 000 ms gives the server enough time to finish the PATCH before we read it.
+        if (Date.now() - lastBroadcastAt < 3000) return;
         try {
           const r = await fetch("/api/display-session/" + SESSION_ID);
           if (!r.ok) return;
