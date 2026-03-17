@@ -65,6 +65,7 @@ export default function POSPage() {
   const toastTimer = useRef(null);
   const checkingOut = useRef(false); // true while Thank You screen is showing — suppresses empty-cart broadcast
   const displayResetTimer = useRef(null); // holds the 4-s post-checkout reset timer so we can cancel it
+  const weightKeepAlive = useRef(null); // interval that keeps broadcasting while WeightModal is open
 
   // Open BroadcastChannel once on mount, close on unmount
   useEffect(() => {
@@ -102,13 +103,24 @@ export default function POSPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, [anyModalOpen]);
 
-  // Push cart to customer display whenever cart or tax config changes
-  useEffect(() => {
+  // Build the full display payload from current cart/tax/currency state.
+  // Weight items use weightKg as qty and pricePerKg as unit_price so the
+  // customer display shows "0.500 kg  @ ₹40/kg  = ₹20.00" correctly.
+  function buildDisplayPayload() {
     const friendlyName = (name) =>
       /^[0-9]{6,}$/.test(name) ? "Item (barcode: " + name + ")" : name;
     const items = cart
       .filter((i) => Math.abs(i.delta || 0) > 0)
       .map((i) => {
+        if (i.isWeight) {
+          return {
+            name: friendlyName(i.name),
+            qty: i.weightKg,
+            unit: "kg",
+            unit_price: i.pricePerKg ?? null,
+            line_total: i.price ?? null, // price stores the total for weight items
+          };
+        }
         const qty = Math.abs(i.delta || 0);
         const price = i.price ?? null;
         return {
@@ -119,8 +131,25 @@ export default function POSPage() {
           line_total: price != null ? price * qty : null,
         };
       });
+    const raw = cartSubtotal(cart);
+    const { taxAmt, total } = calcTax(raw, vatConfig);
+    return {
+      items,
+      subtotal: raw,
+      tax_amt: taxAmt,
+      tax_name: vatConfig.enabled ? vatConfig.name : null,
+      tax_rate: vatConfig.enabled ? vatConfig.rate : 0,
+      grand_total: total,
+      currency: currency.symbol,
+      status: "active",
+    };
+  }
 
-    if (items.length > 0 && checkingOut.current) {
+  // Push cart to customer display whenever cart or tax config changes
+  useEffect(() => {
+    const payload = buildDisplayPayload();
+
+    if (payload.items.length > 0 && checkingOut.current) {
       // New customer started scanning before the post-checkout 4s window expired.
       // Unlock immediately so their items broadcast right away.
       checkingOut.current = false;
@@ -134,26 +163,35 @@ export default function POSPage() {
     // fired right after checkout; we don't want it to overwrite "Thank You".
     if (checkingOut.current) return;
 
-    // Compute the same subtotal → tax → total that CartSummary shows
-    const raw = cartSubtotal(cart);
-    const { taxAmt, total } = calcTax(raw, vatConfig);
-
-    const payload = {
-      items,
-      subtotal: raw,
-      tax_amt: taxAmt,
-      tax_name: vatConfig.enabled ? vatConfig.name : null,
-      tax_rate: vatConfig.enabled ? vatConfig.rate : 0,
-      grand_total: total,
-      currency: currency.symbol,
-      status: "active",
-    };
-
     displayBroadcast.current?.postMessage(payload);
     if (displaySessionId.current) {
       updateDisplaySession(displaySessionId.current, payload).catch(() => {});
     }
-  }, [cart, vatConfig, currency]);
+  }, [cart, vatConfig, currency]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Open the WeightModal and keep the customer display alive during weight entry.
+  // Problem: dispatch(ADD_WEIGHT) only fires AFTER user confirms weight, which
+  // can take 5-15 seconds.  During that window the poll suppression timer expires
+  // and the poll fetches stale server data, clearing the display.
+  // Fix: broadcast the current cart immediately (resets lastBroadcastAt) and
+  // repeat every 2.5 s so the display is always suppressed while the modal is open.
+  function openWeightModal(product) {
+    setWeightProduct(product);
+    const sendKeepAlive = () => {
+      displayBroadcast.current?.postMessage(buildDisplayPayload());
+    };
+    sendKeepAlive(); // immediate — resets poll suppression right now
+    weightKeepAlive.current = setInterval(sendKeepAlive, 2500);
+  }
+
+  // Close the WeightModal and stop the keepalive.
+  function closeWeightModal() {
+    if (weightKeepAlive.current) {
+      clearInterval(weightKeepAlive.current);
+      weightKeepAlive.current = null;
+    }
+    setWeightProduct(null);
+  }
 
   // Global barcode scanner — fires when USB scanner sends barcode+Enter
   useBarcodeScanner(
@@ -182,7 +220,7 @@ export default function POSPage() {
     )
       return; // block out-of-stock
     if (product.isWeight) {
-      setWeightProduct(product);
+      openWeightModal(product);
       return;
     }
     dispatch({
@@ -205,7 +243,7 @@ export default function POSPage() {
     );
     if (local) {
       if (local.isWeight) {
-        setWeightProduct({ ...local, barcode: v });
+        openWeightModal({ ...local, barcode: v });
       } else {
         dispatch({
           type: "ADD_REGULAR",
@@ -227,7 +265,7 @@ export default function POSPage() {
         const isWeight = !!(p.per_kg || p.unit === "kg");
         const price = parseFloat(p.selling_price ?? p.price ?? 0);
         if (isWeight) {
-          setWeightProduct({ ...p, price, barcode: v });
+          openWeightModal({ ...p, price, barcode: v });
         } else {
           dispatch({ type: "ADD_REGULAR", code: v, name: p.name, price });
           playScanBeep();
@@ -328,10 +366,7 @@ export default function POSPage() {
       </div>
 
       {weightProduct && (
-        <WeightModal
-          product={weightProduct}
-          onClose={() => setWeightProduct(null)}
-        />
+        <WeightModal product={weightProduct} onClose={closeWeightModal} />
       )}
       {checkoutData !== null && (
         <PaymentModal
