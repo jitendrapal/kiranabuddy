@@ -103,22 +103,28 @@ export default function POSPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, [anyModalOpen]);
 
-  // Build the full display payload from current cart/tax/currency state.
-  // Weight items use weightKg as qty and pricePerKg as unit_price so the
-  // customer display shows "0.500 kg  @ ₹40/kg  = ₹20.00" correctly.
-  function buildDisplayPayload() {
+  // Stores the last correctly-built payload so the weight keepalive can rebroadcast
+  // it without a stale closure (setInterval cannot see re-rendered state values).
+  const lastPayloadRef = useRef(null);
+
+  // Push cart to customer display whenever cart or tax config changes.
+  // Payload is built INLINE so it always uses the current render's values —
+  // no stale-closure risk that a shared helper function could introduce.
+  useEffect(() => {
     const friendlyName = (name) =>
       /^[0-9]{6,}$/.test(name) ? "Item (barcode: " + name + ")" : name;
+
     const items = cart
       .filter((i) => Math.abs(i.delta || 0) > 0)
       .map((i) => {
         if (i.isWeight) {
+          // Weight items: show actual kg and per-kg price for clarity
           return {
             name: friendlyName(i.name),
             qty: i.weightKg,
             unit: "kg",
             unit_price: i.pricePerKg ?? null,
-            line_total: i.price ?? null, // price stores the total for weight items
+            line_total: i.price ?? null,
           };
         }
         const qty = Math.abs(i.delta || 0);
@@ -131,25 +137,8 @@ export default function POSPage() {
           line_total: price != null ? price * qty : null,
         };
       });
-    const raw = cartSubtotal(cart);
-    const { taxAmt, total } = calcTax(raw, vatConfig);
-    return {
-      items,
-      subtotal: raw,
-      tax_amt: taxAmt,
-      tax_name: vatConfig.enabled ? vatConfig.name : null,
-      tax_rate: vatConfig.enabled ? vatConfig.rate : 0,
-      grand_total: total,
-      currency: currency.symbol,
-      status: "active",
-    };
-  }
 
-  // Push cart to customer display whenever cart or tax config changes
-  useEffect(() => {
-    const payload = buildDisplayPayload();
-
-    if (payload.items.length > 0 && checkingOut.current) {
+    if (items.length > 0 && checkingOut.current) {
       // New customer started scanning before the post-checkout 4s window expired.
       // Unlock immediately so their items broadcast right away.
       checkingOut.current = false;
@@ -163,28 +152,44 @@ export default function POSPage() {
     // fired right after checkout; we don't want it to overwrite "Thank You".
     if (checkingOut.current) return;
 
+    const raw = cartSubtotal(cart);
+    const { taxAmt, total } = calcTax(raw, vatConfig);
+    const payload = {
+      items,
+      subtotal: raw,
+      tax_amt: taxAmt,
+      tax_name: vatConfig.enabled ? vatConfig.name : null,
+      tax_rate: vatConfig.enabled ? vatConfig.rate : 0,
+      grand_total: total,
+      currency: currency.symbol,
+      status: "active",
+    };
+
+    lastPayloadRef.current = payload; // cache for keepalive reuse
     displayBroadcast.current?.postMessage(payload);
     if (displaySessionId.current) {
       updateDisplaySession(displaySessionId.current, payload).catch(() => {});
     }
-  }, [cart, vatConfig, currency]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cart, vatConfig, currency]);
 
   // Open the WeightModal and keep the customer display alive during weight entry.
   // Problem: dispatch(ADD_WEIGHT) only fires AFTER user confirms weight, which
-  // can take 5-15 seconds.  During that window the poll suppression timer expires
+  // can take 5-15 seconds. During that window the poll suppression timer expires
   // and the poll fetches stale server data, clearing the display.
-  // Fix: broadcast the current cart immediately (resets lastBroadcastAt) and
-  // repeat every 2.5 s so the display is always suppressed while the modal is open.
+  // Fix: rebroadcast the last known payload immediately (resets lastBroadcastAt)
+  // and repeat every 2.5 s so the display is always suppressed while modal is open.
   function openWeightModal(product) {
     setWeightProduct(product);
     const sendKeepAlive = () => {
-      displayBroadcast.current?.postMessage(buildDisplayPayload());
+      if (lastPayloadRef.current) {
+        displayBroadcast.current?.postMessage(lastPayloadRef.current);
+      }
     };
-    sendKeepAlive(); // immediate — resets poll suppression right now
+    sendKeepAlive(); // immediate reset of poll-suppression timer
     weightKeepAlive.current = setInterval(sendKeepAlive, 2500);
   }
 
-  // Close the WeightModal and stop the keepalive.
+  // Close the WeightModal and stop the keepalive interval.
   function closeWeightModal() {
     if (weightKeepAlive.current) {
       clearInterval(weightKeepAlive.current);
